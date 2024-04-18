@@ -1,21 +1,22 @@
 {
   "name": "@spirex/di",
-  "version": "0.0.1",
   "description": "Dependency injection library for JS/TS",
+  "version": "0.0.1",
+  "private": false,
+  "license": "MIT",
   "author": {
     "name": "Artem Sobolenkov (SpireX)",
     "email": "SpireX@outlook.com"
   },
   "scripts": {
+    "lint": "eslint ./src",
     "build": "tsc -p tsconfig.json",
     "clean": "rm -r build"
   },
   "devDependencies": {
     "typescript": "5.4.5"
   },
-  "license": "MIT",
   "types": "build/lib/spirex@di.d.ts",
   "module": "build/es/spirex@di.js",
-  "main": "build/lib/spirex@di.js",
-  "private": false
+  "main": "build/lib/spirex@di.js"
 }
