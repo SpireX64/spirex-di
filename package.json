@@ -1,0 +1,15 @@
+{
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  },
+  "private": true,
+  "author": {
+    "name": "Artem Sobolenkov (SpireX)",
+    "email": "SpireX@outlook.com"
+  },
+  "devDependencies": {
+    "parcel": "2.12.0"
+  }
+}
