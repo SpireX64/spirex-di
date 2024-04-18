@@ -10,6 +10,6 @@
     "email": "SpireX@outlook.com"
   },
   "devDependencies": {
-    "parcel": "2.12.0"
+    "typescript": "5.4.5"
   }
 }

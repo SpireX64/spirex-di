@@ -6,6 +6,16 @@
     "name": "Artem Sobolenkov (SpireX)",
     "email": "SpireX@outlook.com"
   },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -r build"
+  },
+  "devDependencies": {
+    "typescript": "5.4.5"
+  },
   "license": "MIT",
+  "types": "build/lib/spirex@di.d.ts",
+  "module": "build/es/spirex@di.js",
+  "main": "build/lib/spirex@di.js",
   "private": false
 }

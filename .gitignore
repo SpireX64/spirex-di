@@ -24,6 +24,10 @@ coverage
 # nyc test coverage
 .nyc_output
 
+# Bundler output directory
+dist/
+build/
+
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
