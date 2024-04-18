@@ -11,6 +11,7 @@
   "scripts": {
     "lint": "eslint ./src",
     "build": "tsc -p tsconfig.json",
+    "test": "jest",
     "clean": "rm -r build"
   },
   "devDependencies": {
