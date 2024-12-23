@@ -1,0 +1,9 @@
+!build/
+node_modules/
+src/
+coverage/
+docs/
+yarn.lock
+tsconfig.json
+jest.config.js
+rollup.config.js

@@ -1,0 +1,32 @@
+{
+  "name": "@spirex/di",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": false,
+  "author": {
+    "name": "Artem Sobolenkov (SpireX)",
+    "email": "SpireX@outlook.com",
+    "url": "https://github.com/SpireX64"
+  },
+  "homepage": "https://github.com/SpireX64/spirex-di",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SpireX64/spirex-di"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:c": "jest --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "*",
+    "prettier": "*",
+    "typescript": "*",
+    "eslint": "*",
+    "rollup": "*",
+    "rollup-plugin-terser": "*",
+    "@rollup/plugin-typescript": "*",
+    "jest": "*",
+    "tslib": "*",
+    "ts-jest": "*"
+  }
+}
