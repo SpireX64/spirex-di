@@ -1,4 +1,5 @@
-import type {
+import {
+    TBindingOptions,
     TTypeEntry,
     TTypeFactory,
     TTypeFactoryEntry,
@@ -21,9 +22,12 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
     public bindInstance<K extends keyof TypeMap>(
         type: K,
         instance: TypeMap[K],
+        options?: TBindingOptions,
     ): this {
-        if (this._types.has(type))
+        if (this._types.has(type)) {
+            if (options?.ifConflict === "keep") return this;
             throw new Error(`Type "${type.toString()}" already registered`);
+        }
         const entry: TTypeInstanceEntry<K, TypeMap[K]> = {
             type,
             instance,
@@ -37,9 +41,12 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
     public bindFactory<K extends keyof TypeMap>(
         type: K,
         factory: TTypeFactory<TypeMap[K]>,
+        options?: TBindingOptions,
     ): this {
-        if (this._types.has(type))
+        if (this._types.has(type)) {
+            if (options?.ifConflict === "keep") return this;
             throw new Error(`Type "${type.toString()}" already registered`);
+        }
         const entry: TTypeFactoryEntry<K, TypeMap[K]> = {
             type,
             factory,

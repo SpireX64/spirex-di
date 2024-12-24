@@ -6,6 +6,12 @@ export type TTypeEntryBase<K> = {
     type: K;
 };
 
+export type TTypesConflictResolve = "throw" | "keep";
+
+export type TBindingOptions = {
+    ifConflict?: TTypesConflictResolve;
+};
+
 export type TTypeInstanceEntry<K, T> = TTypeEntryBase<K> & {
     instance: T;
     factory?: never;

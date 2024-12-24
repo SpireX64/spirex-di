@@ -80,5 +80,34 @@ describe("DIContainerBuilder", () => {
             expect(err).not.toBeUndefined();
             expect(entry?.factory).toBe(expectedFactory);
         });
+
+        test("Keep origin binding on conflict (instance)", () => {
+            // Arrange ----------
+            const expectedValue = 8;
+            const builder = new DIContainerBuilder<{ typeKey: number }>();
+            builder.bindInstance("typeKey", expectedValue);
+
+            // Act --------------
+            builder.bindInstance("typeKey", 123, { ifConflict: "keep" });
+            const entry = builder.getTypeEntry("typeKey");
+
+            // Arrange ---------
+            expect(entry?.instance).toBe(expectedValue);
+        });
+
+        test("Keep origin binding on conflict (factory)", () => {
+            // Arrange ----------
+            const expectedValue = 8;
+            const builder = new DIContainerBuilder<{ typeKey: number }>();
+            builder.bindInstance("typeKey", expectedValue);
+
+            // Act --------------
+            builder.bindFactory("typeKey", () => 42, { ifConflict: "keep" });
+            const entry = builder.getTypeEntry("typeKey");
+
+            // Arrange ---------
+            expect(entry?.instance).toBe(expectedValue);
+            expect(entry?.factory).toBeUndefined();
+        });
     });
 });
