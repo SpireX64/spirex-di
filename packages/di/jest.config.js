@@ -10,6 +10,7 @@ module.exports = {
         "<rootDir>/build/",
         "<rootDir>/node_modules/",
         "<rootDir>/types/",
+        "<rootDir>/src/__test__/",
     ],
     testPathIgnorePatterns: [
         "<rootDir>/build/",
