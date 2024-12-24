@@ -24,5 +24,25 @@ describe("DIContainerBuilder", () => {
         expect(typeEntry).not.toBeNull();
         expect(typeEntry?.type).toBe(expectedTypeKey);
         expect(typeEntry?.instance).toBe(expectedValue);
+        expect(typeEntry?.factory).toBeUndefined();
+    });
+
+    test("Bind factory", () => {
+        // Arrange ------
+        const expectedTypeKey = "typeKey";
+        const factory = jest.fn(() => "lorem");
+        const builder = new DIContainerBuilder<{ typeKey: string }>();
+
+        // Act ----------
+        const builderRef = builder.bindFactory(expectedTypeKey, factory);
+        const typeEntry = builder.getTypeEntry(expectedTypeKey);
+
+        // Assert -------
+        expect(builderRef).toBeInstanceOf(DIContainerBuilder);
+        expect(typeEntry).not.toBeNull();
+        expect(typeEntry?.type).toBe(expectedTypeKey);
+        expect(typeEntry?.factory).toBe(factory);
+        expect(typeEntry?.instance).toBeUndefined();
+        expect(factory).not.toHaveBeenCalled();
     });
 });

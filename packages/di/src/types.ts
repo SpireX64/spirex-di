@@ -1,6 +1,21 @@
 export type TTypeMapBase = Record<string, unknown>;
 
-export type TTypeEntry<K, T> = {
+export type TTypeFactory<T> = () => T;
+
+export type TTypeEntryBase<K> = {
     type: K;
-    instance: T;
 };
+
+export type TTypeInstanceEntry<K, T> = TTypeEntryBase<K> & {
+    instance: T;
+    factory?: never;
+};
+
+export type TTypeFactoryEntry<K, T> = TTypeEntryBase<K> & {
+    factory: TTypeFactory<T>;
+    instance?: never;
+};
+
+export type TTypeEntry<K, T> =
+    | TTypeInstanceEntry<K, T>
+    | TTypeFactoryEntry<K, T>;
