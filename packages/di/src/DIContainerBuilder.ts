@@ -22,6 +22,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         type: K,
         instance: TypeMap[K],
     ): this {
+        if (this._types.has(type))
+            throw new Error(`Type "${type.toString()}" already registered`);
         const entry: TTypeInstanceEntry<K, TypeMap[K]> = {
             type,
             instance,
@@ -36,6 +38,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         type: K,
         factory: TTypeFactory<TypeMap[K]>,
     ): this {
+        if (this._types.has(type))
+            throw new Error(`Type "${type.toString()}" already registered`);
         const entry: TTypeFactoryEntry<K, TypeMap[K]> = {
             type,
             factory,

@@ -1,4 +1,5 @@
 import { DIContainerBuilder } from "./DIContainerBuilder";
+import { catchError } from "./__test__/errors";
 
 describe("DIContainerBuilder", () => {
     test("Create builder instance", () => {
@@ -44,5 +45,40 @@ describe("DIContainerBuilder", () => {
         expect(typeEntry?.factory).toBe(factory);
         expect(typeEntry?.instance).toBeUndefined();
         expect(factory).not.toHaveBeenCalled();
+    });
+
+    describe("Binding conflicts", () => {
+        test("Throw when bind two instances with same type", () => {
+            // Arrange -------
+            const builder = new DIContainerBuilder<{ typeKey: number }>();
+
+            const expectedValue = 8;
+            builder.bindInstance("typeKey", expectedValue);
+
+            // Act -----------
+            const err = catchError(() => builder.bindInstance("typeKey", 42));
+            const entry = builder.getTypeEntry("typeKey");
+
+            // Assert --------
+            expect(err).not.toBeUndefined();
+            expect(entry?.instance).toBe(expectedValue);
+        });
+
+        test("Throw when bind two factories with same type", () => {
+            // Arrange -------
+            const builder = new DIContainerBuilder<{ typeKey: number }>();
+            const expectedFactory = () => 8;
+            builder.bindFactory("typeKey", expectedFactory);
+
+            // Act -----------
+            const err = catchError(() =>
+                builder.bindFactory("typeKey", () => 42),
+            );
+            const entry = builder.getTypeEntry("typeKey");
+
+            // Assert --------
+            expect(err).not.toBeUndefined();
+            expect(entry?.factory).toBe(expectedFactory);
+        });
     });
 });
