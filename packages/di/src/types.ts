@@ -6,7 +6,7 @@ export type TTypeEntryBase<K> = {
     type: K;
 };
 
-export type TTypesConflictResolve = "throw" | "keep";
+export type TTypesConflictResolve = "throw" | "keep" | "replace";
 
 export type TBindingOptions = {
     ifConflict?: TTypesConflictResolve;

@@ -26,7 +26,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
     ): this {
         if (this._types.has(type)) {
             if (options?.ifConflict === "keep") return this;
-            throw new Error(`Type "${type.toString()}" already registered`);
+            if (options?.ifConflict !== "replace")
+                throw new Error(`Type "${type.toString()}" already registered`);
         }
         const entry: TTypeInstanceEntry<K, TypeMap[K]> = {
             type,
@@ -45,7 +46,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
     ): this {
         if (this._types.has(type)) {
             if (options?.ifConflict === "keep") return this;
-            throw new Error(`Type "${type.toString()}" already registered`);
+            if (options?.ifConflict !== "replace")
+                throw new Error(`Type "${type.toString()}" already registered`);
         }
         const entry: TTypeFactoryEntry<K, TypeMap[K]> = {
             type,
