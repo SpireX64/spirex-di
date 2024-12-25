@@ -28,6 +28,18 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         return this._types.get(type) as TTypeEntry<K, TypeMap[K]>;
     }
 
+    /**
+     * Binds an existing instance to a specified type.
+     *
+     * This method registers an instance that will be returned when the specified type is resolved.
+     * @param type - The type to bind the instance to.
+     * @param instance - The instance to associate with the specified type.
+     * @param options - Options for binding.
+     *
+     * @throws {Error} If a binding conflict occurs with 'throw' option.
+     *
+     * @returns The current builder instance reference for method chaining.
+     */
     public bindInstance<K extends keyof TypeMap>(
         type: K,
         instance: TypeMap[K],
@@ -48,6 +60,18 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         return this;
     }
 
+    /**
+     * Binds a factory function to a specified type.
+     *
+     * The factory function is used to create an instance of the specified type when it is resolved.
+     * @param type - The type to bind the factory to.
+     * @param factory - The factory function to create instances of the specified type.
+     * @param options - Options for binding.
+     *
+     * @throws {Error} If a binding conflict occurs with 'throw' option.
+     *
+     * @returns The current builder instance reference for method chaining.
+     */
     public bindFactory<K extends keyof TypeMap>(
         type: K,
         factory: TTypeFactory<TypeMap[K]>,
@@ -66,6 +90,15 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         return this;
     }
 
+    /**
+     * Finalizes configuration and creates an immutable container.
+     *
+     * This method ensures all bindings are properly registered and no invalid configurations remain.
+     * The resulting container is immutable, preventing further modifications to bindings or services.
+     * @throws {Error} If the builder has no bindings, to prevent the creation of an unusable container.
+     *
+     * @returns An immutable container instance ready for dependency resolution
+     */
     public build(): DIContainer<TypeMap> {
         if (this._types.size === 0) throw new Error(Errors.EmptyContainer);
         return new DIContainer();
