@@ -1,4 +1,5 @@
 import { DIContainerBuilder } from "./DIContainerBuilder";
+import { DIContainer } from "./DIContainer";
 import { catchError } from "./__test__/errors";
 
 describe("DIContainerBuilder", () => {
@@ -140,6 +141,35 @@ describe("DIContainerBuilder", () => {
             // Arrange ---------
             expect(entry?.factory).toBe(expectedFactory);
             expect(entry?.instance).toBeUndefined();
+        });
+    });
+
+    describe("Build container", () => {
+        test("Trying to build empty container", () => {
+            // Arrange ------------
+            const builder = new DIContainerBuilder();
+
+            // Act ----------------
+            const error = catchError(() => builder.build());
+
+            // Assert -------------
+            expect(error).not.toBeNull();
+            expect(error?.message).toContain(
+                "Cannot create a container without bindings",
+            );
+        });
+
+        test("Build container with one entry", () => {
+            // Arrange ---------
+            const builder = new DIContainerBuilder<{
+                value: number;
+            }>().bindInstance("value", 42);
+
+            // Act -------------
+            const container = builder.build();
+
+            // Assert ----------
+            expect(container).toBeInstanceOf(DIContainer);
         });
     });
 });
