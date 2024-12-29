@@ -10,6 +10,7 @@ describe("validators", () => {
         ["singleton", true],
         ["Transient", false],
         ["transient", true],
+        ["lazy", true],
     ])("validateLifecycle(%s)=%s", (value, expected) => {
         expect(validateLifecycle(value)).toBe(expected);
     });

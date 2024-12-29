@@ -8,7 +8,7 @@ export type TTypeEntryBase<K> = {
 
 export type TTypesConflictResolve = "throw" | "keep" | "replace";
 
-export type TLifecycle = "singleton" | "transient";
+export type TLifecycle = "singleton" | "lazy" | "transient";
 
 export type TBindingOptions = Partial<{
     ifConflict?: TTypesConflictResolve;

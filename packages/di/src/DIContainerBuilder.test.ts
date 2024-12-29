@@ -155,20 +155,48 @@ describe("DIContainerBuilder", () => {
 
             // Act ----------------
             const entry = builder.getTypeEntry("value");
-            let lifecycle: TLifecycle | undefined;
 
-            if (isFactoryTypeEntry(entry)) {
-                lifecycle = entry.lifecycle;
-            }
+            let lifecycle: TLifecycle | undefined;
+            if (isFactoryTypeEntry(entry)) lifecycle = entry.lifecycle;
 
             // Assert -------------
             expect(lifecycle).toBe("singleton");
         });
 
-        test("Custom lifecycle", () => {
-            // Arrange -----------
-            const builder = new DIContainerBuilder<{ value: number }>();
-            builder.bindFactory("value", () => 42, { lifecycle: "transient" });
+        test.each(["lazy", "transient"] as TLifecycle[])(
+            "Custom lifecycle (%s)",
+            (lifecycle) => {
+                // Arrange -----------
+                const builder = new DIContainerBuilder<{ value: number }>();
+                builder.bindFactory("value", () => 42, { lifecycle });
+
+                // Act ---------------
+                const entry = builder.getTypeEntry("value");
+
+                let entryLifecycle: TLifecycle | undefined;
+                if (isFactoryTypeEntry(entry)) entryLifecycle = entry.lifecycle;
+
+                // Assert -----------
+                expect(entryLifecycle).toBe(lifecycle);
+            },
+        );
+
+        test("Pass unknown lifecycle", () => {
+            // Arrange ------------
+            const builder = new DIContainerBuilder<{
+                value: number;
+            }>();
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            builder.bindFactory("value", () => 42, { lifecycle: "unknown" });
+            const entry = builder.getTypeEntry("value");
+
+            // Act ----------------
+            let lifecycle: TLifecycle | undefined;
+            if (isFactoryTypeEntry(entry)) lifecycle = entry.lifecycle;
+
+            // Assert -------------
+            expect(lifecycle).toBe("singleton");
         });
 
         test("Instance binding have no lifecycle", () => {
