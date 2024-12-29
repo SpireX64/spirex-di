@@ -170,6 +170,19 @@ describe("DIContainerBuilder", () => {
             const builder = new DIContainerBuilder<{ value: number }>();
             builder.bindFactory("value", () => 42, { lifecycle: "transient" });
         });
+
+        test("Instance binding have no lifecycle", () => {
+            // Arrange -----------
+            const builder = new DIContainerBuilder<{ value: number }>();
+            builder.bindInstance("value", 42);
+            const entry = builder.getTypeEntry("value");
+
+            // Act ---------------
+
+            // Assert ------------
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            expect("lifecycle" in entry!).toBeFalsy();
+        });
     });
 
     describe("Build container", () => {
