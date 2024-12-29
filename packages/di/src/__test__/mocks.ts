@@ -23,6 +23,7 @@ export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
 ): TTypeFactoryEntry<typeof key, TypeMap[typeof key]> {
     return {
         type: key,
+        lifecycle: "singleton",
         factory,
     };
 }

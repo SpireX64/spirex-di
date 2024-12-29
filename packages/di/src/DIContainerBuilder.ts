@@ -1,5 +1,7 @@
 import type {
     TBindingOptions,
+    TFactoryBindingOptions,
+    TLifecycle,
     TTypeEntry,
     TTypeFactory,
     TTypeFactoryEntry,
@@ -7,6 +9,7 @@ import type {
     TTypeMapBase,
 } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
+import { validateLifecycle } from "./internal/validators";
 import { DIContainer } from "./DIContainer";
 
 const Errors = {
@@ -73,16 +76,22 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
     public bindFactory<K extends keyof TypeMap>(
         type: K,
         factory: TTypeFactory<TypeMap[K]>,
-        options?: TBindingOptions,
+        options?: TFactoryBindingOptions,
     ): this {
         if (this._types.has(type)) {
             if (options?.ifConflict === "keep") return this;
             if (options?.ifConflict !== "replace")
                 throw new Error(Errors.BindingConflict(type.toString()));
         }
+
+        const lifecycle: TLifecycle = validateLifecycle(options?.lifecycle)
+            ? options.lifecycle
+            : "singleton";
+
         const entry: TTypeFactoryEntry<K, TypeMap[K]> = {
             type,
             factory,
+            lifecycle,
         };
         this._types.set(type, entry);
         return this;

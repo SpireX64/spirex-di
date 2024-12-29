@@ -1,6 +1,8 @@
 import { DIContainerBuilder } from "./DIContainerBuilder";
 import { DIContainer } from "./DIContainer";
 import { catchError } from "./__test__/errors";
+import { isFactoryTypeEntry } from "./utils";
+import type { TLifecycle } from "./types";
 
 describe("DIContainerBuilder", () => {
     test("Create builder instance", () => {
@@ -141,6 +143,32 @@ describe("DIContainerBuilder", () => {
             // Arrange ---------
             expect(entry?.factory).toBe(expectedFactory);
             expect(entry?.instance).toBeUndefined();
+        });
+    });
+
+    describe("Instance lifecycle", () => {
+        test("Default lifecycle", () => {
+            // Arrange ------------
+            const builder = new DIContainerBuilder<{
+                value: number;
+            }>().bindFactory("value", () => 42);
+
+            // Act ----------------
+            const entry = builder.getTypeEntry("value");
+            let lifecycle: TLifecycle | undefined;
+
+            if (isFactoryTypeEntry(entry)) {
+                lifecycle = entry.lifecycle;
+            }
+
+            // Assert -------------
+            expect(lifecycle).toBe("singleton");
+        });
+
+        test("Custom lifecycle", () => {
+            // Arrange -----------
+            const builder = new DIContainerBuilder<{ value: number }>();
+            builder.bindFactory("value", () => 42, { lifecycle: "transient" });
         });
     });
 

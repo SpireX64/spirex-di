@@ -8,9 +8,16 @@ export type TTypeEntryBase<K> = {
 
 export type TTypesConflictResolve = "throw" | "keep" | "replace";
 
-export type TBindingOptions = {
+export type TLifecycle = "singleton" | "transient";
+
+export type TBindingOptions = Partial<{
     ifConflict?: TTypesConflictResolve;
-};
+}>;
+
+export type TFactoryBindingOptions = TBindingOptions &
+    Partial<{
+        lifecycle: TLifecycle;
+    }>;
 
 export type TTypeInstanceEntry<K, T> = TTypeEntryBase<K> & {
     instance: T;
@@ -19,6 +26,7 @@ export type TTypeInstanceEntry<K, T> = TTypeEntryBase<K> & {
 
 export type TTypeFactoryEntry<K, T> = TTypeEntryBase<K> & {
     factory: TTypeFactory<T>;
+    lifecycle: TLifecycle;
     instance?: never;
 };
 
