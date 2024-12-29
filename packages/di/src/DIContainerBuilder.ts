@@ -1,4 +1,4 @@
-import {
+import type {
     TBindingOptions,
     TTypeEntry,
     TTypeFactory,
@@ -6,6 +6,7 @@ import {
     TTypeInstanceEntry,
     TTypeMapBase,
 } from "./types";
+import type { TTypeEntriesMap } from "./internal/types";
 import { DIContainer } from "./DIContainer";
 
 const Errors = {
@@ -17,10 +18,7 @@ const Errors = {
 } as const;
 
 export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
-    private readonly _types = new Map<
-        keyof TypeMap,
-        TTypeEntry<keyof TypeMap, TypeMap[keyof TypeMap]>
-    >();
+    private readonly _types: TTypeEntriesMap<TypeMap> = new Map();
 
     public getTypeEntry<K extends keyof TypeMap>(
         type: K,
@@ -101,6 +99,6 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
      */
     public build(): DIContainer<TypeMap> {
         if (this._types.size === 0) throw new Error(Errors.EmptyContainer);
-        return new DIContainer();
+        return new DIContainer(this._types);
     }
 }
