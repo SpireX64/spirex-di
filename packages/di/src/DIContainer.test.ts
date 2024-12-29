@@ -58,7 +58,7 @@ describe("DIContainer", () => {
             expect(error?.message).toContain("value");
         });
 
-        test("Singletons created on with container", () => {
+        test("Singletons prepare when container created", () => {
             type TypeMap = { value: number };
 
             // Arrange --------
@@ -74,6 +74,45 @@ describe("DIContainer", () => {
 
             // Expect --------
             expect(factory).toHaveBeenCalledTimes(1);
+        });
+
+        test("Lazy singleton do not prepared when container created", () => {
+            type TypeMap = { value: number };
+
+            // Arrange --------
+            const factory = jest.fn(() => 42);
+            const factoryEntry = makeFactoryEntryMock<TypeMap>(
+                "value",
+                factory,
+                "lazy",
+            );
+            const map = makeEntriesMap(factoryEntry);
+
+            // Act -----------
+            new DIContainer(map);
+
+            // Expect --------
+            expect(factory).toHaveBeenCalledTimes(0);
+        });
+
+        test("Lazy singleton created on required", () => {
+            type TypeMap = { value: object };
+
+            // Arrange ------------
+            const factory = jest.fn(() => new Object());
+            const container = new DIContainer(
+                makeEntriesMap(
+                    makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                ),
+            );
+
+            // Act -----------------
+            const valueA = container.get("value");
+            const valueB = container.get("value");
+
+            // Assert --------------
+            expect(factory).toHaveBeenCalledTimes(1);
+            expect(valueA).toBe(valueB);
         });
 
         test("Get transient instance", () => {

@@ -27,12 +27,15 @@ export class DIContainer<TypeMap extends TTypeMapBase> {
             return entry.instance as TypeMap[Key];
         }
 
-        if (entry.lifecycle === "singleton") {
+        if (entry.lifecycle === "singleton" || entry.lifecycle === "lazy") {
             const cachedInstance = this._singletons.get(key);
             if (cachedInstance) return cachedInstance as TypeMap[Key];
         }
 
-        return entry.factory() as TypeMap[Key];
+        const instance = entry.factory() as TypeMap[Key];
+
+        if (entry.lifecycle === "lazy") this._singletons.set(key, instance);
+        return instance;
     }
 
     // region: Private methods
