@@ -1,6 +1,6 @@
 import type { TTypeMapBase } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
-import { isInstanceTypeEntry } from "./utils";
+import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
 
 const Errors = {
     TypeBindingNotFound: (type: string) => `Type binding ${type} not found.`,
@@ -8,9 +8,14 @@ const Errors = {
 
 export class DIContainer<TypeMap extends TTypeMapBase> {
     private readonly _entriesMap: Readonly<TTypeEntriesMap<TypeMap>>;
+    private readonly _singletons = new Map<
+        keyof TypeMap,
+        TypeMap[keyof TypeMap]
+    >();
 
     public constructor(private entriesMap: Readonly<TTypeEntriesMap<TypeMap>>) {
         this._entriesMap = entriesMap;
+        this.prepareSingletons();
     }
 
     public get<Key extends keyof TypeMap>(key: Key): TypeMap[Key] {
@@ -22,6 +27,24 @@ export class DIContainer<TypeMap extends TTypeMapBase> {
             return entry.instance as TypeMap[Key];
         }
 
+        if (entry.lifecycle === "singleton") {
+            const cachedInstance = this._singletons.get(key);
+            if (cachedInstance) return cachedInstance as TypeMap[Key];
+        }
+
         return entry.factory() as TypeMap[Key];
     }
+
+    // region: Private methods
+
+    /** @internal */
+    private prepareSingletons(): void {
+        this._entriesMap.forEach((entry) => {
+            if (isFactoryTypeEntry(entry) && entry.lifecycle === "singleton") {
+                this._singletons.set(entry.type, entry.factory());
+            }
+        });
+    }
+
+    // endregion: Private methods
 }

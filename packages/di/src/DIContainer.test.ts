@@ -57,5 +57,47 @@ describe("DIContainer", () => {
             expect(error).not.toBeUndefined();
             expect(error?.message).toContain("value");
         });
+
+        test("Singletons created on with container", () => {
+            type TypeMap = { value: number };
+
+            // Arrange --------
+            const factory = jest.fn(() => 42);
+            const factoryEntry = makeFactoryEntryMock<TypeMap>(
+                "value",
+                factory,
+            );
+            const map = makeEntriesMap(factoryEntry);
+
+            // Act -----------
+            new DIContainer(map);
+
+            // Expect --------
+            expect(factory).toHaveBeenCalledTimes(1);
+        });
+
+        test("Get transient instance", () => {
+            type TypeMap = { value: object };
+
+            // Arrange ------------
+            const factory = jest.fn(() => new Object());
+            const container = new DIContainer(
+                makeEntriesMap(
+                    makeFactoryEntryMock<TypeMap>(
+                        "value",
+                        factory,
+                        "transient",
+                    ),
+                ),
+            );
+
+            // Act -----------------
+            const valueA = container.get("value");
+            const valueB = container.get("value");
+
+            // Assert --------------
+            expect(factory).toHaveBeenCalledTimes(2);
+            expect(valueA).not.toBe(valueB);
+        });
     });
 });

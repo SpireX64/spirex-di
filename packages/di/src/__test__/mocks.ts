@@ -1,11 +1,12 @@
-import {
+import type {
+    TLifecycle,
     TTypeEntry,
     TTypeFactory,
     TTypeFactoryEntry,
     TTypeInstanceEntry,
     TTypeMapBase,
 } from "../types";
-import { TTypeEntriesMap } from "../internal/types";
+import type { TTypeEntriesMap } from "../internal/types";
 
 export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
@@ -20,10 +21,11 @@ export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
 export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
     factory: TTypeFactory<TypeMap[typeof key]>,
+    lifecycle?: TLifecycle,
 ): TTypeFactoryEntry<typeof key, TypeMap[typeof key]> {
     return {
         type: key,
-        lifecycle: "singleton",
+        lifecycle: lifecycle ?? "singleton",
         factory,
     };
 }

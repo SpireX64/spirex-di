@@ -175,9 +175,9 @@ describe("DIContainerBuilder", () => {
             // Arrange -----------
             const builder = new DIContainerBuilder<{ value: number }>();
             builder.bindInstance("value", 42);
-            const entry = builder.getTypeEntry("value");
 
             // Act ---------------
+            const entry = builder.getTypeEntry("value");
 
             // Assert ------------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
