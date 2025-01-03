@@ -1,6 +1,9 @@
 export type TTypeMapBase = Record<string, unknown>;
 
-export type TTypeFactory<T> = () => T;
+export type TTypeFactory<
+    TypeMap extends TTypeMapBase,
+    Key extends keyof TypeMap,
+> = (resolver: IInstanceResolver<TypeMap>) => TypeMap[Key];
 
 export type TTypeEntryBase<K> = {
     type: K;
@@ -19,17 +22,28 @@ export type TFactoryBindingOptions = TBindingOptions &
         lifecycle: TLifecycle;
     }>;
 
-export type TTypeInstanceEntry<K, T> = TTypeEntryBase<K> & {
-    instance: T;
+export type TTypeInstanceEntry<
+    TypeMap extends TTypeMapBase,
+    Key extends keyof TypeMap,
+> = TTypeEntryBase<Key> & {
+    instance: TypeMap[Key];
     factory?: never;
 };
 
-export type TTypeFactoryEntry<K, T> = TTypeEntryBase<K> & {
-    factory: TTypeFactory<T>;
+export type TTypeFactoryEntry<
+    TypeMap extends TTypeMapBase,
+    Key extends keyof TypeMap,
+> = TTypeEntryBase<Key> & {
+    factory: TTypeFactory<TypeMap, Key>;
     lifecycle: TLifecycle;
     instance?: never;
 };
 
-export type TTypeEntry<K, T> =
-    | TTypeInstanceEntry<K, T>
-    | TTypeFactoryEntry<K, T>;
+export type TTypeEntry<
+    TypeMap extends TTypeMapBase,
+    Key extends keyof TypeMap,
+> = TTypeInstanceEntry<TypeMap, Key> | TTypeFactoryEntry<TypeMap, Key>;
+
+export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
+    get<Key extends keyof TypeMap>(type: Key): TypeMap[Key];
+}

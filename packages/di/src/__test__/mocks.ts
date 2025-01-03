@@ -1,4 +1,5 @@
 import type {
+    IInstanceResolver,
     TLifecycle,
     TTypeEntry,
     TTypeFactory,
@@ -11,7 +12,7 @@ import type { TTypeEntriesMap } from "../internal/types";
 export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
     instance: TypeMap[typeof key],
-): TTypeInstanceEntry<typeof key, TypeMap[typeof key]> {
+): TTypeInstanceEntry<TypeMap, typeof key> {
     return {
         type: key,
         instance,
@@ -20,9 +21,9 @@ export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
 
 export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
-    factory: TTypeFactory<TypeMap[typeof key]>,
+    factory: TTypeFactory<TypeMap, typeof key>,
     lifecycle?: TLifecycle,
-): TTypeFactoryEntry<typeof key, TypeMap[typeof key]> {
+): TTypeFactoryEntry<TypeMap, typeof key> {
     return {
         type: key,
         lifecycle: lifecycle ?? "singleton",
@@ -31,7 +32,17 @@ export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
 }
 
 export function makeEntriesMap<TypeMap extends TTypeMapBase>(
-    ...entries: TTypeEntry<keyof TypeMap, TypeMap[keyof TypeMap]>[]
+    ...entries: TTypeEntry<TypeMap, keyof TypeMap>[]
 ): TTypeEntriesMap<TypeMap> {
     return new Map(entries.map((entry) => [entry.type, entry]));
+}
+
+export function createFakeResolver<TypeMap extends TTypeMapBase>(
+    instancesMap?: Partial<TypeMap>,
+): IInstanceResolver<TypeMap> {
+    return {
+        get<K extends keyof TypeMap>(type: K) {
+            return instancesMap?.[type] as TypeMap[K];
+        },
+    };
 }

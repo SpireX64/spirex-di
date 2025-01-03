@@ -1,8 +1,9 @@
 import { DIContainerBuilder } from "./DIContainerBuilder";
 import { DIContainer } from "./DIContainer";
-import { catchError } from "./__test__/errors";
 import { isFactoryTypeEntry } from "./utils";
 import type { TLifecycle } from "./types";
+import { catchError } from "./__test__/errors";
+import { createFakeResolver } from "./__test__/mocks";
 
 describe("DIContainerBuilder", () => {
     test("Create builder instance", () => {
@@ -210,6 +211,27 @@ describe("DIContainerBuilder", () => {
             // Assert ------------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             expect("lifecycle" in entry!).toBeFalsy();
+        });
+    });
+
+    describe("Dependencies", () => {
+        test("Bind factory with dependency", () => {
+            type TypeMap = { num: number; str: string };
+
+            // Arrange ------------
+            const fakeResolver = createFakeResolver<TypeMap>({ num: 42 });
+            const builder = new DIContainerBuilder<{
+                num: number;
+                str: string;
+            }>();
+
+            // Act ----------------
+            builder.bindFactory("str", (r) => `${r.get("num").toString()}dx`);
+
+            const entry = builder.getTypeEntry("str");
+
+            // Assert -------------
+            expect(entry?.factory?.(fakeResolver)).toBe("42dx");
         });
     });
 

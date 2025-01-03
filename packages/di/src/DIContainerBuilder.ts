@@ -23,10 +23,10 @@ const Errors = {
 export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
     private readonly _types: TTypeEntriesMap<TypeMap> = new Map();
 
-    public getTypeEntry<K extends keyof TypeMap>(
-        type: K,
-    ): TTypeEntry<K, TypeMap[K]> | null {
-        return this._types.get(type) as TTypeEntry<K, TypeMap[K]>;
+    public getTypeEntry<Key extends keyof TypeMap>(
+        type: Key,
+    ): TTypeEntry<TypeMap, Key> | null {
+        return this._types.get(type) as TTypeEntry<TypeMap, Key>;
     }
 
     /**
@@ -41,9 +41,9 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
      *
      * @returns The current builder instance reference for method chaining.
      */
-    public bindInstance<K extends keyof TypeMap>(
-        type: K,
-        instance: TypeMap[K],
+    public bindInstance<Key extends keyof TypeMap>(
+        type: Key,
+        instance: TypeMap[Key],
         options?: TBindingOptions,
     ): this {
         if (this._types.has(type)) {
@@ -51,13 +51,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
             if (options?.ifConflict !== "replace")
                 throw new Error(Errors.BindingConflict(type.toString()));
         }
-        const entry: TTypeInstanceEntry<K, TypeMap[K]> = {
-            type,
-            instance,
-        };
-
+        const entry: TTypeInstanceEntry<TypeMap, Key> = { type, instance };
         this._types.set(type, entry);
-
         return this;
     }
 
@@ -75,7 +70,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
      */
     public bindFactory<K extends keyof TypeMap>(
         type: K,
-        factory: TTypeFactory<TypeMap[K]>,
+        factory: TTypeFactory<TypeMap, K>,
         options?: TFactoryBindingOptions,
     ): this {
         if (this._types.has(type)) {
@@ -88,7 +83,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
             ? options.lifecycle
             : "singleton";
 
-        const entry: TTypeFactoryEntry<K, TypeMap[K]> = {
+        const entry: TTypeFactoryEntry<TypeMap, K> = {
             type,
             factory,
             lifecycle,
