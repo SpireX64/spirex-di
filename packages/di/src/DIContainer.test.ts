@@ -5,6 +5,7 @@ import {
     makeInstanceEntryMock,
 } from "./__test__/mocks";
 import { catchError } from "./__test__/errors";
+import { IInstanceResolver } from "./types";
 
 describe("DIContainer", () => {
     describe("Resolve type instance", () => {
@@ -137,6 +138,26 @@ describe("DIContainer", () => {
             // Assert --------------
             expect(factory).toHaveBeenCalledTimes(2);
             expect(valueA).not.toBe(valueB);
+        });
+
+        test("Get instance with dependency", () => {
+            type TypeMap = { valueA: string; valueB: string };
+            const factory = jest.fn(
+                (r: IInstanceResolver<TypeMap>) => `${r.get("valueA")}World`,
+            );
+            const container = new DIContainer(
+                makeEntriesMap(
+                    makeInstanceEntryMock<TypeMap>("valueA", "Hello"),
+                    makeFactoryEntryMock<TypeMap>("valueB", factory),
+                ),
+            );
+
+            // Act ------------
+            const value = container.get("valueB");
+
+            // Assert --------
+            expect(value).toBe("HelloWorld");
+            expect(factory).toHaveBeenCalledTimes(1);
         });
     });
 });
