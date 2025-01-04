@@ -44,27 +44,7 @@ export class InstanceActivator<TypeMap extends TTypeMapBase> {
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) return entry.instance;
 
-        if (this._currentActivationStack.length > 0) {
-            const lastActivatedEntry =
-                this._currentActivationStack[
-                    this._currentActivationStack.length - 1
-                ];
-            if (
-                compareLifecycles(
-                    lastActivatedEntry.lifecycle,
-                    entry.lifecycle,
-                ) > 0 // singleton -> lazy
-            ) {
-                throw new Error(
-                    Errors.LifecycleMismatch(
-                        lastActivatedEntry.type.toString(),
-                        lastActivatedEntry.lifecycle,
-                        entry.type.toString(),
-                        entry.lifecycle,
-                    ),
-                );
-            }
-        }
+        this.validateDependencyLifecycle(entry);
 
         const entryType = entry.type.toString();
         const hasDependencyCycle = this._currentActivationStack.includes(entry);
@@ -85,5 +65,32 @@ export class InstanceActivator<TypeMap extends TTypeMapBase> {
         const instance = entry.factory(resolver);
         this._currentActivationStack.pop();
         return instance;
+    }
+
+    private validateDependencyLifecycle(
+        factoryEntry: TTypeFactoryEntry<TypeMap, keyof TypeMap>,
+    ): void {
+        if (this._currentActivationStack.length <= 0) return;
+
+        const lastActivatedEntry =
+            this._currentActivationStack[
+                this._currentActivationStack.length - 1
+            ];
+
+        if (
+            compareLifecycles(
+                lastActivatedEntry.lifecycle,
+                factoryEntry.lifecycle,
+            ) > 0 // singleton -> lazy
+        ) {
+            throw new Error(
+                Errors.LifecycleMismatch(
+                    lastActivatedEntry.type.toString(),
+                    lastActivatedEntry.lifecycle,
+                    factoryEntry.type.toString(),
+                    factoryEntry.lifecycle,
+                ),
+            );
+        }
     }
 }
