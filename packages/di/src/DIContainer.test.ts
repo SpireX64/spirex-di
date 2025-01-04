@@ -6,6 +6,7 @@ import {
 } from "./__test__/mocks";
 import { catchError } from "./__test__/errors";
 import { IInstanceResolver } from "./types";
+import { InstanceActivator } from "./internal/InstanceActivator";
 
 describe("DIContainer", () => {
     describe("Resolve type instance", () => {
@@ -18,6 +19,7 @@ describe("DIContainer", () => {
                 makeRegistrar(
                     makeInstanceEntryMock<TypeMap>("value", expectedValue),
                 ),
+                new InstanceActivator(),
             );
 
             // Act --------------
@@ -35,6 +37,7 @@ describe("DIContainer", () => {
             const factory = jest.fn(() => expectedValue);
             const container = new DIContainer<TypeMap>(
                 makeRegistrar(makeFactoryEntryMock<TypeMap>("value", factory)),
+                new InstanceActivator(),
             );
 
             // Act --------------
@@ -49,6 +52,7 @@ describe("DIContainer", () => {
             // Arrange ----------
             const container = new DIContainer<{ value: number }>(
                 makeRegistrar(),
+                new InstanceActivator(),
             );
 
             // Act --------------
@@ -71,7 +75,7 @@ describe("DIContainer", () => {
             const map = makeRegistrar(factoryEntry);
 
             // Act -----------
-            new DIContainer(map);
+            new DIContainer(map, new InstanceActivator());
 
             // Expect --------
             expect(factory).toHaveBeenCalledTimes(1);
@@ -90,7 +94,7 @@ describe("DIContainer", () => {
             const map = makeRegistrar(factoryEntry);
 
             // Act -----------
-            new DIContainer(map);
+            new DIContainer(map, new InstanceActivator());
 
             // Expect --------
             expect(factory).toHaveBeenCalledTimes(0);
@@ -105,6 +109,7 @@ describe("DIContainer", () => {
                 makeRegistrar(
                     makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
                 ),
+                new InstanceActivator(),
             );
 
             // Act -----------------
@@ -129,6 +134,7 @@ describe("DIContainer", () => {
                         "transient",
                     ),
                 ),
+                new InstanceActivator(),
             );
 
             // Act -----------------
@@ -150,6 +156,7 @@ describe("DIContainer", () => {
                     makeInstanceEntryMock<TypeMap>("valueA", "Hello"),
                     makeFactoryEntryMock<TypeMap>("valueB", factory),
                 ),
+                new InstanceActivator(),
             );
 
             // Act ------------

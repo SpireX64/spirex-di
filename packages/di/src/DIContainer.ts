@@ -13,10 +13,14 @@ export class DIContainer<TypeMap extends TTypeMapBase>
 {
     private readonly _instances: InstancesStorage<TypeMap>;
     private readonly _registrar: Registrar<TypeMap>;
-    private readonly _activator = new InstanceActivator<TypeMap>();
+    private readonly _activator: InstanceActivator<TypeMap>;
 
-    public constructor(registrar: Registrar<TypeMap>) {
+    public constructor(
+        registrar: Registrar<TypeMap>,
+        activator: InstanceActivator<TypeMap>,
+    ) {
         this._registrar = registrar;
+        this._activator = activator;
         this._instances = this.activateSingletons(registrar);
     }
 
