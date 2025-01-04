@@ -1,6 +1,6 @@
 import { DIContainer } from "./DIContainer";
 import {
-    makeEntriesMap,
+    makeRegistrar,
     makeFactoryEntryMock,
     makeInstanceEntryMock,
 } from "./__test__/mocks";
@@ -15,7 +15,7 @@ describe("DIContainer", () => {
             // Arrange ----------
             const expectedValue = 42;
             const container = new DIContainer<TypeMap>(
-                makeEntriesMap(
+                makeRegistrar(
                     makeInstanceEntryMock<TypeMap>("value", expectedValue),
                 ),
             );
@@ -34,7 +34,7 @@ describe("DIContainer", () => {
             const expectedValue = 42;
             const factory = jest.fn(() => expectedValue);
             const container = new DIContainer<TypeMap>(
-                makeEntriesMap(makeFactoryEntryMock<TypeMap>("value", factory)),
+                makeRegistrar(makeFactoryEntryMock<TypeMap>("value", factory)),
             );
 
             // Act --------------
@@ -48,7 +48,7 @@ describe("DIContainer", () => {
         test("Throw when get an unregister type", () => {
             // Arrange ----------
             const container = new DIContainer<{ value: number }>(
-                makeEntriesMap(),
+                makeRegistrar(),
             );
 
             // Act --------------
@@ -68,7 +68,7 @@ describe("DIContainer", () => {
                 "value",
                 factory,
             );
-            const map = makeEntriesMap(factoryEntry);
+            const map = makeRegistrar(factoryEntry);
 
             // Act -----------
             new DIContainer(map);
@@ -87,7 +87,7 @@ describe("DIContainer", () => {
                 factory,
                 "lazy",
             );
-            const map = makeEntriesMap(factoryEntry);
+            const map = makeRegistrar(factoryEntry);
 
             // Act -----------
             new DIContainer(map);
@@ -102,7 +102,7 @@ describe("DIContainer", () => {
             // Arrange ------------
             const factory = jest.fn(() => new Object());
             const container = new DIContainer(
-                makeEntriesMap(
+                makeRegistrar(
                     makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
                 ),
             );
@@ -122,7 +122,7 @@ describe("DIContainer", () => {
             // Arrange ------------
             const factory = jest.fn(() => new Object());
             const container = new DIContainer(
-                makeEntriesMap(
+                makeRegistrar(
                     makeFactoryEntryMock<TypeMap>(
                         "value",
                         factory,
@@ -146,7 +146,7 @@ describe("DIContainer", () => {
                 (r: IInstanceResolver<TypeMap>) => `${r.get("valueA")}World`,
             );
             const container = new DIContainer(
-                makeEntriesMap(
+                makeRegistrar(
                     makeInstanceEntryMock<TypeMap>("valueA", "Hello"),
                     makeFactoryEntryMock<TypeMap>("valueB", factory),
                 ),

@@ -1,5 +1,5 @@
 import type { IInstanceResolver, TTypeMapBase } from "./types";
-import type { TTypeEntriesMap } from "./internal/types";
+import { Registrar } from "./internal/Registrar";
 import { InstancesStorage } from "./internal/InstancesStorage";
 import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
 
@@ -12,28 +12,26 @@ export class DIContainer<TypeMap extends TTypeMapBase>
 {
     private readonly _instances = new InstancesStorage<TypeMap>();
 
-    private readonly _entriesMap: Readonly<TTypeEntriesMap<TypeMap>>;
+    private readonly _registrar: Registrar<TypeMap>;
 
-    public constructor(entriesMap: Readonly<TTypeEntriesMap<TypeMap>>) {
-        this._entriesMap = entriesMap;
+    public constructor(registrar: Registrar<TypeMap>) {
+        this._registrar = registrar;
         this.prepareSingletons();
     }
 
     public get<Key extends keyof TypeMap>(key: Key): TypeMap[Key] {
-        const entry = this._entriesMap.get(key);
+        const entry = this._registrar.findTypeEntry(key);
 
         if (!entry) throw Error(Errors.TypeBindingNotFound(key.toString()));
 
-        if (isInstanceTypeEntry(entry)) {
-            return entry.instance as TypeMap[Key];
-        }
+        if (isInstanceTypeEntry(entry)) return entry.instance;
 
         if (entry.lifecycle === "singleton" || entry.lifecycle === "lazy") {
             const singleton = this._instances.getInstance(key);
             if (singleton) return singleton;
         }
 
-        const instance = entry.factory(this) as TypeMap[Key];
+        const instance = entry.factory(this);
 
         if (entry.lifecycle === "lazy")
             this._instances.storeInstance(key, instance);
@@ -44,7 +42,7 @@ export class DIContainer<TypeMap extends TTypeMapBase>
 
     /** @internal */
     private prepareSingletons(): void {
-        this._entriesMap.forEach((entry) => {
+        this._registrar.forEach((entry) => {
             if (isFactoryTypeEntry(entry) && entry.lifecycle === "singleton") {
                 this._instances.storeInstance(entry.type, entry.factory(this));
             }

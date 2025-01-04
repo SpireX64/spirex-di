@@ -8,6 +8,7 @@ import type {
     TTypeMapBase,
 } from "../types";
 import type { TTypeEntriesMap } from "../internal/types";
+import { Registrar } from "../internal/Registrar";
 
 export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
@@ -35,6 +36,12 @@ export function makeEntriesMap<TypeMap extends TTypeMapBase>(
     ...entries: TTypeEntry<TypeMap, keyof TypeMap>[]
 ): TTypeEntriesMap<TypeMap> {
     return new Map(entries.map((entry) => [entry.type, entry]));
+}
+
+export function makeRegistrar<TypeMap extends TTypeMapBase>(
+    ...entries: TTypeEntry<TypeMap, keyof TypeMap>[]
+): Registrar<TypeMap> {
+    return new Registrar(makeEntriesMap(...entries));
 }
 
 export function createFakeResolver<TypeMap extends TTypeMapBase>(

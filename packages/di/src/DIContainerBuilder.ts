@@ -11,6 +11,7 @@ import type {
 import type { TTypeEntriesMap } from "./internal/types";
 import { validateLifecycle } from "./internal/validators";
 import { DIContainer } from "./DIContainer";
+import { Registrar } from "./internal/Registrar";
 
 const Errors = {
     EmptyContainer:
@@ -103,6 +104,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
      */
     public build(): DIContainer<TypeMap> {
         if (this._types.size === 0) throw new Error(Errors.EmptyContainer);
-        return new DIContainer(this._types);
+        const registrar = new Registrar(this._types);
+        return new DIContainer(registrar);
     }
 }
