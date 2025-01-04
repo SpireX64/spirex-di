@@ -44,12 +44,13 @@ export function makeRegistrar<TypeMap extends TTypeMapBase>(
     return new Registrar(makeEntriesMap(...entries));
 }
 
-export function createFakeResolver<TypeMap extends TTypeMapBase>(
+export function createMockResolver<TypeMap extends TTypeMapBase>(
     instancesMap?: Partial<TypeMap>,
 ): IInstanceResolver<TypeMap> {
     return {
-        get<K extends keyof TypeMap>(type: K) {
-            return instancesMap?.[type] as TypeMap[K];
-        },
+        get: jest.fn(
+            <K extends keyof TypeMap>(type: K) =>
+                instancesMap?.[type] as TypeMap[K],
+        ),
     };
 }
