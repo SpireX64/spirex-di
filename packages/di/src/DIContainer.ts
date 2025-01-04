@@ -1,6 +1,7 @@
 import type { IInstanceResolver, TTypeMapBase } from "./types";
 import { Registrar } from "./internal/Registrar";
 import { InstancesStorage } from "./internal/InstancesStorage";
+import { InstanceActivator } from "./internal/InstanceActivator";
 import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
 
 const Errors = {
@@ -13,6 +14,7 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     private readonly _instances = new InstancesStorage<TypeMap>();
 
     private readonly _registrar: Registrar<TypeMap>;
+    private readonly _activator = new InstanceActivator<TypeMap>();
 
     public constructor(registrar: Registrar<TypeMap>) {
         this._registrar = registrar;
@@ -31,7 +33,7 @@ export class DIContainer<TypeMap extends TTypeMapBase>
             if (singleton) return singleton;
         }
 
-        const instance = entry.factory(this);
+        const instance = this._activator.createInstance(entry, this);
 
         if (entry.lifecycle === "lazy")
             this._instances.storeInstance(key, instance);
@@ -44,7 +46,10 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     private prepareSingletons(): void {
         this._registrar.forEach((entry) => {
             if (isFactoryTypeEntry(entry) && entry.lifecycle === "singleton") {
-                this._instances.storeInstance(entry.type, entry.factory(this));
+                this._instances.storeInstance(
+                    entry.type,
+                    this._activator.createInstance(entry, this),
+                );
             }
         });
     }
