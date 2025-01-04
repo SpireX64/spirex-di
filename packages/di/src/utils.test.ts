@@ -1,6 +1,10 @@
-import { TTypeEntry, TTypeEntryBase } from "./types";
+import type { TLifecycle, TTypeEntry, TTypeEntryBase } from "./types";
 import { makeFactoryEntryMock, makeInstanceEntryMock } from "./__test__/mocks";
-import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
+import {
+    compareLifecycles,
+    isFactoryTypeEntry,
+    isInstanceTypeEntry,
+} from "./utils";
 
 type TUnknownTypeEntry = TTypeEntry<
     TTypeEntryBase<unknown>,
@@ -41,6 +45,25 @@ describe("utils", () => {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
             expect(isFactoryTypeEntry(entry)).toBe(expected);
+        },
+    );
+
+    test.each([
+        ["singleton", "singleton", 0],
+        ["singleton", "lazy", 1],
+        ["singleton", "transient", 1],
+        ["lazy", "lazy", 0],
+        ["lazy", "singleton", -1],
+        ["lazy", "transient", 1],
+        ["transient", "transient", 0],
+        ["transient", "singleton", -1],
+        ["transient", "lazy", -1],
+    ] as ReadonlyArray<[TLifecycle, TLifecycle, number]>)(
+        "Compare lifecycles %s & %s",
+        (lc1, lc2, expectedComparation) => {
+            expect(Math.sign(compareLifecycles(lc1, lc2))).toBe(
+                expectedComparation,
+            );
         },
     );
 });

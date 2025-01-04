@@ -1,4 +1,5 @@
 import type {
+    TLifecycle,
     TTypeEntry,
     TTypeFactoryEntry,
     TTypeInstanceEntry,
@@ -21,4 +22,14 @@ export function isFactoryTypeEntry<
     entry: TTypeEntry<TypeMap, Key> | null | undefined,
 ): entry is TTypeFactoryEntry<TypeMap, Key> {
     return !!entry && "factory" in entry;
+}
+
+const lifecycleLevelMap: Record<TLifecycle, number> = {
+    transient: 0,
+    lazy: 1,
+    singleton: 2,
+};
+
+export function compareLifecycles(lhv: TLifecycle, rhv: TLifecycle): number {
+    return lifecycleLevelMap[lhv] - lifecycleLevelMap[rhv];
 }
