@@ -11,14 +11,13 @@ const Errors = {
 export class DIContainer<TypeMap extends TTypeMapBase>
     implements IInstanceResolver<TypeMap>
 {
-    private readonly _instances = new InstancesStorage<TypeMap>();
-
+    private readonly _instances: InstancesStorage<TypeMap>;
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator = new InstanceActivator<TypeMap>();
 
     public constructor(registrar: Registrar<TypeMap>) {
         this._registrar = registrar;
-        this.prepareSingletons();
+        this._instances = this.activateSingletons(registrar);
     }
 
     public get<Key extends keyof TypeMap>(key: Key): TypeMap[Key] {
@@ -43,15 +42,17 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     // region: Private methods
 
     /** @internal */
-    private prepareSingletons(): void {
-        this._registrar.forEach((entry) => {
+    private activateSingletons(
+        registrar: Registrar<TypeMap>,
+    ): InstancesStorage<TypeMap> {
+        const storage = new InstancesStorage<TypeMap>();
+        registrar.forEach((entry) => {
             if (isFactoryTypeEntry(entry) && entry.lifecycle === "singleton") {
-                this._instances.storeInstance(
-                    entry.type,
-                    this._activator.createInstance(entry, this),
-                );
+                const instance = this._activator.createInstance(entry, this);
+                storage.storeInstance(entry.type, instance);
             }
         });
+        return storage;
     }
 
     // endregion: Private methods
