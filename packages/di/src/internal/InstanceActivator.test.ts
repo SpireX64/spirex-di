@@ -61,105 +61,133 @@ describe("InstanceActivator", () => {
         expect(factoryEntry.factory).toHaveBeenCalledTimes(1);
     });
 
-    test("Activation short cycle", () => {
-        type TypeMap = { value: string };
+    describe("Detect dependencies cycle", () => {
+        test("Activation short cycle", () => {
+            type TypeMap = { value: string };
 
-        // Arrange --------
-        const registrar = makeRegistrar(
-            makeFactoryEntryMock<TypeMap>(
-                "value",
-                (r) => r.get("value"),
-                "lazy",
-            ),
-        );
-        const activator = new InstanceActivator<TypeMap>();
-        const container = new DIContainer(registrar, activator);
+            // Arrange --------
+            const registrar = makeRegistrar(
+                makeFactoryEntryMock<TypeMap>(
+                    "value",
+                    (r) => r.get("value"),
+                    "lazy",
+                ),
+            );
+            const activator = new InstanceActivator<TypeMap>();
+            const container = new DIContainer(registrar, activator);
 
-        // Act ---------
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const entry = registrar.findTypeEntry("value")!;
-        const error = catchError(() => {
-            activator.createInstance(entry, container);
+            // Act ---------
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const entry = registrar.findTypeEntry("value")!;
+            const error = catchError(() => {
+                activator.createInstance(entry, container);
+            });
+
+            // Assert ------
+            expect(error).not.toBeUndefined();
+            expect(error?.message).toContain("value -> value");
         });
 
-        // Assert ------
-        expect(error).not.toBeUndefined();
-        expect(error?.message).toContain("value -> value");
+        test("Activation long cycle", () => {
+            type TypeMap = { valueA: string; valueB: string; valueC: string };
+
+            // Arrange --------
+            const registrar = makeRegistrar(
+                makeFactoryEntryMock<TypeMap>(
+                    "valueA",
+                    (r) => r.get("valueB"),
+                    "lazy",
+                ),
+                makeFactoryEntryMock<TypeMap>(
+                    "valueB",
+                    (r) => r.get("valueC"),
+                    "lazy",
+                ),
+                makeFactoryEntryMock<TypeMap>(
+                    "valueC",
+                    (r) => r.get("valueA"),
+                    "lazy",
+                ),
+            );
+            const activator = new InstanceActivator<TypeMap>();
+            const container = new DIContainer(registrar, activator);
+
+            // Act ---------
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const entry = registrar.findTypeEntry("valueA")!;
+            const error = catchError(() => {
+                activator.createInstance(entry, container);
+            });
+
+            // Assert ------
+            expect(error).not.toBeUndefined();
+            expect(error?.message).toContain(
+                "[valueA] -> valueB -> valueC -> [valueA]",
+            );
+        });
+
+        test("Deep activation cycle", () => {
+            type TypeMap = { valueA: string; valueB: string; valueC: string };
+
+            // Arrange --------
+            const registrar = makeRegistrar(
+                makeFactoryEntryMock<TypeMap>(
+                    "valueA",
+                    (r) => r.get("valueB"),
+                    "lazy",
+                ),
+                makeFactoryEntryMock<TypeMap>(
+                    "valueB",
+                    (r) => r.get("valueC"),
+                    "lazy",
+                ),
+                makeFactoryEntryMock<TypeMap>(
+                    "valueC",
+                    (r) => r.get("valueB"),
+                    "lazy",
+                ),
+            );
+            const activator = new InstanceActivator<TypeMap>();
+            const container = new DIContainer(registrar, activator);
+
+            // Act ---------
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const entry = registrar.findTypeEntry("valueA")!;
+            const error = catchError(() => {
+                activator.createInstance(entry, container);
+            });
+
+            // Assert ------
+            expect(error).not.toBeUndefined();
+            expect(error?.message).toContain(
+                "valueA -> [valueB] -> valueC -> [valueB]",
+            );
+        });
     });
 
-    test("Activation long cycle", () => {
-        type TypeMap = { valueA: string; valueB: string; valueC: string };
+    test("Dependency lifecycle mismatch", () => {
+        type TypeMap = { valueA: string; valueB: string };
 
         // Arrange --------
-        const registrar = makeRegistrar(
-            makeFactoryEntryMock<TypeMap>(
-                "valueA",
-                (r) => r.get("valueB"),
-                "lazy",
-            ),
-            makeFactoryEntryMock<TypeMap>(
-                "valueB",
-                (r) => r.get("valueC"),
-                "lazy",
-            ),
-            makeFactoryEntryMock<TypeMap>(
-                "valueC",
-                (r) => r.get("valueA"),
-                "lazy",
-            ),
+        const registrar = makeRegistrar<TypeMap>(
+            makeFactoryEntryMock("valueA", () => "Hello", "transient"),
+            makeFactoryEntryMock("valueB", (r) => r.get("valueA"), "lazy"),
         );
         const activator = new InstanceActivator<TypeMap>();
         const container = new DIContainer(registrar, activator);
 
-        // Act ---------
+        // Act ------------
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const entry = registrar.findTypeEntry("valueA")!;
+        const entry = registrar.findTypeEntry("valueB")!;
         const error = catchError(() => {
             activator.createInstance(entry, container);
         });
 
-        // Assert ------
+        // Assert ---------
+        console.log(error);
         expect(error).not.toBeUndefined();
         expect(error?.message).toContain(
-            "[valueA] -> valueB -> valueC -> [valueA]",
-        );
-    });
-
-    test("Deep activation cycle", () => {
-        type TypeMap = { valueA: string; valueB: string; valueC: string };
-
-        // Arrange --------
-        const registrar = makeRegistrar(
-            makeFactoryEntryMock<TypeMap>(
-                "valueA",
-                (r) => r.get("valueB"),
-                "lazy",
-            ),
-            makeFactoryEntryMock<TypeMap>(
-                "valueB",
-                (r) => r.get("valueC"),
-                "lazy",
-            ),
-            makeFactoryEntryMock<TypeMap>(
-                "valueC",
-                (r) => r.get("valueB"),
-                "lazy",
-            ),
-        );
-        const activator = new InstanceActivator<TypeMap>();
-        const container = new DIContainer(registrar, activator);
-
-        // Act ---------
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const entry = registrar.findTypeEntry("valueA")!;
-        const error = catchError(() => {
-            activator.createInstance(entry, container);
-        });
-
-        // Assert ------
-        expect(error).not.toBeUndefined();
-        expect(error?.message).toContain(
-            "valueA -> [valueB] -> valueC -> [valueB]",
+            "'lazy' cannot depend on a 'transient'",
         );
     });
 });

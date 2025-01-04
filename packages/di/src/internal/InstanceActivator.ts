@@ -1,5 +1,11 @@
-import type { IInstanceResolver, TTypeEntry, TTypeMapBase } from "../types";
-import { isInstanceTypeEntry } from "../utils";
+import type {
+    IInstanceResolver,
+    TLifecycle,
+    TTypeEntry,
+    TTypeFactoryEntry,
+    TTypeMapBase,
+} from "../types";
+import { compareLifecycles, isInstanceTypeEntry } from "../utils";
 
 const Errors = {
     DependenciesCycle: (entryType: string, chain: readonly string[]) => {
@@ -12,10 +18,25 @@ const Errors = {
                 : entryType + sep + entryType;
         return `Activation failed: A cyclic dependency was detected while resolving type '${entryType}'. Ensure that your dependencies do not form a circular reference. (Activation chain: ${chainString})`;
     },
+    LifecycleMismatch: (
+        dependentType: string,
+        dependentLifecycle: TLifecycle,
+        dependencyType: string,
+        dependencyLifecycle: TLifecycle,
+    ) => {
+        return (
+            `Dependency lifecycle mismatch: The lifecycle '${dependentLifecycle}' of type '${dependentType}' is incompatible with the lifecycle '${dependencyLifecycle}' of its dependency '${dependencyType}'. ` +
+            `A '${dependentLifecycle}' cannot depend on a '${dependencyLifecycle}' as this violates lifecycle constraints. ` +
+            `Ensure that dependencies do not extend the lifetime of their parent type, and adjust lifecycle configurations to align correctly.`
+        );
+    },
 };
 
 export class InstanceActivator<TypeMap extends TTypeMapBase> {
-    private _currentActivationStack: string[] = [];
+    private _currentActivationStack: TTypeFactoryEntry<
+        TypeMap,
+        keyof TypeMap
+    >[] = [];
 
     public createInstance<Key extends keyof TypeMap>(
         entry: TTypeEntry<TypeMap, Key>,
@@ -23,15 +44,38 @@ export class InstanceActivator<TypeMap extends TTypeMapBase> {
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) return entry.instance;
 
+        if (this._currentActivationStack.length > 0) {
+            const lastActivatedEntry =
+                this._currentActivationStack[
+                    this._currentActivationStack.length - 1
+                ];
+            if (
+                compareLifecycles(
+                    lastActivatedEntry.lifecycle,
+                    entry.lifecycle,
+                ) > 0 // singleton -> lazy
+            ) {
+                throw new Error(
+                    Errors.LifecycleMismatch(
+                        lastActivatedEntry.type.toString(),
+                        lastActivatedEntry.lifecycle,
+                        entry.type.toString(),
+                        entry.lifecycle,
+                    ),
+                );
+            }
+        }
+
         const entryType = entry.type.toString();
-        const hasDependencyCycle =
-            this._currentActivationStack.includes(entryType);
-        this._currentActivationStack.push(entryType);
+        const hasDependencyCycle = this._currentActivationStack.includes(entry);
+        this._currentActivationStack.push(entry);
         if (hasDependencyCycle) {
             const error = new Error(
                 Errors.DependenciesCycle(
                     entryType,
-                    this._currentActivationStack,
+                    this._currentActivationStack.map((it) =>
+                        it.type.toString(),
+                    ),
                 ),
             );
             this._currentActivationStack.length = 0;
