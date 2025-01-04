@@ -1,6 +1,11 @@
-import { TTypeEntry } from "./types";
+import { TTypeEntry, TTypeEntryBase } from "./types";
 import { makeFactoryEntryMock, makeInstanceEntryMock } from "./__test__/mocks";
 import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
+
+type TUnknownTypeEntry = TTypeEntry<
+    TTypeEntryBase<unknown>,
+    keyof TTypeEntryBase<unknown>
+>;
 
 describe("utils", () => {
     test.each([
@@ -12,7 +17,7 @@ describe("utils", () => {
     ])(
         "isInstanceTypeEntry(%s)=%s",
         (
-            entry: TTypeEntry<unknown, unknown> | object | null | undefined,
+            entry: TUnknownTypeEntry | object | null | undefined,
             expected: boolean,
         ) => {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -30,7 +35,7 @@ describe("utils", () => {
     ])(
         "isFactoryTypeEntry(%s)=%s",
         (
-            entry: TTypeEntry<unknown, unknown> | object | null | undefined,
+            entry: TUnknownTypeEntry | object | null | undefined,
             expected: boolean,
         ) => {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment

@@ -220,10 +220,7 @@ describe("DIContainerBuilder", () => {
 
             // Arrange ------------
             const fakeResolver = createFakeResolver<TypeMap>({ num: 42 });
-            const builder = new DIContainerBuilder<{
-                num: number;
-                str: string;
-            }>();
+            const builder = new DIContainerBuilder<TypeMap>();
 
             // Act ----------------
             builder.bindFactory("str", (r) => `${r.get("num").toString()}dx`);
