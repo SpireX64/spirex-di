@@ -1,7 +1,7 @@
 import { DIContainerBuilder } from "./DIContainerBuilder";
 import { DIContainer } from "./DIContainer";
 import { isFactoryTypeEntry } from "./utils";
-import type { TLifecycle } from "./types";
+import type { TLifecycle, TProvider } from "./types";
 import { catchError } from "./__test__/errors";
 import { createMockResolver } from "./__test__/mocks";
 
@@ -229,6 +229,32 @@ describe("DIContainerBuilder", () => {
 
             // Assert -------------
             expect(entry?.factory?.(fakeResolver)).toBe("42dx");
+        });
+
+        test("Bind factory with dependency provider", () => {
+            type TypeMap = {
+                value: number;
+                obj: { getter: TProvider<number> };
+            };
+
+            // Arrange ---------
+            const expectedValue = 42;
+            const resolver = createMockResolver<TypeMap>({
+                value: expectedValue,
+            });
+            const builder = new DIContainerBuilder<TypeMap>();
+
+            // Act -------------
+            builder.bindFactory("obj", (r) => ({
+                getter: r.getProvider("value"),
+            }));
+
+            const entry = builder.getTypeEntry("obj");
+            const resolvedObject = entry?.factory?.(resolver);
+
+            // Assert ----------
+            expect(resolvedObject).not.toBeUndefined();
+            expect(resolvedObject?.getter()).toBe(expectedValue);
         });
     });
 

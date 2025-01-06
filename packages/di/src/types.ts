@@ -1,5 +1,7 @@
 export type TTypeMapBase = Record<string, unknown>;
 
+export type TProvider<T> = () => T;
+
 export type TTypeFactory<
     TypeMap extends TTypeMapBase,
     Key extends keyof TypeMap,
@@ -46,4 +48,5 @@ export type TTypeEntry<
 
 export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
     get<Key extends keyof TypeMap>(type: Key): TypeMap[Key];
+    getProvider<Key extends keyof TypeMap>(type: Key): TProvider<TypeMap[Key]>;
 }

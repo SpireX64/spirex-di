@@ -52,5 +52,11 @@ export function createMockResolver<TypeMap extends TTypeMapBase>(
             <K extends keyof TypeMap>(type: K) =>
                 instancesMap?.[type] as TypeMap[K],
         ),
+
+        getProvider: jest.fn(
+            <K extends keyof TypeMap>(type: K) =>
+                () =>
+                    instancesMap?.[type] as TypeMap[K],
+        ),
     };
 }

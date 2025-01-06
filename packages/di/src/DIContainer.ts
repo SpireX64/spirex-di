@@ -1,4 +1,4 @@
-import type { IInstanceResolver, TTypeMapBase } from "./types";
+import type { IInstanceResolver, TProvider, TTypeMapBase } from "./types";
 import { Registrar } from "./internal/Registrar";
 import { InstancesStorage } from "./internal/InstancesStorage";
 import { InstanceActivator } from "./internal/InstanceActivator";
@@ -41,6 +41,12 @@ export class DIContainer<TypeMap extends TTypeMapBase>
         if (entry.lifecycle === "lazy")
             this._instances.storeInstance(key, instance);
         return instance;
+    }
+
+    public getProvider<Key extends keyof TypeMap>(
+        type: Key,
+    ): TProvider<TypeMap[Key]> {
+        return this.get.bind(this, type) as TProvider<TypeMap[Key]>;
     }
 
     // region: Private methods
