@@ -166,5 +166,30 @@ describe("DIContainer", () => {
             expect(value).toBe("HelloWorld");
             expect(factory).toHaveBeenCalledTimes(1);
         });
+
+        test("Get instance provider", () => {
+            type TypeMap = { value: string };
+
+            // Arrange ------------
+            const expectedValue = "Hello";
+            const factory = jest.fn(() => expectedValue);
+            const container = new DIContainer(
+                makeRegistrar(
+                    makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                ),
+                new InstanceActivator(),
+            );
+            const valueProvider = container.getProvider("value");
+
+            // Assert before -----------
+            expect(factory).not.toHaveBeenCalled();
+
+            // Act -------
+            const value = valueProvider();
+
+            // Assert --------
+            expect(factory).toHaveBeenCalledTimes(1);
+            expect(value).toBe(expectedValue);
+        });
     });
 });
