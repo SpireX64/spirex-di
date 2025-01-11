@@ -8,13 +8,14 @@ import type {
     TTypeFactoryEntry,
     TTypeInstanceEntry,
     TTypeMapBase,
+    TTypesConflictResolve,
 } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
 import { validateLifecycle } from "./internal/validators";
 import { DIContainer } from "./DIContainer";
 import { Registrar } from "./internal/Registrar";
 import { InstanceActivator } from "./internal/InstanceActivator";
-import { makeEntryId } from "./internal/utils";
+import { checkIsTypeEntryMapItem, makeEntryId } from "./internal/utils";
 
 const Errors = {
     EmptyContainer:
@@ -31,11 +32,20 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         type: Key,
         name?: string | undefined,
     ): TTypeEntry<TypeMap, Key> | null {
-        return (
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            (this._types.get(makeEntryId(type, name))?.values().next()
-                .value as TTypeEntry<TypeMap, Key>) ?? null
-        );
+        const item = this._types.get(makeEntryId(type, name)) || null;
+        if (!item || checkIsTypeEntryMapItem(item))
+            return item as TTypeEntry<TypeMap, Key>;
+        return item.values().next().value as TTypeEntry<TypeMap, Key>;
+    }
+
+    public findAllTypeEntries<Key extends keyof TypeMap>(
+        type: Key,
+    ): readonly TTypeEntry<TypeMap, Key>[] {
+        const item = this._types.get(makeEntryId(type));
+        if (!item) return [];
+        if (checkIsTypeEntryMapItem(item))
+            return Array.of(item as TTypeEntry<TypeMap, Key>);
+        return Array.from(item) as TTypeEntry<TypeMap, Key>[];
     }
 
     /**
@@ -56,19 +66,17 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         options?: TBindingOptions,
     ): this {
         const $id: TEntryId = makeEntryId(type, options?.name);
+        if (this.validateBinding($id, options?.ifConflict)) return this;
 
-        if (this._types.has($id)) {
-            if (options?.ifConflict === "keep") return this;
-            if (options?.ifConflict !== "replace")
-                throw new Error(Errors.BindingConflict(type.toString()));
-        }
-
-        this.putEntry({
-            $id,
-            type,
-            instance,
-            name: options?.name,
-        } as TTypeInstanceEntry<TypeMap, Key>);
+        this.putEntry(
+            {
+                $id,
+                type,
+                instance,
+                name: options?.name,
+            } as TTypeInstanceEntry<TypeMap, Key>,
+            options?.ifConflict === "append",
+        );
         return this;
     }
 
@@ -90,23 +98,22 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         options?: TFactoryBindingOptions,
     ): this {
         const $id: TEntryId = makeEntryId(type, options?.name);
-        if (this._types.has($id)) {
-            if (options?.ifConflict === "keep") return this;
-            if (options?.ifConflict !== "replace")
-                throw new Error(Errors.BindingConflict(type.toString()));
-        }
+        if (this.validateBinding($id, options?.ifConflict)) return this;
 
         const lifecycle: TLifecycle = validateLifecycle(options?.lifecycle)
             ? options.lifecycle
             : "singleton";
 
-        this.putEntry({
-            $id,
-            type,
-            factory,
-            lifecycle,
-            name: options?.name,
-        } as TTypeFactoryEntry<TypeMap, K>);
+        this.putEntry(
+            {
+                $id,
+                type,
+                factory,
+                lifecycle,
+                name: options?.name,
+            } as TTypeFactoryEntry<TypeMap, K>,
+            options?.ifConflict === "append",
+        );
         return this;
     }
 
@@ -127,19 +134,35 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         );
     }
 
+    /** @internal */
     private putEntry<Key extends keyof TypeMap>(
         entry: TTypeEntry<TypeMap, Key>,
-        single = true,
+        append: boolean,
     ): void {
-        const entrySet = this._types.get(entry.$id);
-        if (entrySet) {
-            if (single) entrySet.clear();
-            entrySet.add(entry);
-        } else {
-            this._types.set(
-                entry.$id,
-                new Set<TTypeEntry<TypeMap, keyof TypeMap>>().add(entry),
-            );
+        const item = this._types.get(entry.$id);
+        if (!item || !append) this._types.set(entry.$id, entry);
+        else {
+            if (checkIsTypeEntryMapItem(item)) {
+                this._types.set(
+                    entry.$id,
+                    new Set<TTypeEntry<TypeMap, keyof TypeMap>>()
+                        .add(item)
+                        .add(entry),
+                );
+            } else item.add(entry);
         }
+    }
+
+    /** @internal */
+    private validateBinding(
+        $id: TEntryId,
+        strategy?: TTypesConflictResolve,
+    ): boolean {
+        if (this._types.has($id)) {
+            if (strategy === "keep") return true;
+            if (!strategy || strategy === "throw")
+                throw new Error(Errors.BindingConflict($id));
+        }
+        return false;
     }
 }

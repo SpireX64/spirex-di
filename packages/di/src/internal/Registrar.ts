@@ -1,6 +1,6 @@
 import type { TTypeEntriesMap } from "./types";
 import type { TTypeEntry, TTypeMapBase } from "../types";
-import { makeEntryId } from "./utils";
+import { checkIsTypeEntryMapItem, makeEntryId } from "./utils";
 
 export class Registrar<TypeMap extends TTypeMapBase> {
     private readonly _entriesMap: TTypeEntriesMap<TypeMap>;
@@ -20,21 +20,18 @@ export class Registrar<TypeMap extends TTypeMapBase> {
         type: Key,
         name?: string | undefined,
     ): TTypeEntry<TypeMap, Key> | null {
-        const $id = makeEntryId(type, name);
-        return (
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            (this._entriesMap.get($id)?.values().next().value as TTypeEntry<
-                TypeMap,
-                Key
-            >) ?? null
-        );
+        const item = this._entriesMap.get(makeEntryId(type, name)) || null;
+        if (!item || checkIsTypeEntryMapItem(item))
+            return item as TTypeEntry<TypeMap, Key>;
+        return item.values().next().value as TTypeEntry<TypeMap, Key>;
     }
 
     public forEach(
         fn: (entry: TTypeEntry<TypeMap, keyof TypeMap>) => void,
     ): void {
-        this._entriesMap.forEach((set) => {
-            set.forEach(fn);
+        this._entriesMap.forEach((item) => {
+            if (checkIsTypeEntryMapItem(item)) fn(item);
+            else item.forEach(fn);
         });
     }
 }

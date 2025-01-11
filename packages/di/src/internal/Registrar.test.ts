@@ -1,4 +1,5 @@
 import { Registrar } from "./Registrar";
+import type { TTypeEntry } from "../types";
 import {
     makeEntriesMap,
     makeFactoryEntryMock,
@@ -37,5 +38,44 @@ describe("Registrar", () => {
         expect(entry1).not.toBeNull();
         expect(entry2).not.toBeNull();
         expect(entry3).toBeNull();
+    });
+
+    test("Find one of entries with same type", () => {
+        type TypeMap = { val: number };
+
+        // Arrange --------
+        const map = makeEntriesMap(
+            makeInstanceEntryMock<TypeMap>("val", 1),
+            makeInstanceEntryMock<TypeMap>("val", 2),
+        );
+        const registrar = new Registrar(map);
+
+        // Act -------
+        const entry = registrar.findTypeEntry("val");
+
+        // Assert --------
+        expect(entry).not.toBeNull();
+    });
+
+    test("Iterate through all entries", () => {
+        type TypeMap = { val1: string; val2: number };
+
+        // Arrange
+        const expectedEntries = [
+            makeInstanceEntryMock<TypeMap>("val1", "Hello"),
+            makeInstanceEntryMock<TypeMap>("val2", 1),
+            makeInstanceEntryMock<TypeMap>("val2", 2),
+            makeInstanceEntryMock<TypeMap>("val2", 42, "foo"),
+        ];
+        const map = makeEntriesMap(...expectedEntries);
+
+        const registrar = new Registrar(map);
+
+        // Act ----------
+        const entries: TTypeEntry<TypeMap, keyof TypeMap>[] = [];
+        registrar.forEach((e) => entries.push(e));
+
+        // Assert -------
+        expect(entries).toEqual(expect.arrayContaining(expectedEntries));
     });
 });

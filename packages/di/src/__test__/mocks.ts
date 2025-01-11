@@ -9,7 +9,7 @@ import type {
 } from "../types";
 import type { TTypeEntriesMap } from "../internal/types";
 import { Registrar } from "../internal/Registrar";
-import { makeEntryId } from "../internal/utils";
+import { checkIsTypeEntryMapItem, makeEntryId } from "../internal/utils";
 
 export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
@@ -44,13 +44,14 @@ export function makeEntriesMap<TypeMap extends TTypeMapBase>(
 ): TTypeEntriesMap<TypeMap> {
     const map: TTypeEntriesMap<TypeMap> = new Map();
     entries.forEach((it) => {
-        const set = map.get(it.$id);
-        if (set) set.add(it);
-        else
+        const item = map.get(it.$id);
+        if (!item) map.set(it.$id, it);
+        else if (checkIsTypeEntryMapItem(item)) {
             map.set(
                 it.$id,
-                new Set<TTypeEntry<TypeMap, keyof TypeMap>>().add(it),
+                new Set<TTypeEntry<TypeMap, keyof TypeMap>>().add(item).add(it),
             );
+        } else item.add(it);
     });
     return map;
 }

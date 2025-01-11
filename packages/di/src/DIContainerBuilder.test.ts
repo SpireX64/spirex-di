@@ -122,7 +122,7 @@ describe("DIContainerBuilder", () => {
             expect(entry?.instance).toBe(expectedValue);
         });
 
-        test("Throw when bind two factories with same type", () => {
+        test("Throw when bind two factories with same type  (explicit)", () => {
             // Arrange -------
             const builder = new DIContainerBuilder<{ typeKey: number }>();
             const expectedFactory = () => 8;
@@ -131,6 +131,25 @@ describe("DIContainerBuilder", () => {
             // Act -----------
             const err = catchError(() =>
                 builder.bindFactory("typeKey", () => 42),
+            );
+            const entry = builder.findTypeEntry("typeKey");
+
+            // Assert --------
+            expect(err).not.toBeUndefined();
+            expect(entry?.factory).toBe(expectedFactory);
+        });
+
+        test("Throw when bind two factories with same type (implicit)", () => {
+            // Arrange -------
+            const builder = new DIContainerBuilder<{ typeKey: number }>();
+            const expectedFactory = () => 8;
+            builder.bindFactory("typeKey", expectedFactory);
+
+            // Act -----------
+            const err = catchError(() =>
+                builder.bindFactory("typeKey", () => 42, {
+                    ifConflict: "throw",
+                }),
             );
             const entry = builder.findTypeEntry("typeKey");
 
@@ -198,6 +217,39 @@ describe("DIContainerBuilder", () => {
             // Arrange ---------
             expect(entry?.factory).toBe(expectedFactory);
             expect(entry?.instance).toBeUndefined();
+        });
+    });
+
+    describe("Multi-instance binding", () => {
+        test("Add many instances with same type", () => {
+            // Arrange --------
+            const builder = new DIContainerBuilder<{ type: number }>();
+
+            // Act ------------
+            builder.bindInstance("type", 1, { ifConflict: "append" });
+            builder.bindInstance("type", 2, { ifConflict: "append" });
+            builder.bindInstance("type", 3, { ifConflict: "append" });
+
+            const entries = builder.findAllTypeEntries("type");
+
+            // Assert --------
+            expect(entries).toHaveLength(3);
+        });
+
+        test("Replace all values of type", () => {
+            // Arrange --------
+            const builder = new DIContainerBuilder<{ type: number }>();
+
+            // Act ------------
+            builder.bindInstance("type", 1, { ifConflict: "append" });
+            builder.bindInstance("type", 2, { ifConflict: "append" });
+            builder.bindInstance("type", 42, { ifConflict: "replace" });
+
+            const entries = builder.findAllTypeEntries("type");
+
+            // Assert --------
+            expect(entries).toHaveLength(1);
+            expect(entries[0].instance).toBe(42);
         });
     });
 
@@ -333,6 +385,73 @@ describe("DIContainerBuilder", () => {
 
             // Assert ------------
             expect(entry).toBeNull();
+        });
+
+        test("Find some entry of type with many bindings", () => {
+            type TypeMap = { value: number; other: string };
+
+            // Arrange ------
+            const builder = new DIContainerBuilder<TypeMap>()
+                .bindInstance("value", 1, { ifConflict: "append" })
+                .bindInstance("value", 2, { ifConflict: "append" });
+
+            // Act ---------
+            const entry = builder.findTypeEntry("value");
+
+            // Assert -----
+            expect(entry).not.toBeNull();
+        });
+
+        test("Find all entries of type", () => {
+            type TypeMap = { value: number; other: string };
+
+            // Arrange ------
+            const builder = new DIContainerBuilder<TypeMap>()
+                .bindInstance("value", 1, { ifConflict: "append" })
+                .bindInstance("value", 2, { ifConflict: "append" })
+                .bindInstance("other", "foo", { ifConflict: "append" });
+
+            // Act ---------
+            const entries = builder.findAllTypeEntries("value");
+
+            // Assert ------
+            expect(entries).toBeInstanceOf(Array);
+            expect(entries).toHaveLength(2);
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            expect(entries.every((e) => e.type === "value")).toBeTruthy();
+        });
+
+        test("Find all entries of not bind type", () => {
+            type TypeMap = { value: number; other: string };
+
+            // Arrange ------
+            const builder = new DIContainerBuilder<TypeMap>()
+                .bindInstance("value", 1, { ifConflict: "append" })
+                .bindInstance("value", 2, { ifConflict: "append" });
+
+            // Act ---------
+            const entries = builder.findAllTypeEntries("other");
+
+            // Assert -------
+            expect(entries).toBeInstanceOf(Array);
+            expect(entries).toHaveLength(0);
+        });
+
+        test("Find all entries of type with one bind", () => {
+            type TypeMap = { value: number; other: string };
+
+            // Arrange ------
+            const builder = new DIContainerBuilder<TypeMap>().bindInstance(
+                "value",
+                1,
+            );
+
+            // Act ---------
+            const entries = builder.findAllTypeEntries("value");
+
+            // Assert -------
+            expect(entries).toBeInstanceOf(Array);
+            expect(entries).toHaveLength(1);
         });
     });
 

@@ -15,7 +15,7 @@ export type TTypeEntryBase<K> = {
     name?: string | undefined;
 };
 
-export type TTypesConflictResolve = "throw" | "keep" | "replace";
+export type TTypesConflictResolve = "throw" | "keep" | "replace" | "append";
 
 export type TLifecycle = "singleton" | "lazy" | "transient";
 
