@@ -1,5 +1,5 @@
 import { InstancesStorage } from "./InstancesStorage";
-import { makeFactoryEntryMock } from "../__test__/mocks";
+import { makeFactoryEntryMock, makeInstanceEntryMock } from "../__test__/mocks";
 
 describe("InstancesStorage", () => {
     test("New instance", () => {
@@ -45,5 +45,24 @@ describe("InstancesStorage", () => {
         // Assert ---------
         expect(storage.isEmpty).toBeFalsy();
         expect(storage.getInstance(entry)).toBe(expectedValue);
+    });
+
+    test("Clear storage", () => {
+        type TypeMap = { value: number };
+
+        // Arrange ---------
+        const entry = makeInstanceEntryMock<TypeMap>("value", 42);
+        const storage = new InstancesStorage<TypeMap>();
+
+        storage.storeInstance(entry, 42);
+        const notEmptyBeforeClear = storage.isEmpty;
+
+        // Act -------
+        storage.clear();
+
+        // Assert ------
+        expect(notEmptyBeforeClear).toBeFalsy();
+        expect(storage.isEmpty).toBeTruthy();
+        expect(storage.getInstance(entry)).toBeNull();
     });
 });

@@ -22,4 +22,12 @@ export class InstancesStorage<TypeMap extends TTypeMapBase> {
     ): void {
         this._instancesMap.set(entry, instance);
     }
+
+    public forEach(fn: (instance: unknown) => void): void {
+        this._instancesMap.forEach(fn);
+    }
+
+    public clear(): void {
+        this._instancesMap.clear();
+    }
 }
