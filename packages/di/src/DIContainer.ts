@@ -1,9 +1,11 @@
 import type {
     IInstanceResolver,
     TProvider,
+    TScopeID,
     TTypeEntry,
     TTypeMapBase,
 } from "./types";
+import { DIScope } from "./DIScope";
 import { Registrar } from "./internal/Registrar";
 import { InstancesStorage } from "./internal/InstancesStorage";
 import { InstanceActivator } from "./internal/InstanceActivator";
@@ -27,6 +29,10 @@ export class DIContainer<TypeMap extends TTypeMapBase>
         this._registrar = registrar;
         this._activator = activator;
         this._instances = this.activateSingletons(registrar);
+    }
+
+    public scope(id: TScopeID): DIScope {
+        return new DIScope(id);
     }
 
     public get<Key extends keyof TypeMap>(
@@ -79,7 +85,7 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) return entry.instance;
 
-        if (entry.lifecycle === "singleton" || entry.lifecycle === "lazy") {
+        if (entry.lifecycle !== "transient") {
             const singleton = this._instances.getInstance(entry);
             if (singleton) return singleton as TypeMap[Key];
         }

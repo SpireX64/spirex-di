@@ -5,8 +5,9 @@ import {
     makeInstanceEntryMock,
 } from "./__test__/mocks";
 import { catchError } from "./__test__/errors";
-import { IInstanceResolver } from "./types";
+import { DIScope } from "./DIScope";
 import { InstanceActivator } from "./internal/InstanceActivator";
+import type { IInstanceResolver } from "./types";
 
 describe("DIContainer", () => {
     describe("Resolve type instance", () => {
@@ -236,6 +237,24 @@ describe("DIContainer", () => {
             expect(values).toContain(1);
             expect(values).toContain(2);
             expect(values).toContain(3);
+        });
+    });
+
+    describe("Scopes", () => {
+        test("Open scope", () => {
+            // Arrange --------
+            const expectedScopeId = "my-scope";
+            const container = new DIContainer(
+                makeRegistrar(),
+                new InstanceActivator(),
+            );
+
+            // Act ------------
+            const scope = container.scope(expectedScopeId);
+
+            // Assert ---------
+            expect(scope).toBeInstanceOf(DIScope);
+            expect(scope.id).toBe(expectedScopeId);
         });
     });
 });

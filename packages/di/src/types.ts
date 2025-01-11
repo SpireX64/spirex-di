@@ -8,6 +8,7 @@ export type TTypeFactory<
 > = (resolver: IInstanceResolver<TypeMap>) => TypeMap[Key];
 
 export type TEntryId = string;
+export type TScopeID = symbol | string;
 
 export type TTypeEntryBase<K> = {
     $id: TEntryId;
