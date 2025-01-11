@@ -9,15 +9,18 @@ import type {
 } from "../types";
 import type { TTypeEntriesMap } from "../internal/types";
 import { Registrar } from "../internal/Registrar";
+import { makeEntryId } from "../internal/utils";
 
 export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
     instance: TypeMap[typeof key],
+    name?: string,
 ): TTypeInstanceEntry<TypeMap, typeof key> {
     return {
-        $id: key.toString(),
+        $id: makeEntryId(key, name),
         type: key,
         instance,
+        name,
     };
 }
 
@@ -25,12 +28,14 @@ export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
     factory: TTypeFactory<TypeMap, typeof key>,
     lifecycle?: TLifecycle,
+    name?: string,
 ): TTypeFactoryEntry<TypeMap, typeof key> {
     return {
-        $id: key.toString(),
+        $id: makeEntryId(key, name),
         type: key,
         lifecycle: lifecycle ?? "singleton",
         factory,
+        name,
     };
 }
 

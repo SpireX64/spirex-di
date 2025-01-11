@@ -191,5 +191,29 @@ describe("DIContainer", () => {
             expect(factory).toHaveBeenCalledTimes(1);
             expect(value).toBe(expectedValue);
         });
+
+        test("Get named instance", () => {
+            type TypeMap = { value: number };
+
+            // Arrange ------------
+            const container = new DIContainer(
+                makeRegistrar(
+                    makeInstanceEntryMock<TypeMap>("value", 1),
+                    makeInstanceEntryMock<TypeMap>("value", 2, "foo"),
+                    makeInstanceEntryMock<TypeMap>("value", 3, "bar"),
+                ),
+                new InstanceActivator(),
+            );
+
+            // Act -----------
+            const value = container.get("value");
+            const valueFoo = container.get("value", "foo");
+            const valueBar = container.get("value", "bar");
+
+            // Assert --------
+            expect(value).toBe(1);
+            expect(valueFoo).toBe(2);
+            expect(valueBar).toBe(3);
+        });
     });
 });

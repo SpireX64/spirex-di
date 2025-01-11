@@ -24,8 +24,11 @@ export class DIContainer<TypeMap extends TTypeMapBase>
         this._instances = this.activateSingletons(registrar);
     }
 
-    public get<Key extends keyof TypeMap>(key: Key): TypeMap[Key] {
-        const entry = this._registrar.findTypeEntry(key);
+    public get<Key extends keyof TypeMap>(
+        key: Key,
+        name?: string | undefined,
+    ): TypeMap[Key] {
+        const entry = this._registrar.findTypeEntry(key, name);
 
         if (!entry) throw Error(Errors.TypeBindingNotFound(key.toString()));
 
