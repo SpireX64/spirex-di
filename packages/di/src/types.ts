@@ -72,3 +72,34 @@ export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
         name?: string | undefined,
     ): readonly TypeMap[Key][];
 }
+
+export interface IContainerBuilderExplorer<TypeMap extends TTypeMapBase> {
+    hasEntry<T extends keyof TypeMap>(
+        type: T,
+        name?: string | undefined,
+    ): boolean;
+
+    findSomeTypeEntry<T extends keyof TypeMap>(
+        type: T,
+        name?: string | undefined,
+    ): TTypeEntry<TypeMap, T> | null;
+
+    findAllTypeEntries<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): readonly TTypeEntry<TypeMap, Key>[];
+}
+
+export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
+    bindInstance<T extends keyof TypeMap>(
+        type: T,
+        instance: TypeMap[T],
+        options?: TBindingOptions,
+    ): this;
+
+    bindFactory<K extends keyof TypeMap>(
+        type: K,
+        factory: TTypeFactory<TypeMap, K>,
+        options?: TFactoryBindingOptions,
+    ): this;
+}

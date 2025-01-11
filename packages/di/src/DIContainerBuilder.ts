@@ -1,4 +1,6 @@
 import type {
+    IContainerBuilderBinder,
+    IContainerBuilderExplorer,
     TBindingOptions,
     TEntryId,
     TFactoryBindingOptions,
@@ -25,10 +27,23 @@ const Errors = {
         `Binding conflict. The type '${type}' is already bound.`,
 } as const;
 
-export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
+export class DIContainerBuilder<TypeMap extends TTypeMapBase>
+    implements
+        IContainerBuilderBinder<TypeMap>,
+        IContainerBuilderExplorer<TypeMap>
+{
     private readonly _types: TTypeEntriesMap<TypeMap> = new Map();
 
-    public findTypeEntry<Key extends keyof TypeMap>(
+    // region IContainerBuilderExplorer
+
+    public hasEntry<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): boolean {
+        return this._types.has(makeEntryId(type, name));
+    }
+
+    public findSomeTypeEntry<Key extends keyof TypeMap>(
         type: Key,
         name?: string | undefined,
     ): TTypeEntry<TypeMap, Key> | null {
@@ -40,13 +55,18 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
 
     public findAllTypeEntries<Key extends keyof TypeMap>(
         type: Key,
+        name?: string | undefined,
     ): readonly TTypeEntry<TypeMap, Key>[] {
-        const item = this._types.get(makeEntryId(type));
+        const item = this._types.get(makeEntryId(type, name)) || null;
         if (!item) return [];
         if (checkIsTypeEntryMapItem(item))
             return Array.of(item as TTypeEntry<TypeMap, Key>);
         return Array.from(item) as TTypeEntry<TypeMap, Key>[];
     }
+
+    // endregion IContainerBuilderExplorer
+
+    // region IContainerBuilderBinder
 
     /**
      * Binds an existing instance to a specified type.
@@ -116,6 +136,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         );
         return this;
     }
+
+    // endregion IContainerBuilderBinder
 
     /**
      * Finalizes configuration and creates an immutable container.
