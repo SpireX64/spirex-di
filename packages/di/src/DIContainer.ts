@@ -13,8 +13,6 @@ export class DIContainer<TypeMap extends TTypeMapBase>
 {
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator: InstanceActivator<TypeMap>;
-
-    private readonly _scopes = new Map<TScopeID, DIScope<TypeMap>>();
     private readonly _globalScope: DIScope<TypeMap>;
 
     public constructor(
@@ -31,18 +29,7 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     }
 
     public scope(id: TScopeID): DIScope<TypeMap> {
-        let scope = this._scopes.get(id);
-        if (!scope)
-            this._scopes.set(
-                id,
-                (scope = new DIScope(
-                    id,
-                    this._registrar,
-                    this._activator,
-                    this._globalScope,
-                )),
-            );
-        return scope;
+        return this._globalScope.scope(id);
     }
 
     public get<Key extends keyof TypeMap>(

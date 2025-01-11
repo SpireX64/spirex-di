@@ -233,4 +233,32 @@ describe("DIScope", () => {
             });
         });
     });
+
+    describe("Child scope", () => {
+        test("Get child scope", () => {
+            // Arrange ----------
+            const childId = "child";
+            const scope = makeScopeInstance();
+
+            // Act --------------
+            const childScope = scope.scope(childId);
+
+            // Assert -----------
+            expect(childScope).toBeInstanceOf(DIScope);
+            expect(childScope.id).toEqual(childId);
+        });
+
+        test("Get child scope multiple times", () => {
+            // Arrange ----------
+            const childId = "child";
+            const scope = makeScopeInstance();
+
+            // Act --------------
+            const childScopeA = scope.scope(childId);
+            const childScopeB = scope.scope(childId);
+
+            // Assert -----------
+            expect(childScopeA).toBe(childScopeB);
+        });
+    });
 });

@@ -18,6 +18,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator: InstanceActivator<TypeMap>;
     private readonly _parentScopeRef: DIScope<TypeMap> | null = null;
+    private readonly _children = new Map<TScopeID, DIScope<TypeMap>>();
     private readonly _local: InstancesStorage<TypeMap>;
 
     public constructor(
@@ -40,6 +41,19 @@ export class DIScope<TypeMap extends TTypeMapBase>
 
     public get id(): TScopeID {
         return this._id;
+    }
+
+    public scope(id: TScopeID): DIScope<TypeMap> {
+        let scope = this._children.get(id);
+        if (scope) return scope;
+        scope = new DIScope<TypeMap>(
+            id,
+            this._registrar,
+            this._activator,
+            this,
+        );
+        this._children.set(id, scope);
+        return scope;
     }
 
     // region IInstanceResolver
