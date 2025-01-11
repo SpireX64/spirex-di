@@ -1,8 +1,8 @@
-import type { TTypeMapBase } from "../types";
+import type { TTypeEntry, TTypeMapBase } from "../types";
 
 export class InstancesStorage<TypeMap extends TTypeMapBase> {
     private readonly _instancesMap = new Map<
-        keyof TypeMap,
+        TTypeEntry<TypeMap, keyof TypeMap>,
         TypeMap[keyof TypeMap]
     >();
 
@@ -11,15 +11,15 @@ export class InstancesStorage<TypeMap extends TTypeMapBase> {
     }
 
     public getInstance<Key extends keyof TypeMap>(
-        type: Key,
+        entry: TTypeEntry<TypeMap, Key>,
     ): TypeMap[Key] | null {
-        return (this._instancesMap.get(type) as TypeMap[Key]) ?? null;
+        return (this._instancesMap.get(entry) as TypeMap[Key]) ?? null;
     }
 
     public storeInstance<Key extends keyof TypeMap>(
-        type: Key,
+        entry: TTypeEntry<TypeMap, Key>,
         instance: TypeMap[Key],
     ): void {
-        this._instancesMap.set(type, instance);
+        this._instancesMap.set(entry, instance);
     }
 }

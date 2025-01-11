@@ -215,5 +215,27 @@ describe("DIContainer", () => {
             expect(valueFoo).toBe(2);
             expect(valueBar).toBe(3);
         });
+
+        test("Get all values of type", () => {
+            type TypeMap = { value: number };
+
+            // Arrange -------
+            const container = new DIContainer(
+                makeRegistrar(
+                    makeFactoryEntryMock<TypeMap>("value", () => 1),
+                    makeFactoryEntryMock<TypeMap>("value", () => 2),
+                    makeFactoryEntryMock<TypeMap>("value", () => 3),
+                ),
+                new InstanceActivator(),
+            );
+
+            // Act -----------
+            const values = container.getAll("value");
+
+            // Assert --------
+            expect(values).toContain(1);
+            expect(values).toContain(2);
+            expect(values).toContain(3);
+        });
     });
 });

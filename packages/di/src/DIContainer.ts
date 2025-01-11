@@ -1,4 +1,9 @@
-import type { IInstanceResolver, TProvider, TTypeMapBase } from "./types";
+import type {
+    IInstanceResolver,
+    TProvider,
+    TTypeEntry,
+    TTypeMapBase,
+} from "./types";
 import { Registrar } from "./internal/Registrar";
 import { InstancesStorage } from "./internal/InstancesStorage";
 import { InstanceActivator } from "./internal/InstanceActivator";
@@ -32,18 +37,18 @@ export class DIContainer<TypeMap extends TTypeMapBase>
 
         if (!entry) throw Error(Errors.TypeBindingNotFound(key.toString()));
 
-        if (isInstanceTypeEntry(entry)) return entry.instance;
+        return this.getInstanceByEntry(entry);
+    }
 
-        if (entry.lifecycle === "singleton" || entry.lifecycle === "lazy") {
-            const singleton = this._instances.getInstance(key);
-            if (singleton) return singleton;
-        }
-
-        const instance = this._activator.createInstance(entry, this);
-
-        if (entry.lifecycle === "lazy")
-            this._instances.storeInstance(key, instance);
-        return instance;
+    public getAll<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): readonly TypeMap[Key][] {
+        const entries = this._registrar.findAllTypeEntries(type, name);
+        const instances: TypeMap[Key][] = [];
+        for (const entry of entries)
+            instances.push(this.getInstanceByEntry(entry));
+        return instances;
     }
 
     public getProvider<Key extends keyof TypeMap>(
@@ -62,10 +67,28 @@ export class DIContainer<TypeMap extends TTypeMapBase>
         registrar.forEach((entry) => {
             if (isFactoryTypeEntry(entry) && entry.lifecycle === "singleton") {
                 const instance = this._activator.createInstance(entry, this);
-                storage.storeInstance(entry.type, instance);
+                storage.storeInstance(entry, instance);
             }
         });
         return storage;
+    }
+
+    /** @internal */
+    private getInstanceByEntry<Key extends keyof TypeMap>(
+        entry: TTypeEntry<TypeMap, Key>,
+    ): TypeMap[Key] {
+        if (isInstanceTypeEntry(entry)) return entry.instance;
+
+        if (entry.lifecycle === "singleton" || entry.lifecycle === "lazy") {
+            const singleton = this._instances.getInstance(entry);
+            if (singleton) return singleton as TypeMap[Key];
+        }
+
+        const instance = this._activator.createInstance(entry, this);
+
+        if (entry.lifecycle === "lazy")
+            this._instances.storeInstance(entry, instance);
+        return instance;
     }
 
     // endregion: Private methods
