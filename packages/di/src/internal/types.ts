@@ -1,6 +1,6 @@
-import type { TTypeEntry, TTypeMapBase } from "../types";
+import { TEntryId, TTypeEntry, TTypeMapBase } from "../types";
 
 export type TTypeEntriesMap<TypeMap extends TTypeMapBase> = Map<
-    keyof TypeMap,
-    TTypeEntry<TypeMap, keyof TypeMap>
+    TEntryId,
+    Set<TTypeEntry<TypeMap, keyof TypeMap>>
 >;

@@ -15,6 +15,7 @@ export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
     instance: TypeMap[typeof key],
 ): TTypeInstanceEntry<TypeMap, typeof key> {
     return {
+        $id: key.toString(),
         type: key,
         instance,
     };
@@ -26,6 +27,7 @@ export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
     lifecycle?: TLifecycle,
 ): TTypeFactoryEntry<TypeMap, typeof key> {
     return {
+        $id: key.toString(),
         type: key,
         lifecycle: lifecycle ?? "singleton",
         factory,
@@ -35,7 +37,17 @@ export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
 export function makeEntriesMap<TypeMap extends TTypeMapBase>(
     ...entries: TTypeEntry<TypeMap, keyof TypeMap>[]
 ): TTypeEntriesMap<TypeMap> {
-    return new Map(entries.map((entry) => [entry.type, entry]));
+    const map: TTypeEntriesMap<TypeMap> = new Map();
+    entries.forEach((it) => {
+        const set = map.get(it.$id);
+        if (set) set.add(it);
+        else
+            map.set(
+                it.$id,
+                new Set<TTypeEntry<TypeMap, keyof TypeMap>>().add(it),
+            );
+    });
+    return map;
 }
 
 export function makeRegistrar<TypeMap extends TTypeMapBase>(

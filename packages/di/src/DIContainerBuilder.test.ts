@@ -22,7 +22,7 @@ describe("DIContainerBuilder", () => {
 
         // Act ----------
         const builderRef = builder.bindInstance(expectedTypeKey, expectedValue);
-        const typeEntry = builder.getTypeEntry(expectedTypeKey);
+        const typeEntry = builder.findTypeEntry(expectedTypeKey);
 
         // Arrange ------
         expect(builderRef).toBeInstanceOf(DIContainerBuilder);
@@ -40,7 +40,7 @@ describe("DIContainerBuilder", () => {
 
         // Act ----------
         const builderRef = builder.bindFactory(expectedTypeKey, factory);
-        const typeEntry = builder.getTypeEntry(expectedTypeKey);
+        const typeEntry = builder.findTypeEntry(expectedTypeKey);
 
         // Assert -------
         expect(builderRef).toBeInstanceOf(DIContainerBuilder);
@@ -49,6 +49,60 @@ describe("DIContainerBuilder", () => {
         expect(typeEntry?.factory).toBe(factory);
         expect(typeEntry?.instance).toBeUndefined();
         expect(factory).not.toHaveBeenCalled();
+    });
+
+    describe("Named binding", () => {
+        test("Bind instance with name", () => {
+            // Arrange ---------
+            const expectedName = "lorem";
+            const builder = new DIContainerBuilder<{ value: number }>();
+
+            // Act ------------
+            builder.bindInstance("value", 42, { name: expectedName });
+            const entry = builder.findTypeEntry("value", expectedName);
+
+            // Assert ---------
+            expect(entry).not.toBeNull();
+            expect(entry?.type).toBe("value");
+            expect(entry?.name).toBe(expectedName);
+        });
+
+        test("Bind factory with name", () => {
+            // Arrange --------
+            const expectedName = "lorem";
+            const builder = new DIContainerBuilder<{ value: number }>();
+
+            // Act ------------
+            builder.bindFactory("value", () => 42, { name: expectedName });
+            const entry = builder.findTypeEntry("value", expectedName);
+
+            // Assert ---------
+            expect(entry).not.toBeNull();
+            expect(entry?.type).toBe("value");
+            expect(entry?.name).toBe(expectedName);
+        });
+
+        test("Types with names are different entries", () => {
+            // Arrange -----------
+            const builder = new DIContainerBuilder<{ value: number }>();
+
+            // Act ---------------
+            builder.bindInstance("value", 0);
+            builder.bindInstance("value", 1, { name: "foo" }); // no-throw
+            builder.bindInstance("value", 2, { name: "bar" }); // no-throw
+
+            const mainEntry = builder.findTypeEntry("value");
+            const fooEntry = builder.findTypeEntry("value", "foo");
+            const barEntry = builder.findTypeEntry("value", "bar");
+
+            // Assert ------------
+            expect(mainEntry).not.toBeNull();
+            expect(fooEntry).not.toBeNull();
+            expect(barEntry).not.toBeNull();
+            expect(mainEntry).not.toBe(fooEntry);
+            expect(mainEntry).not.toBe(barEntry);
+            expect(fooEntry).not.toBe(barEntry);
+        });
     });
 
     describe("Binding conflicts", () => {
@@ -61,7 +115,7 @@ describe("DIContainerBuilder", () => {
 
             // Act -----------
             const err = catchError(() => builder.bindInstance("typeKey", 42));
-            const entry = builder.getTypeEntry("typeKey");
+            const entry = builder.findTypeEntry("typeKey");
 
             // Assert --------
             expect(err).not.toBeUndefined();
@@ -78,7 +132,7 @@ describe("DIContainerBuilder", () => {
             const err = catchError(() =>
                 builder.bindFactory("typeKey", () => 42),
             );
-            const entry = builder.getTypeEntry("typeKey");
+            const entry = builder.findTypeEntry("typeKey");
 
             // Assert --------
             expect(err).not.toBeUndefined();
@@ -93,7 +147,7 @@ describe("DIContainerBuilder", () => {
 
             // Act --------------
             builder.bindInstance("typeKey", 123, { ifConflict: "keep" });
-            const entry = builder.getTypeEntry("typeKey");
+            const entry = builder.findTypeEntry("typeKey");
 
             // Arrange ---------
             expect(entry?.instance).toBe(expectedValue);
@@ -107,7 +161,7 @@ describe("DIContainerBuilder", () => {
 
             // Act --------------
             builder.bindFactory("typeKey", () => 42, { ifConflict: "keep" });
-            const entry = builder.getTypeEntry("typeKey");
+            const entry = builder.findTypeEntry("typeKey");
 
             // Arrange ---------
             expect(entry?.instance).toBe(expectedValue);
@@ -123,7 +177,7 @@ describe("DIContainerBuilder", () => {
             builder.bindInstance("typeKey", expectedValue, {
                 ifConflict: "replace",
             });
-            const entry = builder.getTypeEntry("typeKey");
+            const entry = builder.findTypeEntry("typeKey");
 
             // Arrange ---------
             expect(entry?.instance).toBe(expectedValue);
@@ -139,7 +193,7 @@ describe("DIContainerBuilder", () => {
             builder.bindFactory("typeKey", expectedFactory, {
                 ifConflict: "replace",
             });
-            const entry = builder.getTypeEntry("typeKey");
+            const entry = builder.findTypeEntry("typeKey");
 
             // Arrange ---------
             expect(entry?.factory).toBe(expectedFactory);
@@ -155,7 +209,7 @@ describe("DIContainerBuilder", () => {
             }>().bindFactory("value", () => 42);
 
             // Act ----------------
-            const entry = builder.getTypeEntry("value");
+            const entry = builder.findTypeEntry("value");
 
             let lifecycle: TLifecycle | undefined;
             if (isFactoryTypeEntry(entry)) lifecycle = entry.lifecycle;
@@ -172,7 +226,7 @@ describe("DIContainerBuilder", () => {
                 builder.bindFactory("value", () => 42, { lifecycle });
 
                 // Act ---------------
-                const entry = builder.getTypeEntry("value");
+                const entry = builder.findTypeEntry("value");
 
                 let entryLifecycle: TLifecycle | undefined;
                 if (isFactoryTypeEntry(entry)) entryLifecycle = entry.lifecycle;
@@ -190,7 +244,7 @@ describe("DIContainerBuilder", () => {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
             builder.bindFactory("value", () => 42, { lifecycle: "unknown" });
-            const entry = builder.getTypeEntry("value");
+            const entry = builder.findTypeEntry("value");
 
             // Act ----------------
             let lifecycle: TLifecycle | undefined;
@@ -206,7 +260,7 @@ describe("DIContainerBuilder", () => {
             builder.bindInstance("value", 42);
 
             // Act ---------------
-            const entry = builder.getTypeEntry("value");
+            const entry = builder.findTypeEntry("value");
 
             // Assert ------------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -225,7 +279,7 @@ describe("DIContainerBuilder", () => {
             // Act ----------------
             builder.bindFactory("str", (r) => `${r.get("num").toString()}dx`);
 
-            const entry = builder.getTypeEntry("str");
+            const entry = builder.findTypeEntry("str");
 
             // Assert -------------
             expect(entry?.factory?.(fakeResolver)).toBe("42dx");
@@ -249,12 +303,36 @@ describe("DIContainerBuilder", () => {
                 getter: r.getProvider("value"),
             }));
 
-            const entry = builder.getTypeEntry("obj");
+            const entry = builder.findTypeEntry("obj");
             const resolvedObject = entry?.factory?.(resolver);
 
             // Assert ----------
             expect(resolvedObject).not.toBeUndefined();
             expect(resolvedObject?.getter()).toBe(expectedValue);
+        });
+    });
+
+    describe("Finding entries", () => {
+        test("Find not exist entry", () => {
+            // Arrange ----------
+            const builder = new DIContainerBuilder();
+
+            // Act --------------
+            const entry = builder.findTypeEntry("value");
+
+            // Assert -----------
+            expect(entry).toBeNull();
+        });
+
+        test("Find not exist entry with name", () => {
+            // Arrange -----------
+            const builder = new DIContainerBuilder();
+
+            // Act ---------------
+            const entry = builder.findTypeEntry("type", "name");
+
+            // Assert ------------
+            expect(entry).toBeNull();
         });
     });
 

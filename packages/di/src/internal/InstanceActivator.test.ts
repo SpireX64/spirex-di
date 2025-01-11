@@ -183,8 +183,7 @@ describe("InstanceActivator", () => {
             activator.createInstance(entry, container);
         });
 
-        // Assert ---------
-        console.log(error);
+        // Assert --------
         expect(error).not.toBeUndefined();
         expect(error?.message).toContain(
             "'lazy' cannot depend on a 'transient'",

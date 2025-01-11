@@ -7,8 +7,12 @@ export type TTypeFactory<
     Key extends keyof TypeMap,
 > = (resolver: IInstanceResolver<TypeMap>) => TypeMap[Key];
 
+export type TEntryId = string;
+
 export type TTypeEntryBase<K> = {
+    $id: TEntryId;
     type: K;
+    name?: string | undefined;
 };
 
 export type TTypesConflictResolve = "throw" | "keep" | "replace";
@@ -16,7 +20,8 @@ export type TTypesConflictResolve = "throw" | "keep" | "replace";
 export type TLifecycle = "singleton" | "lazy" | "transient";
 
 export type TBindingOptions = Partial<{
-    ifConflict?: TTypesConflictResolve;
+    ifConflict: TTypesConflictResolve;
+    name: string;
 }>;
 
 export type TFactoryBindingOptions = TBindingOptions &

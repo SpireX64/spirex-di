@@ -1,5 +1,6 @@
 import type {
     TBindingOptions,
+    TEntryId,
     TFactoryBindingOptions,
     TLifecycle,
     TTypeEntry,
@@ -13,6 +14,7 @@ import { validateLifecycle } from "./internal/validators";
 import { DIContainer } from "./DIContainer";
 import { Registrar } from "./internal/Registrar";
 import { InstanceActivator } from "./internal/InstanceActivator";
+import { makeEntryId } from "./internal/utils";
 
 const Errors = {
     EmptyContainer:
@@ -25,10 +27,15 @@ const Errors = {
 export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
     private readonly _types: TTypeEntriesMap<TypeMap> = new Map();
 
-    public getTypeEntry<Key extends keyof TypeMap>(
+    public findTypeEntry<Key extends keyof TypeMap>(
         type: Key,
+        name?: string | undefined,
     ): TTypeEntry<TypeMap, Key> | null {
-        return this._types.get(type) as TTypeEntry<TypeMap, Key>;
+        return (
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            (this._types.get(makeEntryId(type, name))?.values().next()
+                .value as TTypeEntry<TypeMap, Key>) ?? null
+        );
     }
 
     /**
@@ -48,13 +55,20 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         instance: TypeMap[Key],
         options?: TBindingOptions,
     ): this {
-        if (this._types.has(type)) {
+        const $id: TEntryId = makeEntryId(type, options?.name);
+
+        if (this._types.has($id)) {
             if (options?.ifConflict === "keep") return this;
             if (options?.ifConflict !== "replace")
                 throw new Error(Errors.BindingConflict(type.toString()));
         }
-        const entry: TTypeInstanceEntry<TypeMap, Key> = { type, instance };
-        this._types.set(type, entry);
+
+        this.putEntry({
+            $id,
+            type,
+            instance,
+            name: options?.name,
+        } as TTypeInstanceEntry<TypeMap, Key>);
         return this;
     }
 
@@ -75,7 +89,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
         factory: TTypeFactory<TypeMap, K>,
         options?: TFactoryBindingOptions,
     ): this {
-        if (this._types.has(type)) {
+        const $id: TEntryId = makeEntryId(type, options?.name);
+        if (this._types.has($id)) {
             if (options?.ifConflict === "keep") return this;
             if (options?.ifConflict !== "replace")
                 throw new Error(Errors.BindingConflict(type.toString()));
@@ -85,12 +100,13 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
             ? options.lifecycle
             : "singleton";
 
-        const entry: TTypeFactoryEntry<TypeMap, K> = {
+        this.putEntry({
+            $id,
             type,
             factory,
             lifecycle,
-        };
-        this._types.set(type, entry);
+            name: options?.name,
+        } as TTypeFactoryEntry<TypeMap, K>);
         return this;
     }
 
@@ -109,5 +125,21 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase> {
             new Registrar(this._types),
             new InstanceActivator<TypeMap>(),
         );
+    }
+
+    private putEntry<Key extends keyof TypeMap>(
+        entry: TTypeEntry<TypeMap, Key>,
+        single = true,
+    ): void {
+        const entrySet = this._types.get(entry.$id);
+        if (entrySet) {
+            if (single) entrySet.clear();
+            entrySet.add(entry);
+        } else {
+            this._types.set(
+                entry.$id,
+                new Set<TTypeEntry<TypeMap, keyof TypeMap>>().add(entry),
+            );
+        }
     }
 }
