@@ -1,4 +1,5 @@
 import type {
+    IDisposable,
     TLifecycle,
     TTypeEntry,
     TTypeFactoryEntry,
@@ -33,4 +34,13 @@ const lifecycleLevelMap: Record<TLifecycle, number> = {
 
 export function compareLifecycles(lhv: TLifecycle, rhv: TLifecycle): number {
     return lifecycleLevelMap[lhv] - lifecycleLevelMap[rhv];
+}
+
+export function checkIsDisposable(obj: unknown): obj is IDisposable {
+    return (
+        !!obj &&
+        typeof obj === "object" &&
+        "dispose" in obj &&
+        typeof obj.dispose === "function"
+    );
 }

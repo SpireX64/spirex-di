@@ -1,6 +1,7 @@
 import type { TLifecycle, TTypeEntry, TTypeEntryBase } from "./types";
 import { makeFactoryEntryMock, makeInstanceEntryMock } from "./__test__/mocks";
 import {
+    checkIsDisposable,
     compareLifecycles,
     isFactoryTypeEntry,
     isInstanceTypeEntry,
@@ -73,4 +74,17 @@ describe("utils", () => {
             );
         },
     );
+
+    test.each([
+        [null, false],
+        [undefined, false],
+        [NaN, false],
+        [Number.MAX_SAFE_INTEGER, false],
+        [[42], false],
+        [{}, false],
+        [{ dispose: 123 }, false],
+        [{ dispose: () => {} }, true],
+    ])("checkIsDisposable(%s) == %s", (ref: unknown, expected) => {
+        expect(checkIsDisposable(ref)).toBe(expected);
+    });
 });

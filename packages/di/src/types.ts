@@ -52,6 +52,10 @@ export type TTypeEntry<
     Key extends keyof TypeMap,
 > = TTypeInstanceEntry<TypeMap, Key> | TTypeFactoryEntry<TypeMap, Key>;
 
+export interface IDisposable {
+    dispose(): void;
+}
+
 export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
     get<Key extends keyof TypeMap>(
         type: Key,
