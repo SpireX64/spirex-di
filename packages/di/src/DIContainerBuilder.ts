@@ -18,14 +18,7 @@ import { DIContainer } from "./DIContainer";
 import { Registrar } from "./internal/Registrar";
 import { InstanceActivator } from "./internal/InstanceActivator";
 import { checkIsTypeEntryMapItem, makeEntryId } from "./internal/utils";
-
-const Errors = {
-    EmptyContainer:
-        "Container building failed. Cannot create a container without bindings. " +
-        "Please bind at least one service or value using 'bindInstance' or 'bindFactory'.",
-    BindingConflict: (type: string) =>
-        `Binding conflict. The type '${type}' is already bound.`,
-} as const;
+import { Errors } from "./errors";
 
 export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
