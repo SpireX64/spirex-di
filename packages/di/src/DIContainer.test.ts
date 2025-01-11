@@ -256,5 +256,21 @@ describe("DIContainer", () => {
             expect(scope).toBeInstanceOf(DIScope);
             expect(scope.id).toBe(expectedScopeId);
         });
+
+        test("Reopen scope", () => {
+            // Arrange --------
+            const expectedScopeId = "my-scope";
+            const container = new DIContainer(
+                makeRegistrar(),
+                new InstanceActivator(),
+            );
+            const scopeA = container.scope(expectedScopeId);
+
+            // Act ------------
+            const scopeB = container.scope(expectedScopeId);
+
+            // Assert ---------
+            expect(scopeA).toBe(scopeB);
+        });
     });
 });

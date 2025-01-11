@@ -22,6 +22,8 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator: InstanceActivator<TypeMap>;
 
+    private readonly _scopes = new Map<TScopeID, DIScope>();
+
     public constructor(
         registrar: Registrar<TypeMap>,
         activator: InstanceActivator<TypeMap>,
@@ -32,7 +34,9 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     }
 
     public scope(id: TScopeID): DIScope {
-        return new DIScope(id);
+        let scope = this._scopes.get(id);
+        if (!scope) this._scopes.set(id, (scope = new DIScope(id)));
+        return scope;
     }
 
     public get<Key extends keyof TypeMap>(
