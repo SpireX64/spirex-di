@@ -57,6 +57,53 @@ describe("Registrar", () => {
         expect(entry).not.toBeNull();
     });
 
+    test("Find all of entries with same type (no entries)", () => {
+        type TypeMap = { val: number };
+
+        // Arrange --------
+        const registrar = new Registrar(makeEntriesMap<TypeMap>());
+
+        // Act ------------
+        const entries = registrar.findAllTypeEntries("val");
+
+        // Assert ---------
+        expect(entries).toHaveLength(0);
+    });
+
+    test("Find all of entries with same type (one entry)", () => {
+        type TypeMap = { val: number };
+
+        // Arrange --------
+        const expectedEntry = makeInstanceEntryMock<TypeMap>("val", 42);
+        const registrar = new Registrar(makeEntriesMap<TypeMap>(expectedEntry));
+
+        // Act ------------
+        const entries = registrar.findAllTypeEntries("val");
+
+        // Assert ---------
+        expect(entries).toHaveLength(1);
+        expect(entries).toContain(expectedEntry);
+    });
+
+    test("Find all of entries with same type", () => {
+        type TypeMap = { val1: number; val2: string };
+
+        // Arrange --------
+        const map = makeEntriesMap(
+            makeInstanceEntryMock<TypeMap>("val1", 1),
+            makeInstanceEntryMock<TypeMap>("val1", 2),
+            makeInstanceEntryMock<TypeMap>("val1", 3),
+            makeInstanceEntryMock<TypeMap>("val2", "foo"),
+        );
+        const registrar = new Registrar(map);
+
+        // Act -------
+        const entries = registrar.findAllTypeEntries("val1");
+
+        // Assert --------
+        expect(entries).toHaveLength(3);
+    });
+
     test("Iterate through all entries", () => {
         type TypeMap = { val1: string; val2: number };
 

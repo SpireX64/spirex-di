@@ -26,6 +26,17 @@ export class Registrar<TypeMap extends TTypeMapBase> {
         return item.values().next().value as TTypeEntry<TypeMap, Key>;
     }
 
+    public findAllTypeEntries<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): readonly TTypeEntry<TypeMap, Key>[] {
+        const item = this._entriesMap.get(makeEntryId(type, name));
+        if (!item) return [];
+        if (checkIsTypeEntryMapItem(item))
+            return Array.of(item as TTypeEntry<TypeMap, Key>);
+        return Array.from(item) as TTypeEntry<TypeMap, Key>[];
+    }
+
     public forEach(
         fn: (entry: TTypeEntry<TypeMap, keyof TypeMap>) => void,
     ): void {
