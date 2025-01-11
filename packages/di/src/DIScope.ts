@@ -8,8 +8,13 @@ import type {
 import { InstancesStorage } from "./internal/InstancesStorage";
 import { Registrar } from "./internal/Registrar";
 import { Errors } from "./errors";
-import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
+import {
+    checkIsDisposable,
+    isFactoryTypeEntry,
+    isInstanceTypeEntry,
+} from "./utils";
 import { InstanceActivator } from "./internal/InstanceActivator";
+import { makeEntryId } from "./internal/utils";
 
 export class DIScope<TypeMap extends TTypeMapBase>
     implements IInstanceResolver<TypeMap>
@@ -20,6 +25,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
     private readonly _parentScopeRef: DIScope<TypeMap> | null = null;
     private readonly _children = new Map<TScopeID, DIScope<TypeMap>>();
     private readonly _local: InstancesStorage<TypeMap>;
+
+    private _closed = false;
 
     public constructor(
         id: TScopeID,
@@ -43,7 +50,13 @@ export class DIScope<TypeMap extends TTypeMapBase>
         return this._id;
     }
 
+    public get isClosed(): boolean {
+        return this._closed;
+    }
+
     public scope(id: TScopeID): DIScope<TypeMap> {
+        if (this._closed)
+            throw new Error(Errors.ParentScopeClosed(this.id, id));
         let scope = this._children.get(id);
         if (scope) return scope;
         scope = new DIScope<TypeMap>(
@@ -56,11 +69,34 @@ export class DIScope<TypeMap extends TTypeMapBase>
         return scope;
     }
 
+    public close(): void {
+        if (this._closed) return;
+
+        // 1. Mark scope as disposed
+        this._closed = true;
+
+        // 2. Dispose & clear child scopes
+        this._children.forEach((it) => {
+            it.close();
+        });
+        this._children.clear();
+
+        // 3. Dispose & clear local instances refs
+        this._local.forEach((inst) => {
+            checkIsDisposable(inst) && inst.dispose();
+        });
+        this._local.clear();
+    }
+
     // region IInstanceResolver
     public get<Key extends keyof TypeMap>(
         type: Key,
         name?: string | undefined,
     ): TypeMap[Key] {
+        if (this._closed)
+            throw new Error(
+                Errors.ScopeClosed(this._id, makeEntryId(type, name)),
+            );
         const entry = this._registrar.findTypeEntry(type, name);
         if (!entry) throw Error(Errors.TypeBindingNotFound(type.toString()));
         return this.getInstanceByEntry(entry);
@@ -70,6 +106,10 @@ export class DIScope<TypeMap extends TTypeMapBase>
         type: Key,
         name?: string | undefined,
     ): TProvider<TypeMap[Key]> {
+        if (this._closed)
+            throw new Error(
+                Errors.ScopeClosed(this._id, makeEntryId(type, name)),
+            );
         if (!this._registrar.hasType(type, name))
             throw Error(Errors.TypeBindingNotFound(type.toString()));
         return this.get.bind(this, type, name) as TProvider<TypeMap[Key]>;
@@ -79,6 +119,10 @@ export class DIScope<TypeMap extends TTypeMapBase>
         type: Key,
         name?: string | undefined,
     ): readonly TypeMap[Key][] {
+        if (this._closed)
+            throw new Error(
+                Errors.ScopeClosed(this._id, makeEntryId(type, name)),
+            );
         const entries = this._registrar.findAllTypeEntries(type, name);
         const instances: TypeMap[Key][] = [];
         for (const entry of entries)

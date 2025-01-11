@@ -9,7 +9,7 @@ import {
     makeRegistrar,
 } from "./__test__/mocks";
 import { InstanceActivator } from "./internal/InstanceActivator";
-import { TTypeMapBase } from "./types";
+import type { IDisposable, TTypeMapBase } from "./types";
 import { catchError } from "./__test__/errors";
 import { Errors } from "./errors";
 
@@ -93,6 +93,23 @@ describe("DIScope", () => {
                 expect(error).not.toBeUndefined();
                 expect(error?.message).toEqual(
                     Errors.TypeBindingNotFound("value"),
+                );
+            });
+
+            test("Get instance of type after scope close", () => {
+                // Arrange ----
+                const scopeId = "TestScope";
+                const scope = makeScopeInstance({ id: scopeId });
+
+                scope.close();
+
+                // Act --------
+                const error = catchError(() => scope.get("value"));
+
+                // Assert -----
+                expect(error).not.toBeUndefined();
+                expect(error?.message).toEqual(
+                    Errors.ScopeClosed(scopeId, "value"),
                 );
             });
 
@@ -197,6 +214,50 @@ describe("DIScope", () => {
                 expect(factory).toHaveBeenCalledTimes(1);
             });
 
+            test("Get all instances of type", () => {
+                type TypeMap = { value: number };
+
+                // Arrange -------
+                const scope = makeScopeInstance<TypeMap>({
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", () => 11),
+                        makeFactoryEntryMock<TypeMap>("value", () => 22),
+                        makeInstanceEntryMock<TypeMap>("value", 33),
+                    ),
+                });
+
+                // Act ------------
+                const values = scope.getAll("value");
+
+                // Assert ---------
+                expect(values).toEqual(expect.arrayContaining([11, 22, 33]));
+            });
+
+            test("Get all instances of type after scope close", () => {
+                type TypeMap = { value: number };
+
+                // Arrange -----
+                const scopeId = "TestScope";
+                const scope = makeScopeInstance<TypeMap>({
+                    id: scopeId,
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", () => 11),
+                        makeFactoryEntryMock<TypeMap>("value", () => 22),
+                        makeInstanceEntryMock<TypeMap>("value", 33),
+                    ),
+                });
+                scope.close();
+
+                // Act --------
+                const error = catchError(() => scope.getAll("value"));
+
+                // Assert -----
+                expect(error).not.toBeUndefined();
+                expect(error?.message).toEqual(
+                    Errors.ScopeClosed(scopeId, "value"),
+                );
+            });
+
             test("Get provider of type", () => {
                 type TypeMap = { value: number };
 
@@ -231,6 +292,43 @@ describe("DIScope", () => {
                     Errors.TypeBindingNotFound("value"),
                 );
             });
+
+            test("Get instance provider of type after scope close", () => {
+                const scopeId = "TestScope";
+                const scope = makeScopeInstance({ id: scopeId });
+
+                scope.close();
+
+                // Act --------
+                const error = catchError(() => scope.getProvider("value"));
+
+                // Assert -----
+                expect(error).not.toBeUndefined();
+                expect(error?.message).toEqual(
+                    Errors.ScopeClosed(scopeId, "value"),
+                );
+            });
+
+            test("Call instance provider after scope close", () => {
+                const scopeId = "TestScope";
+                const scope = makeScopeInstance({
+                    id: scopeId,
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock("value", () => 42),
+                    ),
+                });
+                const provider = scope.getProvider("value");
+                scope.close();
+
+                // Act --------
+                const error = catchError(provider);
+
+                // Assert -----
+                expect(error).not.toBeUndefined();
+                expect(error?.message).toEqual(
+                    Errors.ScopeClosed(scopeId, "value"),
+                );
+            });
         });
     });
 
@@ -259,6 +357,99 @@ describe("DIScope", () => {
 
             // Assert -----------
             expect(childScopeA).toBe(childScopeB);
+        });
+
+        test("Close scope", () => {
+            // Arrange -----
+            const scope = makeScopeInstance();
+
+            // Act ---------
+            scope.close();
+
+            // Assert ------
+            expect(scope.isClosed).toBeTruthy();
+        });
+
+        test("Close scope many times", () => {
+            // Arrange --------
+            const scope = makeScopeInstance();
+            scope.close();
+
+            // Act --------
+            const error = catchError(() => {
+                scope.close();
+            });
+
+            // Assert ---------
+            expect(error).toBeUndefined();
+            expect(scope.isClosed).toBeTruthy();
+        });
+
+        test("Auto-close child scope", () => {
+            // Arrange ------
+            const scope = makeScopeInstance();
+            const childScope = scope.scope("child");
+
+            // Act ----------
+            scope.close();
+
+            // Assert -------
+            expect(scope.isClosed).toBeTruthy();
+            expect(childScope.isClosed).toBeTruthy();
+        });
+
+        test("Dispose scoped instances", () => {
+            type TypeMap = { value: IDisposable };
+
+            // Arrange -------
+            const disposeFuncA = jest.fn();
+            const disposeFuncB = jest.fn();
+
+            const scope = makeScopeInstance({
+                registrar: makeRegistrar(
+                    makeFactoryEntryMock<TypeMap>(
+                        "value",
+                        () => ({
+                            dispose: disposeFuncA,
+                        }),
+                        "scope",
+                    ),
+                    makeFactoryEntryMock<TypeMap>(
+                        "value",
+                        () => ({
+                            dispose: disposeFuncB,
+                        }),
+                        "scope",
+                    ),
+                ),
+            });
+
+            scope.getAll("value");
+
+            // Act ---------
+            scope.close();
+
+            // Assert --------
+            expect(scope.isClosed).toBeTruthy();
+            expect(disposeFuncA).toHaveBeenCalledTimes(1);
+            expect(disposeFuncB).toHaveBeenCalledTimes(1);
+        });
+
+        test("Get child scope after close", () => {
+            // Arrange ----------
+            const parentId = "parent";
+            const childId = "child";
+            const scope = makeScopeInstance({ id: parentId });
+            scope.close();
+
+            // Act --------------
+            const error = catchError(() => scope.scope(childId));
+
+            // Assert -----------
+            expect(error).not.toBeUndefined();
+            expect(error?.message).toEqual(
+                Errors.ParentScopeClosed(parentId, childId),
+            );
         });
     });
 });
