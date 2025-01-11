@@ -18,7 +18,7 @@ export type TTypeEntryBase<K> = {
 
 export type TTypesConflictResolve = "throw" | "keep" | "replace" | "append";
 
-export type TLifecycle = "singleton" | "lazy" | "transient";
+export type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
 
 export type TBindingOptions = Partial<{
     ifConflict: TTypesConflictResolve;
@@ -53,6 +53,18 @@ export type TTypeEntry<
 > = TTypeInstanceEntry<TypeMap, Key> | TTypeFactoryEntry<TypeMap, Key>;
 
 export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
-    get<Key extends keyof TypeMap>(type: Key): TypeMap[Key];
-    getProvider<Key extends keyof TypeMap>(type: Key): TProvider<TypeMap[Key]>;
+    get<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): TypeMap[Key];
+
+    getProvider<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): TProvider<TypeMap[Key]>;
+
+    getAll<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): readonly TypeMap[Key][];
 }

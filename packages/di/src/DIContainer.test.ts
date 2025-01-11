@@ -174,10 +174,11 @@ describe("DIContainer", () => {
             // Arrange ------------
             const expectedValue = "Hello";
             const factory = jest.fn(() => expectedValue);
+            const registrar = makeRegistrar(
+                makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+            );
             const container = new DIContainer(
-                makeRegistrar(
-                    makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
-                ),
+                registrar,
                 new InstanceActivator(),
             );
             const valueProvider = container.getProvider("value");

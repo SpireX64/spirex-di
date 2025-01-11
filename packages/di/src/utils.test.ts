@@ -51,13 +51,20 @@ describe("utils", () => {
     test.each([
         ["singleton", "singleton", 0],
         ["singleton", "lazy", 1],
+        ["singleton", "scope", 1],
         ["singleton", "transient", 1],
-        ["lazy", "lazy", 0],
         ["lazy", "singleton", -1],
+        ["lazy", "lazy", 0],
+        ["lazy", "scope", 1],
         ["lazy", "transient", 1],
-        ["transient", "transient", 0],
+        ["scope", "singleton", -1],
+        ["scope", "lazy", -1],
+        ["scope", "scope", 0],
+        ["scope", "transient", 1],
         ["transient", "singleton", -1],
         ["transient", "lazy", -1],
+        ["transient", "scope", -1],
+        ["transient", "transient", 0],
     ] as ReadonlyArray<[TLifecycle, TLifecycle, number]>)(
         "Compare lifecycles %s & %s",
         (lc1, lc2, expectedComparation) => {

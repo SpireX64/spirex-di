@@ -26,8 +26,9 @@ export function isFactoryTypeEntry<
 
 const lifecycleLevelMap: Record<TLifecycle, number> = {
     transient: 0,
-    lazy: 1,
-    singleton: 2,
+    scope: 1,
+    lazy: 2,
+    singleton: 3,
 };
 
 export function compareLifecycles(lhv: TLifecycle, rhv: TLifecycle): number {
