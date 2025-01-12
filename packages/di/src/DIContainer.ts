@@ -39,6 +39,13 @@ export class DIContainer<TypeMap extends TTypeMapBase>
         return this._globalScope.get(key, name);
     }
 
+    public getOptional<Key extends keyof TypeMap>(
+        key: Key,
+        name?: string | undefined,
+    ): TypeMap[Key] | null {
+        return this._globalScope.getOptional(key, name);
+    }
+
     public getAll<Key extends keyof TypeMap>(
         type: Key,
         name?: string | undefined,

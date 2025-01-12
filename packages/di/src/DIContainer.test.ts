@@ -219,6 +219,25 @@ describe("DIContainer", () => {
             expect(valueBar).toBe(3);
         });
 
+        test("Get optional value", () => {
+            type TypeMap = { value: number };
+
+            // Arrange -----------
+            const expectedValue = 123;
+            const container = new DIContainer(
+                makeRegistrar(
+                    makeInstanceEntryMock<TypeMap>("value", expectedValue),
+                ),
+                new InstanceActivator(),
+            );
+
+            // Act ---------
+            const value = container.getOptional("value");
+
+            // Arrange -------
+            expect(value).toBe(expectedValue);
+        });
+
         test("Get phantom value", () => {
             type TypeMap = { obj: object };
 
