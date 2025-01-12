@@ -72,21 +72,9 @@ export class DIScope<TypeMap extends TTypeMapBase>
 
     public close(): void {
         if (this._closed) return;
-
-        // 1. Mark scope as disposed
         this._closed = true;
-
-        // 2. Dispose & clear child scopes
-        this._children.forEach((it) => {
-            it.close();
-        });
-        this._children.clear();
-
-        // 3. Dispose & clear local instances refs
-        this._local.forEach((inst) => {
-            checkIsDisposable(inst) && inst.dispose();
-        });
-        this._local.clear();
+        this.closeChildScopes();
+        this.disposeLocalInstances();
     }
 
     // region IInstanceResolver
@@ -168,6 +156,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
 
     // region Private methods
 
+    /** @internal */
     private getInstanceByEntry<Key extends keyof TypeMap>(
         entry: TTypeEntry<TypeMap, Key>,
         withoutActivation?: boolean,
@@ -189,6 +178,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
         return instance as TypeMap[Key];
     }
 
+    /** @internal */
     private activateSingletons(): InstancesStorage<TypeMap> {
         const storage = new InstancesStorage<TypeMap>();
         this._registrar.forEach((entry) => {
@@ -198,6 +188,22 @@ export class DIScope<TypeMap extends TTypeMapBase>
             }
         });
         return storage;
+    }
+
+    /** @internal */
+    private closeChildScopes(): void {
+        this._children.forEach((it) => {
+            it.close();
+        });
+        this._children.clear();
+    }
+
+    /** @internal */
+    private disposeLocalInstances(): void {
+        this._local.forEach((inst) => {
+            checkIsDisposable(inst) && inst.dispose();
+        });
+        this._local.clear();
     }
 
     // endregion Private methods
