@@ -1,6 +1,6 @@
 import type { TScopeID } from "./types";
 
-export const Errors = {
+export const Errors = Object.freeze({
     TypeBindingNotFound: (type: string) => `Type binding ${type} not found.`,
     EmptyContainer:
         "Container building failed. Cannot create a container without bindings. " +
@@ -13,4 +13,4 @@ export const Errors = {
     ParentScopeClosed: (parentScopeId: TScopeID, childScopeId: TScopeID) =>
         `Cannot open a child scope '${childScopeId.toString()}' because the parent scope '${parentScopeId.toString()}' has already been closed. ` +
         "Ensure the parent scope is open before attempting to create child scopes.",
-} as const;
+});

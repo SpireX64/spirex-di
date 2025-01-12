@@ -25,12 +25,12 @@ export function isFactoryTypeEntry<
     return !!entry && "factory" in entry;
 }
 
-const lifecycleLevelMap: Record<TLifecycle, number> = {
+const lifecycleLevelMap: Readonly<Record<TLifecycle, number>> = Object.freeze({
     transient: 0,
     scope: 1,
     lazy: 2,
     singleton: 3,
-};
+});
 
 export function compareLifecycles(lhv: TLifecycle, rhv: TLifecycle): number {
     return lifecycleLevelMap[lhv] - lifecycleLevelMap[rhv];
