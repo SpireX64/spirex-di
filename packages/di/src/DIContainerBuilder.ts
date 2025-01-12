@@ -155,6 +155,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         append: boolean,
     ): void {
         const item = this._types.get(entry.$id);
+        Object.freeze(entry); // Make 'entry' readonly struct
+
         if (!item || !append) this._types.set(entry.$id, entry);
         else {
             if (checkIsTypeEntryMapItem(item)) {

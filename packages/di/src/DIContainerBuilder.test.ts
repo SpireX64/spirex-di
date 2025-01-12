@@ -31,6 +31,7 @@ describe("DIContainerBuilder", () => {
         expect(typeEntry?.type).toBe(expectedTypeKey);
         expect(typeEntry?.instance).toBe(expectedValue);
         expect(typeEntry?.factory).toBeUndefined();
+        expect(Object.isFrozen(typeEntry)).toBeTruthy();
     });
 
     test("Bind factory", () => {
@@ -51,6 +52,7 @@ describe("DIContainerBuilder", () => {
         expect(typeEntry?.factory).toBe(factory);
         expect(typeEntry?.instance).toBeUndefined();
         expect(factory).not.toHaveBeenCalled();
+        expect(Object.isFrozen(typeEntry)).toBeTruthy();
     });
 
     describe("Named binding", () => {
