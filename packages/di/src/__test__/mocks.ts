@@ -77,6 +77,9 @@ export function createMockResolver<TypeMap extends TTypeMapBase>(
                     instancesMap?.[type] as TypeMap[K],
         ),
 
+        getPhantom: <T extends keyof TypeMap>(type: T): TypeMap[T] =>
+            instancesMap?.[type] as TypeMap[T],
+
         getAll: <Key extends keyof TypeMap>(
             type: Key,
         ): readonly TypeMap[Key][] =>

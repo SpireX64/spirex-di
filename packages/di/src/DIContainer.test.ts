@@ -8,6 +8,7 @@ import { catchError } from "./__test__/errors";
 import { DIScope } from "./DIScope";
 import { InstanceActivator } from "./internal/InstanceActivator";
 import type { IInstanceResolver } from "./types";
+import { checkIsPhantomInstance } from "./utils";
 
 describe("DIContainer", () => {
     describe("Resolve type instance", () => {
@@ -216,6 +217,26 @@ describe("DIContainer", () => {
             expect(value).toBe(1);
             expect(valueFoo).toBe(2);
             expect(valueBar).toBe(3);
+        });
+
+        test("Get phantom value", () => {
+            type TypeMap = { obj: object };
+
+            // Arrange ----------
+            const factory = jest.fn(() => new Object());
+            const container = new DIContainer(
+                makeRegistrar(
+                    makeFactoryEntryMock<TypeMap>("obj", factory, "lazy"),
+                ),
+                new InstanceActivator(),
+            );
+
+            // Act --------------
+            const phantom = container.getPhantom("obj");
+
+            // Assert -----------
+            expect(checkIsPhantomInstance(phantom)).toBeTruthy();
+            expect(factory).not.toHaveBeenCalled();
         });
 
         test("Get all values of type", () => {

@@ -6,6 +6,7 @@ import type {
     TTypeInstanceEntry,
     TTypeMapBase,
 } from "./types";
+import { PHANTOM_SYMBOL } from "./internal/phantom";
 
 export function isInstanceTypeEntry<
     TypeMap extends TTypeMapBase,
@@ -43,4 +44,16 @@ export function checkIsDisposable(obj: unknown): obj is IDisposable {
         "dispose" in obj &&
         typeof obj.dispose === "function"
     );
+}
+
+export function checkIsPhantomInstance(obj: object): boolean {
+    return PHANTOM_SYMBOL in obj;
+}
+
+export function unwrapPhantom<T>(phObj: T): T {
+    if (!phObj || typeof phObj !== "object" || !checkIsPhantomInstance(phObj))
+        return phObj;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    return phObj[PHANTOM_SYMBOL] as T;
 }

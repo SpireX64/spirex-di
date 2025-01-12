@@ -52,4 +52,11 @@ export class DIContainer<TypeMap extends TTypeMapBase>
     ): TProvider<TypeMap[Key]> {
         return this._globalScope.getProvider(type, name);
     }
+
+    public getPhantom<T extends keyof TypeMap>(
+        type: T,
+        name?: string | undefined,
+    ): TypeMap[T] {
+        return this._globalScope.getPhantom(type, name);
+    }
 }

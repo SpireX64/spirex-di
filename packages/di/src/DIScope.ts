@@ -15,6 +15,7 @@ import {
 } from "./utils";
 import { InstanceActivator } from "./internal/InstanceActivator";
 import { makeEntryId } from "./internal/utils";
+import { makePhantomInstance } from "./internal/phantom";
 
 export class DIScope<TypeMap extends TTypeMapBase>
     implements IInstanceResolver<TypeMap>
@@ -115,6 +116,28 @@ export class DIScope<TypeMap extends TTypeMapBase>
         return this.get.bind(this, type, name) as TProvider<TypeMap[Key]>;
     }
 
+    public getPhantom<T extends keyof TypeMap>(
+        type: T,
+        name?: string | undefined,
+    ): TypeMap[T] {
+        if (this._closed)
+            throw new Error(
+                Errors.ScopeClosed(this._id, makeEntryId(type, name)),
+            );
+
+        const entry = this._registrar.findTypeEntry(type, name);
+        if (!entry) throw Error(Errors.TypeBindingNotFound(type.toString()));
+        return (
+            this.getInstanceByEntry(entry, true) ||
+            makePhantomInstance<TypeMap, T>(
+                entry,
+                this.getInstanceByEntry.bind(this, entry) as TProvider<
+                    TypeMap[T]
+                >,
+            )
+        );
+    }
+
     public getAll<Key extends keyof TypeMap>(
         type: Key,
         name?: string | undefined,
@@ -135,6 +158,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
 
     private getInstanceByEntry<Key extends keyof TypeMap>(
         entry: TTypeEntry<TypeMap, Key>,
+        withoutActivation?: boolean,
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) return entry.instance;
         if (entry.lifecycle === "transient")
@@ -145,10 +169,12 @@ export class DIScope<TypeMap extends TTypeMapBase>
             if (this._parentScopeRef && entry.lifecycle !== "scope") {
                 return this._parentScopeRef.getInstanceByEntry(entry);
             }
-            instance = this._activator.createInstance(entry, this);
-            this._local.storeInstance(entry, instance);
+            if (!withoutActivation) {
+                instance = this._activator.createInstance(entry, this);
+                this._local.storeInstance(entry, instance);
+            }
         }
-        return instance;
+        return instance as TypeMap[Key];
     }
 
     private activateSingletons(): InstancesStorage<TypeMap> {

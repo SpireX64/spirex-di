@@ -57,20 +57,25 @@ export interface IDisposable {
 }
 
 export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
-    get<Key extends keyof TypeMap>(
-        type: Key,
+    get<T extends keyof TypeMap>(
+        type: T,
         name?: string | undefined,
-    ): TypeMap[Key];
+    ): TypeMap[T];
 
-    getProvider<Key extends keyof TypeMap>(
-        type: Key,
+    getPhantom<T extends keyof TypeMap>(
+        type: T,
         name?: string | undefined,
-    ): TProvider<TypeMap[Key]>;
+    ): TypeMap[T];
 
-    getAll<Key extends keyof TypeMap>(
-        type: Key,
+    getProvider<T extends keyof TypeMap>(
+        type: T,
         name?: string | undefined,
-    ): readonly TypeMap[Key][];
+    ): TProvider<TypeMap[T]>;
+
+    getAll<T extends keyof TypeMap>(
+        type: T,
+        name?: string | undefined,
+    ): readonly TypeMap[T][];
 }
 
 export interface IContainerBuilderExplorer<TypeMap extends TTypeMapBase> {
