@@ -103,6 +103,18 @@ export class DIScope<TypeMap extends TTypeMapBase>
         return this.getInstanceByEntry(entry);
     }
 
+    public getOptional<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): TypeMap[Key] | null {
+        if (this._closed)
+            throw new Error(
+                Errors.ScopeClosed(this._id, makeEntryId(type, name)),
+            );
+        const entry = this._registrar.findTypeEntry(type, name);
+        return entry ? this.getInstanceByEntry(entry) : null;
+    }
+
     public getProvider<Key extends keyof TypeMap>(
         type: Key,
         name?: string | undefined,

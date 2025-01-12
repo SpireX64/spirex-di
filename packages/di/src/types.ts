@@ -62,6 +62,11 @@ export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
         name?: string | undefined,
     ): TypeMap[T];
 
+    getOptional<T extends keyof TypeMap>(
+        type: T,
+        name: string | undefined,
+    ): TypeMap[T] | null;
+
     getPhantom<T extends keyof TypeMap>(
         type: T,
         name?: string | undefined,

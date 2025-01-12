@@ -71,6 +71,9 @@ export function createMockResolver<TypeMap extends TTypeMapBase>(
                 instancesMap?.[type] as TypeMap[K],
         ),
 
+        getOptional: <T extends keyof TypeMap>(type: T): TypeMap[T] | null =>
+            instancesMap?.[type] as TypeMap[T],
+
         getProvider: jest.fn(
             <K extends keyof TypeMap>(type: K) =>
                 () =>

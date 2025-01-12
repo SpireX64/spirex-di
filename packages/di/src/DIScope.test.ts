@@ -214,7 +214,60 @@ describe("DIScope", () => {
                 // Singleton - calls factory only once
                 expect(factory).toHaveBeenCalledTimes(1);
             });
+        });
 
+        describe("Get optional instance of type", () => {
+            test("Get optional of bound entry", () => {
+                type TypeMap = { value: number };
+
+                // Arrange ---------
+                const expectedValue = 42;
+                const scope = makeScopeInstance({
+                    registrar: makeRegistrar(
+                        makeInstanceEntryMock<TypeMap>("value", expectedValue),
+                    ),
+                });
+
+                // Act ----------
+                const mayBeValue = scope.getOptional("value");
+
+                // Assert -------
+                expect(mayBeValue).toBe(42);
+            });
+
+            test("Get optional of not bound entry", () => {
+                type TypeMap = { value: number };
+
+                // Arrange ---------
+                const scope = makeScopeInstance<TypeMap>();
+
+                // Act ----------
+                const mayBeValue = scope.getOptional("value");
+
+                // Assert -------
+                expect(mayBeValue).toBeNull();
+            });
+
+            test("Get optional from closed scope", () => {
+                type TypeMap = { value: number };
+
+                // Arrange ---------
+                const scopeId = "scopeId";
+                const scope = makeScopeInstance<TypeMap>({ id: scopeId });
+                scope.close();
+
+                // Act ----------
+                const error = catchError(() => scope.getOptional("value"));
+
+                // Assert -------
+                expect(error).not.toBeUndefined();
+                expect(error?.message).toEqual(
+                    Errors.ScopeClosed(scopeId, "value"),
+                );
+            });
+        });
+
+        describe("Get all instances", () => {
             test("Get all instances of type", () => {
                 type TypeMap = { value: number };
 
@@ -258,7 +311,9 @@ describe("DIScope", () => {
                     Errors.ScopeClosed(scopeId, "value"),
                 );
             });
+        });
 
+        describe("Get provider", () => {
             test("Get provider of type", () => {
                 type TypeMap = { value: number };
 
@@ -330,178 +385,154 @@ describe("DIScope", () => {
                     Errors.ScopeClosed(scopeId, "value"),
                 );
             });
+        });
 
-            describe("Phantom instance", () => {
-                test("Get phantom instance", () => {
-                    type TypeMap = { value: { foo: string } };
+        describe("Phantom instance", () => {
+            test("Get phantom instance", () => {
+                type TypeMap = { value: { foo: string } };
 
-                    const factory = jest.fn(() => ({ foo: "bar" }));
-                    const scope = makeScopeInstance({
-                        registrar: makeRegistrar(
-                            makeFactoryEntryMock<TypeMap>(
-                                "value",
-                                factory,
-                                "lazy",
-                            ),
-                        ),
-                    });
-
-                    // Act ---------
-                    const valuePhantom = scope.getPhantom("value");
-
-                    // Expect ------
-                    expect(valuePhantom).not.toBeNull();
-                    expect(factory).not.toHaveBeenCalled();
+                const factory = jest.fn(() => ({ foo: "bar" }));
+                const scope = makeScopeInstance({
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                    ),
                 });
 
-                test("Interaction with phantom instance", () => {
-                    type TypeMap = { value: { foo: string } };
+                // Act ---------
+                const valuePhantom = scope.getPhantom("value");
 
-                    const factory = jest.fn(() => ({ foo: "bar" }));
-                    const scope = makeScopeInstance({
-                        registrar: makeRegistrar(
-                            makeFactoryEntryMock<TypeMap>(
-                                "value",
-                                factory,
-                                "lazy",
-                            ),
-                        ),
-                    });
-                    const valuePhantom = scope.getPhantom("value");
+                // Expect ------
+                expect(valuePhantom).not.toBeNull();
+                expect(factory).not.toHaveBeenCalled();
+            });
 
-                    // Act ---------
-                    const foo = valuePhantom.foo;
+            test("Interaction with phantom instance", () => {
+                type TypeMap = { value: { foo: string } };
 
-                    // Expect ------
-                    expect(valuePhantom).not.toBeNull();
-                    expect(factory).toHaveBeenCalledTimes(1);
-                    expect(foo).toBe("bar");
+                const factory = jest.fn(() => ({ foo: "bar" }));
+                const scope = makeScopeInstance({
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                    ),
+                });
+                const valuePhantom = scope.getPhantom("value");
+
+                // Act ---------
+                const foo = valuePhantom.foo;
+
+                // Expect ------
+                expect(valuePhantom).not.toBeNull();
+                expect(factory).toHaveBeenCalledTimes(1);
+                expect(foo).toBe("bar");
+            });
+
+            test("Check is phantom instance", () => {
+                type TypeMap = { value: { foo: string } };
+
+                const factory = jest.fn(() => ({ foo: "bar" }));
+                const scope = makeScopeInstance({
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                    ),
+                });
+                const valuePhantom = scope.getPhantom("value");
+
+                // Act ---------
+                const isPhantom = checkIsPhantomInstance(valuePhantom);
+
+                // Expect ------
+                expect(valuePhantom).not.toBeNull();
+                expect(isPhantom).toBeTruthy();
+            });
+
+            test("Get phantom instance after interaction", () => {
+                type TypeMap = { value: { foo: symbol } };
+                const expectedValue = Symbol("value");
+
+                const factory = jest.fn(() => ({ foo: expectedValue }));
+                const scope = makeScopeInstance({
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                    ),
+                });
+                const valuePhantom = scope.getPhantom("value");
+                const valuePhantomFoo = valuePhantom.foo; // Interaction
+
+                // Act ---------
+                const anotherValue = scope.getPhantom("value");
+                const isPhantom = checkIsPhantomInstance(anotherValue);
+
+                // Expect ------
+                expect(anotherValue).not.toBeNull();
+                expect(isPhantom).toBeFalsy();
+                expect(factory).toHaveBeenCalledTimes(1);
+                expect(valuePhantomFoo).toBe(expectedValue);
+                expect(anotherValue.foo).toBe(expectedValue);
+                expect(anotherValue.foo).toBe(valuePhantom.foo);
+            });
+
+            test("Unwrap phantom instance", () => {
+                type TypeMap = { value: { foo: string } };
+
+                const factory = jest.fn(() => ({ foo: "bar" }));
+                const scope = makeScopeInstance({
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                    ),
                 });
 
-                test("Check is phantom instance", () => {
-                    type TypeMap = { value: { foo: string } };
+                // Act ---------
+                const valuePhantom = scope.getPhantom("value");
 
-                    const factory = jest.fn(() => ({ foo: "bar" }));
-                    const scope = makeScopeInstance({
-                        registrar: makeRegistrar(
-                            makeFactoryEntryMock<TypeMap>(
-                                "value",
-                                factory,
-                                "lazy",
-                            ),
-                        ),
-                    });
-                    const valuePhantom = scope.getPhantom("value");
+                const realValue = unwrapPhantom(valuePhantom);
+                const realValue2 = unwrapPhantom(realValue);
 
-                    // Act ---------
-                    const isPhantom = checkIsPhantomInstance(valuePhantom);
+                // Expect ------
+                expect(realValue).not.toBeNull();
+                expect(checkIsPhantomInstance(valuePhantom)).toBeTruthy();
+                expect(checkIsPhantomInstance(realValue)).toBeFalsy();
+                expect(realValue.foo).toBe(valuePhantom.foo);
+                expect(factory).toHaveBeenCalledTimes(1);
+                expect(realValue2).toBe(realValue);
+            });
 
-                    // Expect ------
-                    expect(valuePhantom).not.toBeNull();
-                    expect(isPhantom).toBeTruthy();
+            test("Get phantom instance from closed scope", () => {
+                type TypeMap = { value: { foo: string } };
+
+                const scopeId = "scope-id";
+                const factory = jest.fn(() => ({ foo: "bar" }));
+                const scope = makeScopeInstance({
+                    id: scopeId,
+                    registrar: makeRegistrar(
+                        makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
+                    ),
                 });
+                scope.close();
 
-                test("Get phantom instance after interaction", () => {
-                    type TypeMap = { value: { foo: symbol } };
-                    const expectedValue = Symbol("value");
+                // Act ---------
+                const error = catchError(() => scope.getPhantom("value"));
 
-                    const factory = jest.fn(() => ({ foo: expectedValue }));
-                    const scope = makeScopeInstance({
-                        registrar: makeRegistrar(
-                            makeFactoryEntryMock<TypeMap>(
-                                "value",
-                                factory,
-                                "lazy",
-                            ),
-                        ),
-                    });
-                    const valuePhantom = scope.getPhantom("value");
-                    const valuePhantomFoo = valuePhantom.foo; // Interaction
+                // Expect ------
+                expect(error).not.toBeUndefined();
+                expect(error?.message).toEqual(
+                    Errors.ScopeClosed(scopeId, "value"),
+                );
+                expect(factory).not.toHaveBeenCalled();
+            });
 
-                    // Act ---------
-                    const anotherValue = scope.getPhantom("value");
-                    const isPhantom = checkIsPhantomInstance(anotherValue);
+            test("Get phantom instance of not bound entry", () => {
+                type TypeMap = { value: { foo: string } };
 
-                    // Expect ------
-                    expect(anotherValue).not.toBeNull();
-                    expect(isPhantom).toBeFalsy();
-                    expect(factory).toHaveBeenCalledTimes(1);
-                    expect(valuePhantomFoo).toBe(expectedValue);
-                    expect(anotherValue.foo).toBe(expectedValue);
-                    expect(anotherValue.foo).toBe(valuePhantom.foo);
-                });
+                const scope = makeScopeInstance<TypeMap>();
 
-                test("Unwrap phantom instance", () => {
-                    type TypeMap = { value: { foo: string } };
+                // Act ---------
+                const error = catchError(() => scope.getPhantom("value"));
 
-                    const factory = jest.fn(() => ({ foo: "bar" }));
-                    const scope = makeScopeInstance({
-                        registrar: makeRegistrar(
-                            makeFactoryEntryMock<TypeMap>(
-                                "value",
-                                factory,
-                                "lazy",
-                            ),
-                        ),
-                    });
-
-                    // Act ---------
-                    const valuePhantom = scope.getPhantom("value");
-
-                    const realValue = unwrapPhantom(valuePhantom);
-                    const realValue2 = unwrapPhantom(realValue);
-
-                    // Expect ------
-                    expect(realValue).not.toBeNull();
-                    expect(checkIsPhantomInstance(valuePhantom)).toBeTruthy();
-                    expect(checkIsPhantomInstance(realValue)).toBeFalsy();
-                    expect(realValue.foo).toBe(valuePhantom.foo);
-                    expect(factory).toHaveBeenCalledTimes(1);
-                    expect(realValue2).toBe(realValue);
-                });
-
-                test("Get phantom instance from closed scope", () => {
-                    type TypeMap = { value: { foo: string } };
-
-                    const scopeId = "scope-id";
-                    const factory = jest.fn(() => ({ foo: "bar" }));
-                    const scope = makeScopeInstance({
-                        id: scopeId,
-                        registrar: makeRegistrar(
-                            makeFactoryEntryMock<TypeMap>(
-                                "value",
-                                factory,
-                                "lazy",
-                            ),
-                        ),
-                    });
-                    scope.close();
-
-                    // Act ---------
-                    const error = catchError(() => scope.getPhantom("value"));
-
-                    // Expect ------
-                    expect(error).not.toBeUndefined();
-                    expect(error?.message).toEqual(
-                        Errors.ScopeClosed(scopeId, "value"),
-                    );
-                    expect(factory).not.toHaveBeenCalled();
-                });
-
-                test("Get phantom instance of not bound entry", () => {
-                    type TypeMap = { value: { foo: string } };
-
-                    const scope = makeScopeInstance<TypeMap>();
-
-                    // Act ---------
-                    const error = catchError(() => scope.getPhantom("value"));
-
-                    // Expect ------
-                    expect(error).not.toBeUndefined();
-                    expect(error?.message).toEqual(
-                        Errors.TypeBindingNotFound("value"),
-                    );
-                });
+                // Expect ------
+                expect(error).not.toBeUndefined();
+                expect(error?.message).toEqual(
+                    Errors.TypeBindingNotFound("value"),
+                );
             });
         });
     });
