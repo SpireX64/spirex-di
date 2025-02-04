@@ -1,4 +1,4 @@
-import { validateLifecycle } from "./validators";
+import { validateLifecycle, validateName } from "./validators";
 
 describe("validators", () => {
     test.each([
@@ -13,5 +13,16 @@ describe("validators", () => {
         ["lazy", true],
     ])("validateLifecycle(%s)=%s", (value, expected) => {
         expect(validateLifecycle(value)).toBe(expected);
+    });
+
+    test.each([
+        ["validName", true],
+        ["  invalidName", false],
+        ["invalidName   ", false],
+        ["   invalidName   ", false],
+        ["    ", false],
+        ["", false],
+    ])('validateName("%s") == %s', (name, expected) => {
+        expect(validateName(name)).toBe(expected);
     });
 });
