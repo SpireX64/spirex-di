@@ -1,3 +1,5 @@
+import type { TAnyDIModule } from "./modules/types";
+
 export type TTypeMapBase = Record<string, unknown>;
 
 export type TProvider<T> = () => T;
@@ -10,9 +12,13 @@ export type TTypeFactory<
 export type TEntryId = string;
 export type TScopeID = symbol | string;
 
-export type TTypeEntryBase<K> = {
+export type TTypeEntryBase<
+    TypeMap extends TTypeMapBase,
+    Key extends keyof TypeMap,
+> = {
     $id: TEntryId;
-    type: K;
+    type: Key;
+    module?: TAnyDIModule<TypeMap>;
     name?: string | undefined;
 };
 
@@ -23,6 +29,7 @@ export type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
 export type TBindingOptions = Partial<{
     ifConflict: TTypesConflictResolve;
     name: string;
+    source?: string | undefined;
 }>;
 
 export type TFactoryBindingOptions = TBindingOptions &
@@ -33,7 +40,7 @@ export type TFactoryBindingOptions = TBindingOptions &
 export type TTypeInstanceEntry<
     TypeMap extends TTypeMapBase,
     Key extends keyof TypeMap,
-> = TTypeEntryBase<Key> & {
+> = TTypeEntryBase<TypeMap, Key> & {
     instance: TypeMap[Key];
     factory?: never;
 };
@@ -41,7 +48,7 @@ export type TTypeInstanceEntry<
 export type TTypeFactoryEntry<
     TypeMap extends TTypeMapBase,
     Key extends keyof TypeMap,
-> = TTypeEntryBase<Key> & {
+> = TTypeEntryBase<TypeMap, Key> & {
     factory: TTypeFactory<TypeMap, Key>;
     lifecycle: TLifecycle;
     instance?: never;
