@@ -2,6 +2,7 @@ import type { TAnyDIModule, TDynamicDIModule } from "./types";
 import type { TTypeMapBase } from "../types";
 import { Errors } from "../errors";
 
+// istanbul ignore next
 function stub() {
     throw new Error(Errors.DynamicModuleStubAccess);
 }
@@ -16,6 +17,16 @@ export class ModulesManager {
         this._modules.add(diModule);
     }
 
+    public has<TypeMap extends TTypeMapBase>(
+        diModule: TAnyDIModule<TypeMap>,
+    ): boolean {
+        return this._modules.has(diModule);
+    }
+
+    public get count(): number {
+        return this._modules.size;
+    }
+
     public async loadModuleAsync<TypeMap extends TTypeMapBase, JSModule>(
         diModule: TDynamicDIModule<TypeMap, JSModule>,
     ): Promise<void> {
@@ -23,9 +34,12 @@ export class ModulesManager {
         this._cache.set(diModule.name, jsModule);
     }
 
-    public dynamicJSModule<TypeMap extends TTypeMapBase, JSModule>(
+    public getJSModule<TypeMap extends TTypeMapBase, JSModule>(
         diModule: TDynamicDIModule<TypeMap, JSModule>,
     ): JSModule {
+        if (this._cache.has(diModule.name))
+            return this._cache.get(diModule.name) as JSModule;
+
         // Make closure access to manager by module
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const managerRef = this;
@@ -39,7 +53,19 @@ export class ModulesManager {
                 return managerRef.dynamicAccessor(diModule, [key]) as unknown;
             },
 
-            set(_, member): boolean {
+            set(_, member, newValue: unknown): boolean {
+                const jsModule = managerRef._cache.get(diModule.name);
+                if (jsModule) {
+                    if (typeof jsModule !== "object") return false;
+                    const descriptor = Object.getOwnPropertyDescriptor(
+                        jsModule,
+                        member,
+                    );
+                    if (!descriptor?.writable) return false;
+                    // @ts-expect-error: Unsafe assignment
+                    jsModule[member] = newValue;
+                    return true;
+                }
                 throw new Error(
                     Errors.DynamicModuleModification(
                         diModule.name,
@@ -97,6 +123,27 @@ export class ModulesManager {
                         path.join(".") + "." + key.toString(),
                     ),
                 );
+            },
+
+            construct(_, argArray: unknown[]): object {
+                const jsModule = managerRef._cache.get(module.name);
+                if (!jsModule) {
+                    throw new Error(
+                        Errors.DynamicModuleConstructorCall(
+                            module.name,
+                            path.join(","),
+                        ),
+                    );
+                }
+
+                const targetClass = path.reduce(
+                    // @ts-expect-error: Module linking mediator must be object or array
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                    (m, key) => m[key],
+                    jsModule,
+                ) as { new (...args: unknown[]): object };
+
+                return new targetClass(...argArray);
             },
 
             apply(_, thisArg: unknown, argArray: unknown[]): unknown {

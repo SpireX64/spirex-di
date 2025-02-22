@@ -146,10 +146,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         if (module.type === "static") {
             module.builderDelegate(builder);
         } else {
-            module.builderDelegate(
-                builder,
-                this._modules.dynamicJSModule(module),
-            );
+            module.builderDelegate(builder, this._modules.getJSModule(module));
         }
         this._modules.add(module);
         this._moduleContext = undefined;
