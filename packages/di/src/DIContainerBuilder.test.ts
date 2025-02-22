@@ -1,9 +1,11 @@
 import { DIContainerBuilder } from "./DIContainerBuilder";
 import { DIContainer } from "./DIContainer";
-import { isFactoryTypeEntry } from "./utils";
+import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
 import type { TLifecycle, TProvider } from "./types";
 import { catchError } from "./__test__/errors";
 import { createMockResolver } from "./__test__/mocks";
+import { dynamicModuleFactory } from "./modules/dynamicModuleFactory";
+import { staticModuleFactory } from "./modules/staticModuleFactory";
 
 describe("DIContainerBuilder", () => {
     test("Create builder instance", () => {
@@ -31,6 +33,7 @@ describe("DIContainerBuilder", () => {
         expect(typeEntry?.type).toBe(expectedTypeKey);
         expect(typeEntry?.instance).toBe(expectedValue);
         expect(typeEntry?.factory).toBeUndefined();
+        expect(typeEntry?.module).toBeUndefined();
         expect(Object.isFrozen(typeEntry)).toBeTruthy();
     });
 
@@ -52,6 +55,7 @@ describe("DIContainerBuilder", () => {
         expect(typeEntry?.factory).toBe(factory);
         expect(typeEntry?.instance).toBeUndefined();
         expect(factory).not.toHaveBeenCalled();
+        expect(typeEntry?.module).toBeUndefined();
         expect(Object.isFrozen(typeEntry)).toBeTruthy();
     });
 
@@ -86,6 +90,7 @@ describe("DIContainerBuilder", () => {
             expect(builder.hasEntry("value", expectedName)).toBeTruthy();
             expect(entry?.type).toBe("value");
             expect(entry?.name).toBe(expectedName);
+            expect(entry?.module).toBeUndefined();
         });
 
         test("Types with names are different entries", () => {
@@ -458,6 +463,64 @@ describe("DIContainerBuilder", () => {
             // Assert -------
             expect(entries).toBeInstanceOf(Array);
             expect(entries).toHaveLength(1);
+        });
+    });
+
+    describe("module", () => {
+        describe("static", () => {
+            test("Add static module", () => {
+                // Arrange ---------
+                const staticModule = staticModuleFactory(
+                    "staticModule",
+                ).create<{
+                    value: string;
+                }>((builder) => {
+                    builder.bindInstance("value", "hello");
+                });
+
+                // Act -------------
+                const builder = new DIContainerBuilder().addModule(
+                    staticModule,
+                );
+
+                const entry = builder.findSomeTypeEntry("value");
+
+                // Assert ----------
+                expect(entry).not.toBeNull();
+                expect(isInstanceTypeEntry(entry)).toBeTruthy();
+                expect(entry?.module).toBe(staticModule);
+            });
+        });
+
+        describe("dynamic", () => {
+            test("Add dynamic module", () => {
+                // Arrange -------------
+                const dynamicJSModuleImport = jest.fn(() =>
+                    // import("./dynamicModule")
+                    Promise.resolve({ value: 42 }),
+                );
+                const dynamicModule = dynamicModuleFactory(
+                    "dyModule",
+                    dynamicJSModuleImport,
+                ).create<{ value: number; str: string }>(
+                    (builder, jsModule) => {
+                        builder.bindFactory("value", () => jsModule.value);
+                    },
+                );
+
+                // Act -----------------
+                const builder = new DIContainerBuilder().addModule(
+                    dynamicModule,
+                );
+
+                const entry = builder.findSomeTypeEntry("value");
+
+                // Assert --------------
+                expect(entry).not.toBeNull();
+                expect(isFactoryTypeEntry(entry)).toBeTruthy();
+                expect(dynamicJSModuleImport).not.toHaveBeenCalled();
+                expect(entry?.module).toBe(dynamicModule);
+            });
         });
     });
 

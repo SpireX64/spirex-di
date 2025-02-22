@@ -21,6 +21,7 @@ export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
         type: key,
         instance,
         name,
+        module: undefined,
     };
 }
 
@@ -36,6 +37,7 @@ export function makeFactoryEntryMock<TypeMap extends TTypeMapBase>(
         lifecycle: lifecycle ?? "singleton",
         factory,
         name,
+        module: undefined,
     };
 }
 

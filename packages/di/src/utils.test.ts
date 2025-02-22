@@ -1,4 +1,4 @@
-import type { TLifecycle, TTypeEntry, TTypeEntryBase } from "./types";
+import type { TLifecycle, TTypeEntry } from "./types";
 import { makeFactoryEntryMock, makeInstanceEntryMock } from "./__test__/mocks";
 import {
     checkIsDisposable,
@@ -7,10 +7,7 @@ import {
     isInstanceTypeEntry,
 } from "./utils";
 
-type TUnknownTypeEntry = TTypeEntry<
-    TTypeEntryBase<unknown>,
-    keyof TTypeEntryBase<unknown>
->;
+type TUnknownTypeEntry = TTypeEntry<never, never>;
 
 describe("utils", () => {
     test.each([

@@ -19,6 +19,8 @@ import { Registrar } from "./internal/Registrar";
 import { InstanceActivator } from "./internal/InstanceActivator";
 import { checkIsTypeEntryMapItem, makeEntryId } from "./internal/utils";
 import { Errors } from "./errors";
+import type { TAnyDIModule } from "./modules/types";
+import { ModulesManager } from "./modules/ModulesManager";
 
 export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
@@ -26,6 +28,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         IContainerBuilderExplorer<TypeMap>
 {
     private readonly _types: TTypeEntriesMap<TypeMap> = new Map();
+    private readonly _modules = new ModulesManager();
+    private _moduleContext: TAnyDIModule<never> | undefined;
 
     // region IContainerBuilderExplorer
 
@@ -87,6 +91,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 type,
                 instance,
                 name: options?.name,
+                module: this._moduleContext,
             } as TTypeInstanceEntry<TypeMap, Key>,
             options?.ifConflict === "append",
         );
@@ -124,6 +129,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 factory,
                 lifecycle,
                 name: options?.name,
+                module: this._moduleContext,
             } as TTypeFactoryEntry<TypeMap, K>,
             options?.ifConflict === "append",
         );
@@ -131,6 +137,24 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     }
 
     // endregion IContainerBuilderBinder
+
+    public addModule<ModuleTypeMap extends TTypeMapBase>(
+        module: TAnyDIModule<ModuleTypeMap>,
+    ): DIContainerBuilder<TypeMap & ModuleTypeMap> {
+        const builder = this as DIContainerBuilder<TypeMap & ModuleTypeMap>;
+        this._moduleContext = module;
+        if (module.type === "static") {
+            module.builderDelegate(builder);
+        } else {
+            module.builderDelegate(
+                builder,
+                this._modules.dynamicJSModule(module),
+            );
+        }
+        this._modules.add(module);
+        this._moduleContext = undefined;
+        return builder;
+    }
 
     /**
      * Finalizes configuration and creates an immutable container.
@@ -158,16 +182,14 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         Object.freeze(entry); // Make 'entry' readonly struct
 
         if (!item || !append) this._types.set(entry.$id, entry);
-        else {
-            if (checkIsTypeEntryMapItem(item)) {
-                this._types.set(
-                    entry.$id,
-                    new Set<TTypeEntry<TypeMap, keyof TypeMap>>()
-                        .add(item)
-                        .add(entry),
-                );
-            } else item.add(entry);
-        }
+        else if (checkIsTypeEntryMapItem(item)) {
+            this._types.set(
+                entry.$id,
+                new Set<TTypeEntry<TypeMap, keyof TypeMap>>()
+                    .add(item)
+                    .add(entry),
+            );
+        } else item.add(entry);
     }
 
     /** @internal */

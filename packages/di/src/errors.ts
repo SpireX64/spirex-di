@@ -13,4 +13,19 @@ export const Errors = Object.freeze({
     ParentScopeClosed: (parentScopeId: TScopeID, childScopeId: TScopeID) =>
         `Cannot open a child scope '${childScopeId.toString()}' because the parent scope '${parentScopeId.toString()}' has already been closed. ` +
         "Ensure the parent scope is open before attempting to create child scopes.",
+    InvalidModuleName: (name: string) => `Module name "${name}" is not valid`,
+    DynamicModuleStubAccess:
+        "Cannot access a value from a dynamic module because it has not been loaded yet",
+    DynamicModuleFunctionCall: (moduleName: string, funcName: string) =>
+        `Cannot call function '${funcName}' on dynamic module '${moduleName}' outside the factory. ` +
+        "Ensure the function is used within the type factory context.",
+    DynamicModuleConstructorCall: (moduleName: string, ctorName: string) =>
+        `Cannot instantiate '${ctorName}' from dynamic module '${moduleName}' outside the factory. ` +
+        "Ensure class instantiation happens within the factory context.",
+    DynamicModuleModification: (moduleName: string, propName: string) =>
+        `Cannot modify property '${propName}' of dynamic module '${moduleName}' outside the factory. ` +
+        "Dynamic module values are read-only outside the factory context.",
+    DynamicModuleNotLoaded: (moduleName: string, memberName: string) =>
+        `Cannot access '${memberName}' from dynamic module '${moduleName}' because the module has not been loaded yet. ` +
+        "Ensure the module is loaded before use.",
 });
