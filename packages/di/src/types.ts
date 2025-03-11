@@ -29,7 +29,6 @@ export type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
 export type TBindingOptions = Partial<{
     ifConflict: TTypesConflictResolve;
     name: string;
-    source?: string | undefined;
 }>;
 
 export type TFactoryBindingOptions = TBindingOptions &

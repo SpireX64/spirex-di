@@ -1,3 +1,5 @@
+import { catchError } from "../__test__/errors";
+import { Errors } from "../errors";
 import { dynamicModuleFactory } from "./dynamicModuleFactory";
 
 describe("DynamicModule", () => {
@@ -25,5 +27,21 @@ describe("DynamicModule", () => {
         expect(myDynamicModule.builderDelegate).not.toHaveBeenCalled();
         expect(myDynamicModule.importDelegate).toBe(moduleDelegate);
         expect(moduleDelegate).not.toHaveBeenCalled();
+    });
+
+    test("invalidName", () => {
+        // Assert ----
+        const invalidName = "  moduleName ";
+        const dynamicJsModule = { asd: 42, foo: "bar" };
+        const moduleDelegate = jest.fn(() => Promise.resolve(dynamicJsModule));
+
+        // Act -------
+        const error = catchError(() =>
+            dynamicModuleFactory(invalidName, moduleDelegate),
+        );
+
+        // Assert ----
+        expect(error).toBeDefined();
+        expect(error?.message).toEqual(Errors.InvalidModuleName(invalidName));
     });
 });

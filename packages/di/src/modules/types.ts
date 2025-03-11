@@ -30,3 +30,9 @@ export type TAnyDIModule<TypeMap extends TTypeMapBase> =
     | TStaticDIModule<TypeMap>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     | TDynamicDIModule<TypeMap, any>;
+
+export type TDynamicModuleHandle<TypeMap extends TTypeMapBase, ESModule> = {
+    readonly module: TDynamicDIModule<TypeMap, ESModule>;
+    readonly isLoaded: boolean;
+    loadAsync: () => Promise<void>;
+};

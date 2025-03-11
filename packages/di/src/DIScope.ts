@@ -16,6 +16,8 @@ import {
 import { InstanceActivator } from "./internal/InstanceActivator";
 import { makeEntryId } from "./internal/utils";
 import { makePhantomInstance } from "./internal/phantom";
+import { ModulesManager } from "./modules/ModulesManager";
+import type { TDynamicDIModule, TDynamicModuleHandle } from "./modules/types";
 
 export class DIScope<TypeMap extends TTypeMapBase>
     implements IInstanceResolver<TypeMap>
@@ -23,6 +25,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
     private readonly _id: TScopeID;
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator: InstanceActivator<TypeMap>;
+    private readonly _modules: ModulesManager;
     private readonly _parentScopeRef: DIScope<TypeMap> | null = null;
     private readonly _children = new Map<TScopeID, DIScope<TypeMap>>();
     private readonly _local: InstancesStorage<TypeMap>;
@@ -33,11 +36,13 @@ export class DIScope<TypeMap extends TTypeMapBase>
         id: TScopeID,
         registrar: Registrar<TypeMap>,
         activator: InstanceActivator<TypeMap>,
+        modules: ModulesManager,
         parent?: DIScope<TypeMap>,
     ) {
         this._id = id;
         this._registrar = registrar;
         this._activator = activator;
+        this._modules = modules;
         this._parentScopeRef = parent ?? null;
         if (parent) {
             this._parentScopeRef = parent;
@@ -64,6 +69,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
             id,
             this._registrar,
             this._activator,
+            this._modules,
             this,
         );
         this._children.set(id, scope);
@@ -88,6 +94,16 @@ export class DIScope<TypeMap extends TTypeMapBase>
             );
         const entry = this._registrar.findTypeEntry(type, name);
         if (!entry) throw Error(Errors.TypeBindingNotFound(type.toString()));
+
+        if (
+            entry.module?.type === "dynamic" &&
+            !this._modules.checkLoaded(entry.module)
+        ) {
+            throw new Error(
+                Errors.DynamicModuleNotLoaded(entry.module.name, entry.$id),
+            );
+        }
+
         return this.getInstanceByEntry(entry);
     }
 
@@ -100,7 +116,16 @@ export class DIScope<TypeMap extends TTypeMapBase>
                 Errors.ScopeClosed(this._id, makeEntryId(type, name)),
             );
         const entry = this._registrar.findTypeEntry(type, name);
-        return entry ? this.getInstanceByEntry(entry) : null;
+        if (!entry) return null;
+
+        if (
+            entry.module?.type === "dynamic" &&
+            !this._modules.checkLoaded(entry.module)
+        ) {
+            return null;
+        }
+
+        return this.getInstanceByEntry(entry);
     }
 
     public getProvider<Key extends keyof TypeMap>(
@@ -136,6 +161,12 @@ export class DIScope<TypeMap extends TTypeMapBase>
                 >,
             )
         );
+    }
+
+    public getModuleHandle<TypeMap extends TTypeMapBase>(
+        module: TDynamicDIModule<TypeMap, unknown>,
+    ): TDynamicModuleHandle<TypeMap, unknown> {
+        return this._modules.getModuleHandle(module);
     }
 
     public getAll<Key extends keyof TypeMap>(

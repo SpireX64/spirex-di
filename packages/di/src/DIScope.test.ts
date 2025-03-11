@@ -13,12 +13,14 @@ import type { IDisposable, TTypeMapBase } from "./types";
 import { catchError } from "./__test__/errors";
 import { Errors } from "./errors";
 import { checkIsPhantomInstance, unwrapPhantom } from "./utils";
+import { ModulesManager } from "./modules/ModulesManager";
 
 function makeScopeInstance<T extends TTypeMapBase>(
     options?: Partial<{
         id: string | symbol;
         activator: InstanceActivator<T>;
         registrar: Registrar<T>;
+        modules: ModulesManager;
         parent: DIScope<T>;
     }>,
 ): DIScope<T> {
@@ -26,6 +28,7 @@ function makeScopeInstance<T extends TTypeMapBase>(
         options?.id ?? Symbol("test"),
         options?.registrar ?? new Registrar(makeEntriesMap()),
         options?.activator ?? new InstanceActivator(),
+        options?.modules ?? new ModulesManager(),
         options?.parent,
     );
 }
@@ -39,9 +42,10 @@ describe("DIScope", () => {
             const id = "scope-id";
             const registrar = new Registrar(makeEntriesMap());
             const activator = new InstanceActivator();
+            const modules = new ModulesManager();
 
             // Act --------
-            const scope = new DIScope(id, registrar, activator);
+            const scope = new DIScope(id, registrar, activator, modules);
 
             // Assert -----
             expect(scope.id).toBe(id);
@@ -52,9 +56,10 @@ describe("DIScope", () => {
             const id = Symbol("scope-id");
             const registrar = new Registrar(makeEntriesMap());
             const activator = new InstanceActivator();
+            const modules = new ModulesManager();
 
             // Act --------
-            const scope = new DIScope(id, registrar, activator);
+            const scope = new DIScope(id, registrar, activator, modules);
 
             // Assert -----
             expect(scope.id).toBe(id);

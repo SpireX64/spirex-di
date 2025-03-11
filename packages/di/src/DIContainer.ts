@@ -7,24 +7,29 @@ import type {
 import { DIScope } from "./DIScope";
 import { Registrar } from "./internal/Registrar";
 import { InstanceActivator } from "./internal/InstanceActivator";
+import { ModulesManager } from "./modules/ModulesManager";
 
 export class DIContainer<TypeMap extends TTypeMapBase>
     implements IInstanceResolver<TypeMap>
 {
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator: InstanceActivator<TypeMap>;
+    private readonly _modules: ModulesManager;
     private readonly _globalScope: DIScope<TypeMap>;
 
     public constructor(
         registrar: Registrar<TypeMap>,
         activator: InstanceActivator<TypeMap>,
+        modules: ModulesManager,
     ) {
         this._registrar = registrar;
         this._activator = activator;
+        this._modules = modules;
         this._globalScope = new DIScope(
             Symbol("global"),
             this._registrar,
             this._activator,
+            this._modules,
         );
     }
 

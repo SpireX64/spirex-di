@@ -7,6 +7,7 @@ import {
 import { InstanceActivator } from "./InstanceActivator";
 import { DIContainer } from "../DIContainer";
 import { catchError } from "../__test__/errors";
+import { ModulesManager } from "../modules/ModulesManager";
 
 describe("InstanceActivator", () => {
     test("Activate instance entry", () => {
@@ -74,7 +75,8 @@ describe("InstanceActivator", () => {
                 ),
             );
             const activator = new InstanceActivator<TypeMap>();
-            const container = new DIContainer(registrar, activator);
+            const modules = new ModulesManager();
+            const container = new DIContainer(registrar, activator, modules);
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -110,7 +112,8 @@ describe("InstanceActivator", () => {
                 ),
             );
             const activator = new InstanceActivator<TypeMap>();
-            const container = new DIContainer(registrar, activator);
+            const modules = new ModulesManager();
+            const container = new DIContainer(registrar, activator, modules);
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -148,7 +151,8 @@ describe("InstanceActivator", () => {
                 ),
             );
             const activator = new InstanceActivator<TypeMap>();
-            const container = new DIContainer(registrar, activator);
+            const modules = new ModulesManager();
+            const container = new DIContainer(registrar, activator, modules);
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -174,7 +178,8 @@ describe("InstanceActivator", () => {
             makeFactoryEntryMock("valueB", (r) => r.get("valueA"), "lazy"),
         );
         const activator = new InstanceActivator<TypeMap>();
-        const container = new DIContainer(registrar, activator);
+        const modules = new ModulesManager();
+        const container = new DIContainer(registrar, activator, modules);
 
         // Act ------------
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

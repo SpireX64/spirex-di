@@ -9,6 +9,7 @@ import { DIScope } from "./DIScope";
 import { InstanceActivator } from "./internal/InstanceActivator";
 import type { IInstanceResolver } from "./types";
 import { checkIsPhantomInstance } from "./utils";
+import { ModulesManager } from "./modules/ModulesManager";
 
 describe("DIContainer", () => {
     describe("Resolve type instance", () => {
@@ -22,6 +23,7 @@ describe("DIContainer", () => {
                     makeInstanceEntryMock<TypeMap>("value", expectedValue),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act --------------
@@ -40,6 +42,7 @@ describe("DIContainer", () => {
             const container = new DIContainer<TypeMap>(
                 makeRegistrar(makeFactoryEntryMock<TypeMap>("value", factory)),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act --------------
@@ -55,6 +58,7 @@ describe("DIContainer", () => {
             const container = new DIContainer<{ value: number }>(
                 makeRegistrar(),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act --------------
@@ -77,7 +81,7 @@ describe("DIContainer", () => {
             const map = makeRegistrar(factoryEntry);
 
             // Act -----------
-            new DIContainer(map, new InstanceActivator());
+            new DIContainer(map, new InstanceActivator(), new ModulesManager());
 
             // Expect --------
             expect(factory).toHaveBeenCalledTimes(1);
@@ -96,7 +100,7 @@ describe("DIContainer", () => {
             const map = makeRegistrar(factoryEntry);
 
             // Act -----------
-            new DIContainer(map, new InstanceActivator());
+            new DIContainer(map, new InstanceActivator(), new ModulesManager());
 
             // Expect --------
             expect(factory).toHaveBeenCalledTimes(0);
@@ -112,6 +116,7 @@ describe("DIContainer", () => {
                     makeFactoryEntryMock<TypeMap>("value", factory, "lazy"),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act -----------------
@@ -137,6 +142,7 @@ describe("DIContainer", () => {
                     ),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act -----------------
@@ -159,6 +165,7 @@ describe("DIContainer", () => {
                     makeFactoryEntryMock<TypeMap>("valueB", factory),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act ------------
@@ -181,6 +188,7 @@ describe("DIContainer", () => {
             const container = new DIContainer(
                 registrar,
                 new InstanceActivator(),
+                new ModulesManager(),
             );
             const valueProvider = container.getProvider("value");
 
@@ -206,6 +214,7 @@ describe("DIContainer", () => {
                     makeInstanceEntryMock<TypeMap>("value", 3, "bar"),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act -----------
@@ -229,6 +238,7 @@ describe("DIContainer", () => {
                     makeInstanceEntryMock<TypeMap>("value", expectedValue),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act ---------
@@ -248,6 +258,7 @@ describe("DIContainer", () => {
                     makeFactoryEntryMock<TypeMap>("obj", factory, "lazy"),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act --------------
@@ -269,6 +280,7 @@ describe("DIContainer", () => {
                     makeFactoryEntryMock<TypeMap>("value", () => 3),
                 ),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act -----------
@@ -288,6 +300,7 @@ describe("DIContainer", () => {
             const container = new DIContainer(
                 makeRegistrar(),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
 
             // Act ------------
@@ -304,6 +317,7 @@ describe("DIContainer", () => {
             const container = new DIContainer(
                 makeRegistrar(),
                 new InstanceActivator(),
+                new ModulesManager(),
             );
             const scopeA = container.scope(expectedScopeId);
 

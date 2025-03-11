@@ -1,14 +1,21 @@
-import type { TAnyDIModule, TDynamicDIModule } from "./types";
+import type {
+    TAnyDIModule,
+    TDynamicDIModule,
+    TDynamicModuleHandle,
+} from "./types";
 import type { TTypeMapBase } from "../types";
 import { Errors } from "../errors";
 
-// istanbul ignore next
 function stub() {
     throw new Error(Errors.DynamicModuleStubAccess);
 }
 
 export class ModulesManager {
     private readonly _modules = new Set<TAnyDIModule<never>>();
+    private readonly _handles = new Map<
+        string,
+        TDynamicModuleHandle<never, unknown>
+    >();
     private readonly _cache = new Map<string, unknown>();
 
     public add<TypeMap extends TTypeMapBase>(
@@ -27,18 +34,55 @@ export class ModulesManager {
         return this._modules.size;
     }
 
-    public async loadModuleAsync<TypeMap extends TTypeMapBase, JSModule>(
-        diModule: TDynamicDIModule<TypeMap, JSModule>,
+    public checkLoaded<TypeMap extends TTypeMapBase, ESModule>(
+        diModule: TDynamicDIModule<TypeMap, ESModule>,
+    ): boolean {
+        return this._cache.has(diModule.name);
+    }
+
+    public async loadModuleAsync<TypeMap extends TTypeMapBase, ESModule>(
+        diModule: TDynamicDIModule<TypeMap, ESModule>,
     ): Promise<void> {
+        if (!this._modules.has(diModule))
+            throw new Error(Errors.ModuleNotAvailable(diModule.name));
+        if (this._cache.has(diModule.name)) return;
         const jsModule = await diModule.importDelegate();
         this._cache.set(diModule.name, jsModule);
     }
 
-    public getJSModule<TypeMap extends TTypeMapBase, JSModule>(
-        diModule: TDynamicDIModule<TypeMap, JSModule>,
-    ): JSModule {
+    public getModuleHandle<TypeMap extends TTypeMapBase, ESModule>(
+        diModule: TDynamicDIModule<TypeMap, ESModule>,
+    ): TDynamicModuleHandle<TypeMap, ESModule> {
+        if (!this._modules.has(diModule))
+            throw new Error(Errors.ModuleNotAvailable(diModule.name));
+
+        if (this._handles.has(diModule.name))
+            return this._handles.get(diModule.name) as TDynamicModuleHandle<
+                TypeMap,
+                ESModule
+            >;
+
+        const handle: TDynamicModuleHandle<TypeMap, ESModule> = {
+            module: diModule,
+            isLoaded: false,
+            // @ts-expect-error: safe cast
+            loadAsync: this.loadModuleAsync.bind(this, diModule),
+        };
+
+        Object.defineProperty(handle, "isLoaded", {
+            // @ts-expect-error: safe cast
+            get: this.checkLoaded.bind(this, diModule),
+        });
+        // @ts-expect-error: safe cast
+        this._handles.set(diModule.name, handle);
+        return handle;
+    }
+
+    public getESModule<TypeMap extends TTypeMapBase, ESModule>(
+        diModule: TDynamicDIModule<TypeMap, ESModule>,
+    ): ESModule {
         if (this._cache.has(diModule.name))
-            return this._cache.get(diModule.name) as JSModule;
+            return this._cache.get(diModule.name) as ESModule;
 
         // Make closure access to manager by module
         // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -54,16 +98,18 @@ export class ModulesManager {
             },
 
             set(_, member, newValue: unknown): boolean {
-                const jsModule = managerRef._cache.get(diModule.name);
-                if (jsModule) {
-                    if (typeof jsModule !== "object") return false;
-                    const descriptor = Object.getOwnPropertyDescriptor(
-                        jsModule,
-                        member,
-                    );
-                    if (!descriptor?.writable) return false;
+                const esModule = managerRef._cache.get(diModule.name);
+                if (esModule) {
+                    const esModuleType = typeof esModule;
+                    if (esModuleType !== "object")
+                        throw new TypeError(
+                            Errors.NonObjectPropertySet(
+                                member.toString(),
+                                esModuleType,
+                            ),
+                        );
                     // @ts-expect-error: Unsafe assignment
-                    jsModule[member] = newValue;
+                    esModule[member] = newValue;
                     return true;
                 }
                 throw new Error(
@@ -73,11 +119,11 @@ export class ModulesManager {
                     ),
                 );
             },
-        }) as JSModule;
+        }) as ESModule;
     }
 
-    private dynamicAccessor<TypeMap extends TTypeMapBase, JSModule>(
-        module: TDynamicDIModule<TypeMap, JSModule>,
+    private dynamicAccessor<TypeMap extends TTypeMapBase, ESModule>(
+        module: TDynamicDIModule<TypeMap, ESModule>,
         path: readonly (string | symbol)[],
     ) {
         // Make closure access to manager by module accessor
@@ -85,13 +131,13 @@ export class ModulesManager {
         const managerRef = this;
         return new Proxy(stub, {
             get(_, key): unknown {
-                const jsModule = managerRef._cache.get(module.name);
-                if (jsModule) {
+                const esModule = managerRef._cache.get(module.name);
+                if (esModule) {
                     const propPath =
                         key === "valueOf" ? path : path.concat(key);
                     // @ts-expect-error: Module linking mediator must be object or array
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                    const prop = propPath.reduce((m, key) => m[key], jsModule);
+                    const prop = propPath.reduce((m, key) => m[key], esModule);
                     if (key === "valueOf") return prop.valueOf.bind(prop);
                     else return prop;
                 }
@@ -99,20 +145,22 @@ export class ModulesManager {
             },
 
             set(_, key, newValue: unknown): boolean {
-                const jsModule = managerRef._cache.get(module.name);
-                if (jsModule) {
+                const esModule = managerRef._cache.get(module.name);
+                if (esModule) {
                     const target = path.reduce(
                         // @ts-expect-error: Module linking mediator must be object or array
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                         (m, key) => m[key],
-                        jsModule,
+                        esModule,
                     );
-                    if (typeof target !== "object") return false;
-                    const descriptor = Object.getOwnPropertyDescriptor(
-                        target,
-                        key,
-                    );
-                    if (!descriptor?.writable) return false;
+                    const targetType = typeof target;
+                    if (targetType !== "object")
+                        throw new TypeError(
+                            Errors.NonObjectPropertySet(
+                                key.toString(),
+                                targetType,
+                            ),
+                        );
                     // @ts-expect-error: Unsafe assignment
                     target[key] = newValue;
                     return true;
@@ -162,7 +210,8 @@ export class ModulesManager {
                     (m, key) => m[key],
                     jsModule,
                 );
-                if (typeof target !== "function") return undefined;
+                // @ts-expect-error: Unsafe function call
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                 return target.call(thisArg, ...argArray);
             },
         });

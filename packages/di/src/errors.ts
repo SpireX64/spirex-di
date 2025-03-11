@@ -13,7 +13,10 @@ export const Errors = Object.freeze({
     ParentScopeClosed: (parentScopeId: TScopeID, childScopeId: TScopeID) =>
         `Cannot open a child scope '${childScopeId.toString()}' because the parent scope '${parentScopeId.toString()}' has already been closed. ` +
         "Ensure the parent scope is open before attempting to create child scopes.",
-    InvalidModuleName: (name: string) => `Module name "${name}" is not valid`,
+    InvalidModuleName: (moduleName: string) =>
+        `Module name "${moduleName}" is not valid`,
+    ModuleNotAvailable: (moduleName: string) =>
+        `The requested module '${moduleName}' is not available in the current DI context. Ensure the module is registered before accessing it.`,
     DynamicModuleStubAccess:
         "Cannot access a value from a dynamic module because it has not been loaded yet",
     DynamicModuleFunctionCall: (moduleName: string, funcName: string) =>
@@ -28,4 +31,6 @@ export const Errors = Object.freeze({
     DynamicModuleNotLoaded: (moduleName: string, memberName: string) =>
         `Cannot access '${memberName}' from dynamic module '${moduleName}' because the module has not been loaded yet. ` +
         "Ensure the module is loaded before use.",
+    NonObjectPropertySet: (propName: string, valueType: string) =>
+        `Cannot create property '${propName}' on ${valueType}`,
 });

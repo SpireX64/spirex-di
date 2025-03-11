@@ -1,3 +1,5 @@
+import { catchError } from "../__test__/errors";
+import { Errors } from "../errors";
 import { staticModuleFactory } from "./staticModuleFactory";
 
 describe("StaticModule", () => {
@@ -22,5 +24,17 @@ describe("StaticModule", () => {
         expect(staticModule.type).toBe("static");
         expect(staticModule.name).toBe(expectedName);
         expect(staticModule.builderDelegate).not.toHaveBeenCalled();
+    });
+
+    test("invalidName", () => {
+        // Assert ----
+        const invalidName = "  moduleName ";
+
+        // Act -------
+        const error = catchError(() => staticModuleFactory(invalidName));
+
+        // Assert ----
+        expect(error).toBeDefined();
+        expect(error?.message).toEqual(Errors.InvalidModuleName(invalidName));
     });
 });
