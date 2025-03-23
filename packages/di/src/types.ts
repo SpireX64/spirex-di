@@ -1,4 +1,8 @@
-import type { TAnyDIModule } from "./modules/types";
+import type {
+    TAnyDIModule,
+    TDynamicDIModule,
+    TDynamicModuleHandle,
+} from "./modules/types";
 
 export type TTypeMapBase = Record<string, unknown>;
 
@@ -7,7 +11,9 @@ export type TProvider<T> = () => T;
 export type TTypeFactory<
     TypeMap extends TTypeMapBase,
     Key extends keyof TypeMap,
-> = (resolver: IInstanceResolver<TypeMap>) => TypeMap[Key];
+> = (
+    resolver: IInstanceResolver<TypeMap> & IModuleHandlerResolver,
+) => TypeMap[Key];
 
 export type TEntryId = string;
 export type TScopeID = symbol | string;
@@ -60,6 +66,12 @@ export type TTypeEntry<
 
 export interface IDisposable {
     dispose(): void;
+}
+
+export interface IModuleHandlerResolver {
+    getModuleHandle<TypeMap extends TTypeMapBase, ESModule>(
+        module: TDynamicDIModule<TypeMap, ESModule>,
+    ): TDynamicModuleHandle<TypeMap, ESModule>;
 }
 
 export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
@@ -119,3 +131,6 @@ export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
         options?: TFactoryBindingOptions,
     ): this;
 }
+
+export type DIContainer<TypeMap extends TTypeMapBase> =
+    IInstanceResolver<TypeMap> & IModuleHandlerResolver;

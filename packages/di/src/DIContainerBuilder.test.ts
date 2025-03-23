@@ -1,11 +1,11 @@
 import { DIContainerBuilder } from "./DIContainerBuilder";
-import { DIContainer } from "./DIContainer";
 import { isFactoryTypeEntry, isInstanceTypeEntry } from "./utils";
 import type { TLifecycle, TProvider } from "./types";
 import { catchError } from "./__test__/errors";
 import { createMockResolver } from "./__test__/mocks";
 import { dynamicModuleFactory } from "./modules/dynamicModuleFactory";
 import { staticModuleFactory } from "./modules/staticModuleFactory";
+import { DIScope } from "./DIScope";
 
 describe("DIContainerBuilder", () => {
     test("Create builder instance", () => {
@@ -549,7 +549,7 @@ describe("DIContainerBuilder", () => {
             const container = builder.build();
 
             // Assert ----------
-            expect(container).toBeInstanceOf(DIContainer);
+            expect(container).toBeInstanceOf(DIScope);
         });
     });
 });

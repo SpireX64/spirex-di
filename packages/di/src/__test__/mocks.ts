@@ -1,5 +1,6 @@
 import type {
     IInstanceResolver,
+    IModuleHandlerResolver,
     TLifecycle,
     TTypeEntry,
     TTypeFactory,
@@ -10,6 +11,7 @@ import type {
 import type { TTypeEntriesMap } from "../internal/types";
 import { Registrar } from "../internal/Registrar";
 import { checkIsTypeEntryMapItem, makeEntryId } from "../internal/utils";
+import type { TDynamicDIModule, TDynamicModuleHandle } from "../modules/types";
 
 export function makeInstanceEntryMock<TypeMap extends TTypeMapBase>(
     key: keyof TypeMap,
@@ -66,7 +68,7 @@ export function makeRegistrar<TypeMap extends TTypeMapBase>(
 
 export function createMockResolver<TypeMap extends TTypeMapBase>(
     instancesMap?: Partial<TypeMap>,
-): IInstanceResolver<TypeMap> {
+): IInstanceResolver<TypeMap> & IModuleHandlerResolver {
     return {
         get: jest.fn(
             <K extends keyof TypeMap>(type: K) =>
@@ -89,5 +91,15 @@ export function createMockResolver<TypeMap extends TTypeMapBase>(
             type: Key,
         ): readonly TypeMap[Key][] =>
             Array.of(instancesMap?.[type] as TypeMap[Key]),
+
+        getModuleHandle: jest.fn(
+            <TypeMap extends TTypeMapBase, ESModule>(
+                module: TDynamicDIModule<TypeMap, ESModule>,
+            ): TDynamicModuleHandle<TypeMap, ESModule> => ({
+                module,
+                isLoaded: false,
+                loadAsync: jest.fn(() => Promise.resolve()),
+            }),
+        ),
     };
 }

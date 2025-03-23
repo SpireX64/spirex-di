@@ -1,5 +1,6 @@
-import type {
+import {
     IInstanceResolver,
+    IModuleHandlerResolver,
     TProvider,
     TScopeID,
     TTypeEntry,
@@ -20,7 +21,7 @@ import { ModulesManager } from "./modules/ModulesManager";
 import type { TDynamicDIModule, TDynamicModuleHandle } from "./modules/types";
 
 export class DIScope<TypeMap extends TTypeMapBase>
-    implements IInstanceResolver<TypeMap>
+    implements IInstanceResolver<TypeMap>, IModuleHandlerResolver
 {
     private readonly _id: TScopeID;
     private readonly _registrar: Registrar<TypeMap>;
@@ -163,9 +164,9 @@ export class DIScope<TypeMap extends TTypeMapBase>
         );
     }
 
-    public getModuleHandle<TypeMap extends TTypeMapBase>(
-        module: TDynamicDIModule<TypeMap, unknown>,
-    ): TDynamicModuleHandle<TypeMap, unknown> {
+    public getModuleHandle<TypeMap extends TTypeMapBase, ESModule>(
+        module: TDynamicDIModule<TypeMap, ESModule>,
+    ): TDynamicModuleHandle<TypeMap, ESModule> {
         return this._modules.getModuleHandle(module);
     }
 

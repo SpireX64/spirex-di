@@ -1,5 +1,6 @@
 import type {
     IInstanceResolver,
+    IModuleHandlerResolver,
     TLifecycle,
     TTypeEntry,
     TTypeFactoryEntry,
@@ -40,7 +41,7 @@ export class InstanceActivator<TypeMap extends TTypeMapBase> {
 
     public createInstance<Key extends keyof TypeMap>(
         entry: TTypeEntry<TypeMap, Key>,
-        resolver: IInstanceResolver<TypeMap>,
+        resolver: IInstanceResolver<TypeMap> & IModuleHandlerResolver,
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) return entry.instance;
 

@@ -5,9 +5,9 @@ import {
     makeRegistrar,
 } from "../__test__/mocks";
 import { InstanceActivator } from "./InstanceActivator";
-import { DIContainer } from "../DIContainer";
 import { catchError } from "../__test__/errors";
 import { ModulesManager } from "../modules/ModulesManager";
+import { DIScope } from "../DIScope";
 
 describe("InstanceActivator", () => {
     test("Activate instance entry", () => {
@@ -76,7 +76,12 @@ describe("InstanceActivator", () => {
             );
             const activator = new InstanceActivator<TypeMap>();
             const modules = new ModulesManager();
-            const container = new DIContainer(registrar, activator, modules);
+            const container = new DIScope(
+                "container",
+                registrar,
+                activator,
+                modules,
+            );
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -113,7 +118,12 @@ describe("InstanceActivator", () => {
             );
             const activator = new InstanceActivator<TypeMap>();
             const modules = new ModulesManager();
-            const container = new DIContainer(registrar, activator, modules);
+            const container = new DIScope(
+                "container",
+                registrar,
+                activator,
+                modules,
+            );
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -152,7 +162,12 @@ describe("InstanceActivator", () => {
             );
             const activator = new InstanceActivator<TypeMap>();
             const modules = new ModulesManager();
-            const container = new DIContainer(registrar, activator, modules);
+            const container = new DIScope(
+                "container",
+                registrar,
+                activator,
+                modules,
+            );
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -179,7 +194,12 @@ describe("InstanceActivator", () => {
         );
         const activator = new InstanceActivator<TypeMap>();
         const modules = new ModulesManager();
-        const container = new DIContainer(registrar, activator, modules);
+        const container = new DIScope(
+            "container",
+            registrar,
+            activator,
+            modules,
+        );
 
         // Act ------------
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

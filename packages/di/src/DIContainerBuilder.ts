@@ -11,16 +11,17 @@ import type {
     TTypeInstanceEntry,
     TTypeMapBase,
     TTypesConflictResolve,
+    DIContainer,
 } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
 import { validateLifecycle } from "./internal/validators";
-import { DIContainer } from "./DIContainer";
 import { Registrar } from "./internal/Registrar";
 import { InstanceActivator } from "./internal/InstanceActivator";
 import { checkIsTypeEntryMapItem, makeEntryId } from "./internal/utils";
 import { Errors } from "./errors";
 import type { TAnyDIModule } from "./modules/types";
 import { ModulesManager } from "./modules/ModulesManager";
+import { DIScope } from "./DIScope";
 
 export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
@@ -164,7 +165,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
      */
     public build(): DIContainer<TypeMap> {
         if (this._types.size === 0) throw new Error(Errors.EmptyContainer);
-        return new DIContainer(
+        return new DIScope(
+            Symbol("global"),
             new Registrar(this._types),
             new InstanceActivator<TypeMap>(),
             this._modules,
