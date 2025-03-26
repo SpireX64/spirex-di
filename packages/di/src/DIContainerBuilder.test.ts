@@ -336,6 +336,7 @@ describe("DIContainerBuilder", () => {
             type TypeMap = { num: number; str: string };
 
             // Arrange ------------
+            const scopeId = "scope";
             const fakeResolver = createMockResolver<TypeMap>({ num: 42 });
             const builder = new DIContainerBuilder<TypeMap>();
 
@@ -345,7 +346,7 @@ describe("DIContainerBuilder", () => {
             const entry = builder.findSomeTypeEntry("str");
 
             // Assert -------------
-            expect(entry?.factory?.(fakeResolver)).toBe("42dx");
+            expect(entry?.factory?.(fakeResolver, scopeId)).toBe("42dx");
         });
 
         test("Bind factory with dependency provider", () => {
@@ -367,7 +368,7 @@ describe("DIContainerBuilder", () => {
             }));
 
             const entry = builder.findSomeTypeEntry("obj");
-            const resolvedObject = entry?.factory?.(resolver);
+            const resolvedObject = entry?.factory?.(resolver, "scope");
 
             // Assert ----------
             expect(resolvedObject).not.toBeUndefined();

@@ -1,6 +1,8 @@
 import type {
     IInstanceResolver,
     IModuleHandleResolver,
+    IScopeHandle,
+    IScopeHandleResolver,
     TLifecycle,
     TTypeEntry,
     TTypeFactory,
@@ -68,7 +70,7 @@ export function makeRegistrar<TypeMap extends TTypeMapBase>(
 
 export function createMockResolver<TypeMap extends TTypeMapBase>(
     instancesMap?: Partial<TypeMap>,
-): IInstanceResolver<TypeMap> & IModuleHandleResolver {
+): IInstanceResolver<TypeMap> & IScopeHandleResolver & IModuleHandleResolver {
     return {
         get: jest.fn(
             <K extends keyof TypeMap>(type: K) =>
@@ -101,5 +103,13 @@ export function createMockResolver<TypeMap extends TTypeMapBase>(
                 loadAsync: jest.fn(() => Promise.resolve()),
             }),
         ),
+
+        getScopeHandle: (): IScopeHandle => {
+            return {
+                id: "root",
+                isClosed: false,
+                close() {},
+            };
+        },
     };
 }

@@ -21,12 +21,16 @@ export class ModulesManager {
     public add<TypeMap extends TTypeMapBase>(
         diModule: TAnyDIModule<TypeMap>,
     ): void {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         this._modules.add(diModule);
     }
 
     public has<TypeMap extends TTypeMapBase>(
         diModule: TAnyDIModule<TypeMap>,
     ): boolean {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         return this._modules.has(diModule);
     }
 
@@ -43,6 +47,8 @@ export class ModulesManager {
     public async loadModuleAsync<TypeMap extends TTypeMapBase, ESModule>(
         diModule: TDynamicDIModule<TypeMap, ESModule>,
     ): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         if (!this._modules.has(diModule))
             throw new Error(Errors.ModuleNotAvailable(diModule.name));
         if (this._cache.has(diModule.name)) return;
@@ -53,10 +59,14 @@ export class ModulesManager {
     public getModuleHandle<TypeMap extends TTypeMapBase, ESModule>(
         diModule: TDynamicDIModule<TypeMap, ESModule>,
     ): TDynamicModuleHandle<TypeMap, ESModule> {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         if (!this._modules.has(diModule))
             throw new Error(Errors.ModuleNotAvailable(diModule.name));
 
         if (this._handles.has(diModule.name))
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             return this._handles.get(diModule.name) as TDynamicModuleHandle<
                 TypeMap,
                 ESModule

@@ -17,6 +17,8 @@ describe("InstanceActivator", () => {
         const activator = new InstanceActivator();
 
         // Act -----------
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         const instance = activator.createInstance(instanceEntry, resolver);
 
         expect(instance).toBe(instanceEntry.instance);
@@ -33,6 +35,8 @@ describe("InstanceActivator", () => {
         const activator = new InstanceActivator();
 
         // Act ------------
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         const instance = activator.createInstance(factoryEntry, resolver);
 
         // Assert ---------
@@ -52,6 +56,8 @@ describe("InstanceActivator", () => {
         const activator = new InstanceActivator<TypeMap>();
 
         // Act -------------
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         const instance = activator.createInstance(factoryEntry, resolver);
 
         // Assert ----------
@@ -76,12 +82,14 @@ describe("InstanceActivator", () => {
             );
             const activator = new InstanceActivator<TypeMap>();
             const modules = new ModulesManager();
-            const container = new DIScope(
-                "container",
+            const container = new DIScope("container", {
                 registrar,
                 activator,
                 modules,
-            );
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                middlewares: new Set(),
+            });
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -118,12 +126,14 @@ describe("InstanceActivator", () => {
             );
             const activator = new InstanceActivator<TypeMap>();
             const modules = new ModulesManager();
-            const container = new DIScope(
-                "container",
+            const container = new DIScope("container", {
                 registrar,
                 activator,
                 modules,
-            );
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                middlewares: new Set(),
+            });
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -162,12 +172,14 @@ describe("InstanceActivator", () => {
             );
             const activator = new InstanceActivator<TypeMap>();
             const modules = new ModulesManager();
-            const container = new DIScope(
-                "container",
+            const container = new DIScope("container", {
                 registrar,
                 activator,
                 modules,
-            );
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                middlewares: new Set(),
+            });
 
             // Act ---------
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -194,12 +206,14 @@ describe("InstanceActivator", () => {
         );
         const activator = new InstanceActivator<TypeMap>();
         const modules = new ModulesManager();
-        const container = new DIScope(
-            "container",
+        const container = new DIScope("container", {
             registrar,
             activator,
             modules,
-        );
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            middlewares: new Set(),
+        });
 
         // Act ------------
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

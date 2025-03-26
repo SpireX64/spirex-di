@@ -15,7 +15,9 @@
   },
   "scripts": {
     "test": "jest",
-    "test:c": "jest --coverage"
+    "test:c": "jest --coverage",
+    "build": "rollup --config --environment NODE_ENV:development",
+    "build:release": "rollup --config --environment NODE_ENV:production"
   },
   "devDependencies": {
     "@types/jest": "*",

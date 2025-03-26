@@ -26,9 +26,12 @@ function makeScopeInstance<T extends TTypeMapBase>(
 ): DIScope<T> {
     return new DIScope(
         options?.id ?? Symbol("test"),
-        options?.registrar ?? new Registrar(makeEntriesMap()),
-        options?.activator ?? new InstanceActivator(),
-        options?.modules ?? new ModulesManager(),
+        {
+            registrar: options?.registrar ?? new Registrar(makeEntriesMap()),
+            activator: options?.activator ?? new InstanceActivator(),
+            modules: options?.modules ?? new ModulesManager(),
+            middlewares: new Set(),
+        },
         options?.parent,
     );
 }
@@ -45,7 +48,14 @@ describe("DIScope", () => {
             const modules = new ModulesManager();
 
             // Act --------
-            const scope = new DIScope(id, registrar, activator, modules);
+            const scope = new DIScope(id, {
+                registrar,
+                activator,
+                modules,
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                middlewares: new Set(),
+            });
 
             // Assert -----
             expect(scope.id).toBe(id);
@@ -59,7 +69,14 @@ describe("DIScope", () => {
             const modules = new ModulesManager();
 
             // Act --------
-            const scope = new DIScope(id, registrar, activator, modules);
+            const scope = new DIScope(id, {
+                registrar,
+                activator,
+                modules,
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                middlewares: new Set(),
+            });
 
             // Assert -----
             expect(scope.id).toBe(id);
