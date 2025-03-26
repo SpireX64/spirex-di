@@ -21,6 +21,14 @@ import { makeEntryId } from "./internal/utils";
 import { makePhantomInstance } from "./internal/phantom";
 import { ModulesManager } from "./modules/ModulesManager";
 import type { TDynamicDIModule, TDynamicModuleHandle } from "./modules/types";
+import type { TContainerMiddleware } from "./middleware";
+
+export type TDIScopeTransfers<TypeMap extends TTypeMapBase> = {
+    middlewares: ReadonlySet<TContainerMiddleware<TypeMap>>;
+    registrar: Registrar<TypeMap>;
+    activator: InstanceActivator<TypeMap>;
+    modules: ModulesManager;
+};
 
 export class DIScope<TypeMap extends TTypeMapBase>
     implements
@@ -31,6 +39,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
     private readonly _id: TScopeID;
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator: InstanceActivator<TypeMap>;
+    private readonly _middlewares: ReadonlySet<TContainerMiddleware<TypeMap>>;
     private readonly _modules: ModulesManager;
     private readonly _parentScopeRef: DIScope<TypeMap> | null = null;
     private readonly _children = new Map<TScopeID, DIScope<TypeMap>>();
@@ -40,15 +49,14 @@ export class DIScope<TypeMap extends TTypeMapBase>
 
     public constructor(
         id: TScopeID,
-        registrar: Registrar<TypeMap>,
-        activator: InstanceActivator<TypeMap>,
-        modules: ModulesManager,
+        transfers: TDIScopeTransfers<TypeMap>,
         parent?: DIScope<TypeMap>,
     ) {
         this._id = id;
-        this._registrar = registrar;
-        this._activator = activator;
-        this._modules = modules;
+        this._registrar = transfers.registrar;
+        this._activator = transfers.activator;
+        this._middlewares = transfers.middlewares;
+        this._modules = transfers.modules;
         this._parentScopeRef = parent ?? null;
         if (parent) {
             this._parentScopeRef = parent;
@@ -73,17 +81,26 @@ export class DIScope<TypeMap extends TTypeMapBase>
         if (scope) return scope;
         scope = new DIScope<TypeMap>(
             id,
-            this._registrar,
-            this._activator,
-            this._modules,
+            {
+                registrar: this._registrar,
+                activator: this._activator,
+                middlewares: this._middlewares,
+                modules: this._modules,
+            },
             this,
         );
         this._children.set(id, scope);
+        this._middlewares.forEach((middleware) =>
+            middleware.onScopeWasOpen?.(scope),
+        );
         return scope;
     }
 
     public close(): void {
         if (this._closed) return;
+        this._middlewares.forEach((middleware) =>
+            middleware.onScopeWillClose?.(this),
+        );
         this._closed = true;
         this.closeChildScopes();
         this.disposeLocalInstances();
@@ -110,7 +127,33 @@ export class DIScope<TypeMap extends TTypeMapBase>
             );
         }
 
-        return this.getInstanceByEntry(entry);
+        let newEntry = entry;
+        this._middlewares.forEach((middleware) => {
+            if (middleware.onRequest) {
+                newEntry = middleware.onRequest(newEntry, entry, this);
+                if (newEntry.$id !== entry.$id)
+                    throw new Error(
+                        Errors.MiddlewareEntryTypeMismatch(
+                            middleware.name ?? "",
+                            newEntry.$id,
+                            entry.$id,
+                        ),
+                    );
+            }
+        });
+
+        let instance = this.getInstanceByEntry(entry);
+
+        this._middlewares.forEach((middleware) => {
+            if (middleware.onResolve) {
+                instance = middleware.onResolve(
+                    instance,
+                    entry,
+                    this,
+                ) as TypeMap[Key];
+            }
+        });
+        return instance;
     }
 
     public getOptional<Key extends keyof TypeMap>(
@@ -211,8 +254,17 @@ export class DIScope<TypeMap extends TTypeMapBase>
         withoutActivation?: boolean,
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) return entry.instance;
-        if (entry.lifecycle === "transient")
-            return this._activator.createInstance(entry, this);
+        if (entry.lifecycle === "transient") {
+            let instance = this._activator.createInstance(entry, this);
+            this._middlewares.forEach((middleware) => {
+                if (middleware.onCreated)
+                    instance = middleware.onCreated(
+                        entry,
+                        instance,
+                    ) as TypeMap[Key];
+            });
+            return instance;
+        }
 
         let instance = this._local.getInstance(entry);
         if (!instance) {
@@ -221,6 +273,13 @@ export class DIScope<TypeMap extends TTypeMapBase>
             }
             if (!withoutActivation) {
                 instance = this._activator.createInstance(entry, this);
+                this._middlewares.forEach((middleware) => {
+                    if (middleware.onCreated)
+                        instance = middleware.onCreated(
+                            entry,
+                            instance as TypeMap[Key],
+                        ) as TypeMap[Key];
+                });
                 this._local.storeInstance(entry, instance);
             }
         }

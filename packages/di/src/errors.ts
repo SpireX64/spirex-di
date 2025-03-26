@@ -33,4 +33,10 @@ export const Errors = Object.freeze({
         "Ensure the module is loaded before use.",
     NonObjectPropertySet: (propName: string, valueType: string) =>
         `Cannot create property '${propName}' on ${valueType}`,
+    MiddlewareEntryTypeMismatch: (
+        middlewareName: string,
+        middlewareEntryId: string,
+        originEntryId: string,
+    ) =>
+        `Middleware '${middlewareName}' altered the entry type: Expected '${middlewareEntryId}', but received '${originEntryId}`,
 });

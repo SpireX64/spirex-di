@@ -24,6 +24,7 @@ import { Errors } from "./errors";
 import type { TAnyDIModule } from "./modules/types";
 import { ModulesManager } from "./modules/ModulesManager";
 import { DIScope } from "./DIScope";
+import type { TContainerMiddleware } from "./middleware";
 
 export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
@@ -36,6 +37,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private _moduleContext: TAnyDIModule<any> | undefined;
+
+    private readonly _middlewares = new Set<TContainerMiddleware<TypeMap>>();
 
     // region IContainerBuilderExplorer
 
@@ -154,6 +157,11 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         return this;
     }
 
+    public use(middleware: TContainerMiddleware<TypeMap>): this {
+        this._middlewares.add(middleware);
+        return this;
+    }
+
     public addModule<ModuleTypeMap extends TTypeMapBase>(
         module: TAnyDIModule<ModuleTypeMap>,
     ): DIContainerBuilder<TypeMap & ModuleTypeMap> {
@@ -184,12 +192,12 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
      */
     public build(): DIContainer<TypeMap> {
         if (this._types.size === 0) throw new Error(Errors.EmptyContainer);
-        return new DIScope(
-            Symbol("global"),
-            new Registrar(this._types),
-            new InstanceActivator<TypeMap>(),
-            this._modules,
-        );
+        return new DIScope(Symbol("global"), {
+            middlewares: this._middlewares,
+            registrar: new Registrar(this._types),
+            activator: new InstanceActivator<TypeMap>(),
+            modules: this._modules,
+        });
     }
 
     /** @internal */
@@ -197,6 +205,21 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         entry: TTypeEntry<TypeMap, Key>,
         append: boolean,
     ): void {
+        let newEntry = entry;
+        this._middlewares.forEach((middleware) => {
+            if (middleware.onBind) {
+                newEntry = middleware.onBind(newEntry, entry);
+                if (entry.$id !== newEntry.$id)
+                    throw new Error(
+                        Errors.MiddlewareEntryTypeMismatch(
+                            middleware.name ?? "",
+                            newEntry.$id,
+                            entry.$id,
+                        ),
+                    );
+            }
+        });
+
         const item = this._types.get(entry.$id);
         Object.freeze(entry); // Make 'entry' readonly struct
 
