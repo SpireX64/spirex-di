@@ -8,15 +8,16 @@ export type TTypeMapBase = Record<string, unknown>;
 
 export type TProvider<T> = () => T;
 
+export type TEntryId = string;
+export type TScopeID = symbol | string;
+
 export type TTypeFactory<
     TypeMap extends TTypeMapBase,
     Key extends keyof TypeMap,
 > = (
     resolver: IInstanceResolver<TypeMap> & IModuleHandlerResolver,
+    scope: TScopeID,
 ) => TypeMap[Key];
-
-export type TEntryId = string;
-export type TScopeID = symbol | string;
 
 export type TTypeEntryBase<
     TypeMap extends TTypeMapBase,

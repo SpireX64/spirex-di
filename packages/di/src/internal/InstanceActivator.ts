@@ -1,11 +1,10 @@
 import type {
-    IInstanceResolver,
-    IModuleHandlerResolver,
     TLifecycle,
     TTypeEntry,
     TTypeFactoryEntry,
     TTypeMapBase,
 } from "../types";
+import type { DIScope } from "../DIScope";
 import { compareLifecycles, isInstanceTypeEntry } from "../utils";
 
 const Errors = {
@@ -41,7 +40,7 @@ export class InstanceActivator<TypeMap extends TTypeMapBase> {
 
     public createInstance<Key extends keyof TypeMap>(
         entry: TTypeEntry<TypeMap, Key>,
-        resolver: IInstanceResolver<TypeMap> & IModuleHandlerResolver,
+        scope: DIScope<TypeMap>,
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) return entry.instance;
 
@@ -63,7 +62,7 @@ export class InstanceActivator<TypeMap extends TTypeMapBase> {
             throw error;
         }
 
-        const instance = entry.factory(resolver);
+        const instance = entry.factory(scope, scope.id);
         this._currentActivationStack.pop();
         return instance;
     }
