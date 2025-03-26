@@ -1,6 +1,6 @@
 import type {
     IInstanceResolver,
-    IModuleHandlerResolver,
+    IModuleHandleResolver,
     TLifecycle,
     TTypeEntry,
     TTypeFactory,
@@ -68,7 +68,7 @@ export function makeRegistrar<TypeMap extends TTypeMapBase>(
 
 export function createMockResolver<TypeMap extends TTypeMapBase>(
     instancesMap?: Partial<TypeMap>,
-): IInstanceResolver<TypeMap> & IModuleHandlerResolver {
+): IInstanceResolver<TypeMap> & IModuleHandleResolver {
     return {
         get: jest.fn(
             <K extends keyof TypeMap>(type: K) =>

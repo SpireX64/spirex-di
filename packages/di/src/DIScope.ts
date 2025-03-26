@@ -1,6 +1,8 @@
 import {
     IInstanceResolver,
-    IModuleHandlerResolver,
+    IModuleHandleResolver,
+    IScopeHandle,
+    IScopeHandleResolver,
     TProvider,
     TScopeID,
     TTypeEntry,
@@ -21,7 +23,10 @@ import { ModulesManager } from "./modules/ModulesManager";
 import type { TDynamicDIModule, TDynamicModuleHandle } from "./modules/types";
 
 export class DIScope<TypeMap extends TTypeMapBase>
-    implements IInstanceResolver<TypeMap>, IModuleHandlerResolver
+    implements
+        IInstanceResolver<TypeMap>,
+        IScopeHandleResolver,
+        IModuleHandleResolver
 {
     private readonly _id: TScopeID;
     private readonly _registrar: Registrar<TypeMap>;
@@ -168,6 +173,18 @@ export class DIScope<TypeMap extends TTypeMapBase>
         module: TDynamicDIModule<TypeMap, ESModule>,
     ): TDynamicModuleHandle<TypeMap, ESModule> {
         return this._modules.getModuleHandle(module);
+    }
+
+    public getScopeHandle(): IScopeHandle {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const scope = this;
+        return Object.freeze({
+            id: scope.id,
+            close: scope.close.bind(scope),
+            get isClosed(): boolean {
+                return scope.isClosed;
+            },
+        });
     }
 
     public getAll<Key extends keyof TypeMap>(

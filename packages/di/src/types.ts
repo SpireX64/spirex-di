@@ -11,11 +11,23 @@ export type TProvider<T> = () => T;
 export type TEntryId = string;
 export type TScopeID = symbol | string;
 
+export interface IScopeHandle {
+    readonly id: TScopeID;
+    readonly isClosed: boolean;
+    close(): void;
+}
+
+export interface IScopeHandleResolver {
+    getScopeHandle(): IScopeHandle;
+}
+
 export type TTypeFactory<
     TypeMap extends TTypeMapBase,
     Key extends keyof TypeMap,
 > = (
-    resolver: IInstanceResolver<TypeMap> & IModuleHandlerResolver,
+    resolver: IInstanceResolver<TypeMap> &
+        IScopeHandleResolver &
+        IModuleHandleResolver,
     scope: TScopeID,
 ) => TypeMap[Key];
 
@@ -69,7 +81,7 @@ export interface IDisposable {
     dispose(): void;
 }
 
-export interface IModuleHandlerResolver {
+export interface IModuleHandleResolver {
     getModuleHandle<TypeMap extends TTypeMapBase, ESModule>(
         module: TDynamicDIModule<TypeMap, ESModule>,
     ): TDynamicModuleHandle<TypeMap, ESModule>;
@@ -134,4 +146,4 @@ export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
 }
 
 export type DIContainer<TypeMap extends TTypeMapBase> =
-    IInstanceResolver<TypeMap> & IModuleHandlerResolver;
+    IInstanceResolver<TypeMap> & IModuleHandleResolver;
