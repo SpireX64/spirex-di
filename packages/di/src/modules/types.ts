@@ -1,7 +1,11 @@
-import { IContainerBuilderBinder, TTypeMapBase } from "../types";
+import {
+    IContainerBuilderBinder,
+    IContainerConditionalBuilder,
+    TTypeMapBase,
+} from "../types";
 
 export type TModuleBuilder<TypeMap extends TTypeMapBase> =
-    IContainerBuilderBinder<TypeMap>;
+    IContainerBuilderBinder<TypeMap> & IContainerConditionalBuilder<TypeMap>;
 
 export type TStaticBuilderDelegate<TypeMap extends TTypeMapBase> = (
     builder: TModuleBuilder<TypeMap>,

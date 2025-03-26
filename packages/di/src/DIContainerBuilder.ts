@@ -11,7 +11,9 @@ import type {
     TTypeInstanceEntry,
     TTypeMapBase,
     TTypesConflictResolve,
+    IContainerConditionalBuilder,
     DIContainer,
+    TContainerConditionalBuilderPredicate,
 } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
 import { validateLifecycle } from "./internal/validators";
@@ -26,11 +28,14 @@ import { DIScope } from "./DIScope";
 export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
         IContainerBuilderBinder<TypeMap>,
-        IContainerBuilderExplorer<TypeMap>
+        IContainerBuilderExplorer<TypeMap>,
+        IContainerConditionalBuilder<TypeMap>
 {
     private readonly _types: TTypeEntriesMap<TypeMap> = new Map();
     private readonly _modules = new ModulesManager();
-    private _moduleContext: TAnyDIModule<never> | undefined;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private _moduleContext: TAnyDIModule<any> | undefined;
 
     // region IContainerBuilderExplorer
 
@@ -139,14 +144,28 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
 
     // endregion IContainerBuilderBinder
 
+    public when(
+        condition: TContainerConditionalBuilderPredicate<TypeMap> | boolean,
+        delegate: (builder: IContainerBuilderBinder<TypeMap>) => void,
+    ): this {
+        if (typeof condition === "function" ? condition(this) : condition)
+            delegate(this);
+
+        return this;
+    }
+
     public addModule<ModuleTypeMap extends TTypeMapBase>(
         module: TAnyDIModule<ModuleTypeMap>,
     ): DIContainerBuilder<TypeMap & ModuleTypeMap> {
         const builder = this as DIContainerBuilder<TypeMap & ModuleTypeMap>;
         this._moduleContext = module;
         if (module.type === "static") {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             module.builderDelegate(builder);
         } else {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             module.builderDelegate(builder, this._modules.getESModule(module));
         }
         this._modules.add(module);

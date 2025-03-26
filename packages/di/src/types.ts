@@ -145,5 +145,16 @@ export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
     ): this;
 }
 
+export type TContainerConditionalBuilderPredicate<
+    TypeMap extends TTypeMapBase,
+> = (explorer: IContainerBuilderExplorer<TypeMap>) => boolean;
+
+export interface IContainerConditionalBuilder<TypeMap extends TTypeMapBase> {
+    when(
+        predicate: TContainerConditionalBuilderPredicate<TypeMap> | boolean,
+        delegate: (builder: IContainerBuilderBinder<TypeMap>) => void,
+    ): IContainerBuilderBinder<TypeMap>;
+}
+
 export type DIContainer<TypeMap extends TTypeMapBase> =
     IInstanceResolver<TypeMap> & IModuleHandleResolver;
