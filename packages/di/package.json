@@ -20,6 +20,8 @@
     "type": "git",
     "url": "https://github.com/SpireX64/spirex-di"
   },
+  "main": "build/index.js",
+  "module": "build/index.mjs",
   "scripts": {
     "test": "jest",
     "test:c": "jest --coverage",

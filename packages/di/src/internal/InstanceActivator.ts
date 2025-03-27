@@ -62,7 +62,7 @@ export class InstanceActivator<TypeMap extends TTypeMapBase> {
             throw error;
         }
 
-        const instance = entry.factory(scope, scope.id);
+        const instance = entry.factory(scope, scope.nest);
         this._currentActivationStack.pop();
         return instance;
     }

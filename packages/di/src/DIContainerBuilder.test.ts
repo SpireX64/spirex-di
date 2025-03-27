@@ -346,7 +346,7 @@ describe("DIContainerBuilder", () => {
             const entry = builder.findSomeTypeEntry("str");
 
             // Assert -------------
-            expect(entry?.factory?.(fakeResolver, scopeId)).toBe("42dx");
+            expect(entry?.factory?.(fakeResolver, [scopeId])).toBe("42dx");
         });
 
         test("Bind factory with dependency provider", () => {
@@ -368,7 +368,7 @@ describe("DIContainerBuilder", () => {
             }));
 
             const entry = builder.findSomeTypeEntry("obj");
-            const resolvedObject = entry?.factory?.(resolver, "scope");
+            const resolvedObject = entry?.factory?.(resolver, ["scope"]);
 
             // Assert ----------
             expect(resolvedObject).not.toBeUndefined();

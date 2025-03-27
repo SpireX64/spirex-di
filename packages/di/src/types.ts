@@ -28,7 +28,7 @@ export type TTypeFactory<
     resolver: IInstanceResolver<TypeMap> &
         IScopeHandleResolver &
         IModuleHandleResolver,
-    scope: TScopeID,
+    scopeNest: readonly TScopeID[],
 ) => TypeMap[Key];
 
 export type TTypeEntryBase<
@@ -159,6 +159,3 @@ export interface IContainerConditionalBuilder<TypeMap extends TTypeMapBase> {
         delegate: (builder: IContainerBuilderBinder<TypeMap>) => void,
     ): IContainerBuilderBinder<TypeMap>;
 }
-
-export type DIContainer<TypeMap extends TTypeMapBase> =
-    IInstanceResolver<TypeMap> & IModuleHandleResolver;

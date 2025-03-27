@@ -1,6 +1,7 @@
 import type {
     IDisposable,
     TLifecycle,
+    TScopeID,
     TTypeEntry,
     TTypeFactoryEntry,
     TTypeInstanceEntry,
@@ -56,4 +57,16 @@ export function unwrapPhantom<T>(phObj: T): T {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     return phObj[PHANTOM_SYMBOL] as T;
+}
+
+export function scopeIdToString(
+    scopeId: TScopeID | readonly TScopeID[],
+): string {
+    if (Array.isArray(scopeId))
+        return scopeId
+            .map((it: TScopeID) => scopeIdToString(it))
+            .reverse()
+            .join("/");
+    else if (typeof scopeId == "string") return scopeId;
+    else return (scopeId as symbol).description ?? String(scopeId);
 }

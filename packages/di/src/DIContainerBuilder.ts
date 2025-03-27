@@ -12,7 +12,6 @@ import type {
     TTypeMapBase,
     TTypesConflictResolve,
     IContainerConditionalBuilder,
-    DIContainer,
     TContainerConditionalBuilderPredicate,
 } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
@@ -23,7 +22,7 @@ import { checkIsTypeEntryMapItem, makeEntryId } from "./internal/utils";
 import { Errors } from "./errors";
 import type { TAnyDIModule } from "./modules/types";
 import { ModulesManager } from "./modules/ModulesManager";
-import { DIScope } from "./DIScope";
+import { DIScope, DIContainer } from "./DIScope";
 import type { TContainerMiddleware } from "./middleware";
 
 type TTypeRequirement<TypeMap extends TTypeMapBase> = {
@@ -235,18 +234,18 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
             }
         });
 
-        const item = this._types.get(entry.$id);
-        Object.freeze(entry); // Make 'entry' readonly struct
+        const item = this._types.get(newEntry.$id);
+        Object.freeze(newEntry); // Make 'entry' readonly struct
 
-        if (!item || !append) this._types.set(entry.$id, entry);
+        if (!item || !append) this._types.set(newEntry.$id, newEntry);
         else if (checkIsTypeEntryMapItem(item)) {
             this._types.set(
-                entry.$id,
+                newEntry.$id,
                 new Set<TTypeEntry<TypeMap, keyof TypeMap>>()
                     .add(item)
-                    .add(entry),
+                    .add(newEntry),
             );
-        } else item.add(entry);
+        } else item.add(newEntry);
     }
 
     /** @internal */

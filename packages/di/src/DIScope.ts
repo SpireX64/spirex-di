@@ -23,6 +23,15 @@ import { ModulesManager } from "./modules/ModulesManager";
 import type { TDynamicDIModule, TDynamicModuleHandle } from "./modules/types";
 import type { TContainerMiddleware } from "./middleware";
 
+export interface IScopeResolver<TypeMap extends TTypeMapBase> {
+    scope(id: TScopeID): DIScope<TypeMap>;
+}
+
+export type DIContainer<TypeMap extends TTypeMapBase> =
+    IInstanceResolver<TypeMap> &
+        IModuleHandleResolver &
+        IScopeResolver<TypeMap>;
+
 export type TDIScopeTransfers<TypeMap extends TTypeMapBase> = {
     middlewares: ReadonlySet<TContainerMiddleware<TypeMap>>;
     registrar: Registrar<TypeMap>;
@@ -33,6 +42,7 @@ export type TDIScopeTransfers<TypeMap extends TTypeMapBase> = {
 export class DIScope<TypeMap extends TTypeMapBase>
     implements
         IInstanceResolver<TypeMap>,
+        IScopeResolver<TypeMap>,
         IScopeHandleResolver,
         IModuleHandleResolver
 {
@@ -68,6 +78,18 @@ export class DIScope<TypeMap extends TTypeMapBase>
 
     public get id(): TScopeID {
         return this._id;
+    }
+
+    public get nest(): readonly TScopeID[] {
+        const scopeNest: TScopeID[] = [this._id];
+        for (
+            let scopeRef = this._parentScopeRef;
+            scopeRef != null;
+            scopeRef = scopeRef._parentScopeRef
+        ) {
+            scopeNest.push(scopeRef._id);
+        }
+        return scopeNest;
     }
 
     public get isClosed(): boolean {
@@ -211,7 +233,6 @@ export class DIScope<TypeMap extends TTypeMapBase>
     }
 
     public getScopeHandle(): IScopeHandle {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const scope = this;
         return Object.freeze({
             id: scope.id,
@@ -314,17 +335,15 @@ export class DIScope<TypeMap extends TTypeMapBase>
         TypeMap extends TTypeMapBase,
         Type extends keyof TypeMap,
     >(entry: TTypeEntry<TypeMap, Type>, noThrow = false): boolean {
+        if (
+            isFactoryTypeEntry(entry) &&
+            (entry.lifecycle === "singleton" || entry.lifecycle === "lazy")
+        )
+            return true;
         if (!entry.scope || (Array.isArray(entry.scope) && !entry.scope.length))
             return true;
 
-        const scopeFold: TScopeID[] = [this._id];
-        for (
-            let scopeRef = this._parentScopeRef;
-            scopeRef != null;
-            scopeRef = scopeRef._parentScopeRef
-        ) {
-            scopeFold.push(scopeRef._id);
-        }
+        const scopeFold: readonly TScopeID[] = this.nest;
 
         const isAllowed = Array.isArray(entry.scope)
             ? entry.scope.some((it: TScopeID) => scopeFold.includes(it))
