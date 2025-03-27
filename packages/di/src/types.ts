@@ -39,6 +39,7 @@ export type TTypeEntryBase<
     type: Key;
     module?: TAnyDIModule<TypeMap>;
     name?: string | undefined;
+    scope?: TScopeID | readonly TScopeID[] | undefined;
 };
 
 export type TTypesConflictResolve = "throw" | "keep" | "replace" | "append";
@@ -48,6 +49,7 @@ export type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
 export type TBindingOptions = Partial<{
     ifConflict: TTypesConflictResolve;
     name: string;
+    scope?: TScopeID | readonly TScopeID[] | undefined;
 }>;
 
 export type TFactoryBindingOptions = TBindingOptions &

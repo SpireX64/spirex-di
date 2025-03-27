@@ -7,7 +7,10 @@ export default tseslint.config(
     eslint.configs.recommended,
     ...tseslint.configs.strictTypeChecked,
     {
-        rules: { "@typescript-eslint/no-namespace": "off" },
+        rules: {
+            "@typescript-eslint/no-namespace": "off",
+            "@typescript-eslint/no-this-alias": "off",
+        },
     },
     {
         languageOptions: {

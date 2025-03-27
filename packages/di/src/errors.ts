@@ -2,6 +2,12 @@ import type { TScopeID } from "./types";
 
 export const Errors = Object.freeze({
     TypeBindingNotFound: (type: string) => `Type binding ${type} not found.`,
+    ScopeRestrictionError: (
+        type: string,
+        allowedScopes: TScopeID | TScopeID[],
+        scopeFold: TScopeID[],
+    ) =>
+        `Cannot resolve type '${type}' in the current scope fold '${scopeFold.toString()}'. Service is only available in: ${allowedScopes.toString()}.`,
     EmptyContainer:
         "Container building failed. Cannot create a container without bindings. " +
         "Please bind at least one service or value using 'bindInstance' or 'bindFactory'.",

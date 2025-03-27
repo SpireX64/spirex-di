@@ -115,7 +115,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
             throw new Error(
                 Errors.ScopeClosed(this._id, makeEntryId(type, name)),
             );
-        const entry = this._registrar.findTypeEntry(type, name);
+        let entry = this._registrar.findTypeEntry(type, name);
         if (!entry) throw Error(Errors.TypeBindingNotFound(type.toString()));
 
         if (
@@ -127,33 +127,12 @@ export class DIScope<TypeMap extends TTypeMapBase>
             );
         }
 
-        let newEntry = entry;
-        this._middlewares.forEach((middleware) => {
-            if (middleware.onRequest) {
-                newEntry = middleware.onRequest(newEntry, entry, this);
-                if (newEntry.$id !== entry.$id)
-                    throw new Error(
-                        Errors.MiddlewareEntryTypeMismatch(
-                            middleware.name ?? "",
-                            newEntry.$id,
-                            entry.$id,
-                        ),
-                    );
-            }
-        });
-
-        let instance = this.getInstanceByEntry(entry);
-
-        this._middlewares.forEach((middleware) => {
-            if (middleware.onResolve) {
-                instance = middleware.onResolve(
-                    instance,
-                    entry,
-                    this,
-                ) as TypeMap[Key];
-            }
-        });
-        return instance;
+        entry = this.entryOnRequestMiddleware(entry);
+        this.verifyIsEntryRestriction(entry);
+        return this.entryOnResolveMiddleware(
+            this.getInstanceByEntry(entry),
+            entry,
+        );
     }
 
     public getOptional<Key extends keyof TypeMap>(
@@ -164,8 +143,10 @@ export class DIScope<TypeMap extends TTypeMapBase>
             throw new Error(
                 Errors.ScopeClosed(this._id, makeEntryId(type, name)),
             );
-        const entry = this._registrar.findTypeEntry(type, name);
+        let entry = this._registrar.findTypeEntry(type, name);
         if (!entry) return null;
+
+        entry = this.entryOnRequestMiddleware(entry);
 
         if (
             entry.module?.type === "dynamic" &&
@@ -174,7 +155,12 @@ export class DIScope<TypeMap extends TTypeMapBase>
             return null;
         }
 
-        return this.getInstanceByEntry(entry);
+        if (!this.verifyIsEntryRestriction(entry, true)) return null;
+
+        return this.entryOnResolveMiddleware(
+            this.getInstanceByEntry(entry),
+            entry,
+        );
     }
 
     public getProvider<Key extends keyof TypeMap>(
@@ -199,15 +185,21 @@ export class DIScope<TypeMap extends TTypeMapBase>
                 Errors.ScopeClosed(this._id, makeEntryId(type, name)),
             );
 
-        const entry = this._registrar.findTypeEntry(type, name);
+        let entry = this._registrar.findTypeEntry(type, name);
         if (!entry) throw Error(Errors.TypeBindingNotFound(type.toString()));
+
+        entry = this.entryOnRequestMiddleware(entry);
+        this.verifyIsEntryRestriction(entry);
         return (
-            this.getInstanceByEntry(entry, true) ||
-            makePhantomInstance<TypeMap, T>(
+            this.entryOnResolveMiddleware(
+                this.getInstanceByEntry(entry, true),
                 entry,
-                this.getInstanceByEntry.bind(this, entry) as TProvider<
-                    TypeMap[T]
-                >,
+            ) ||
+            makePhantomInstance<TypeMap, T>(entry, () =>
+                this.entryOnResolveMiddleware(
+                    this.getInstanceByEntry(entry, true),
+                    entry,
+                ),
             )
         );
     }
@@ -238,11 +230,15 @@ export class DIScope<TypeMap extends TTypeMapBase>
             throw new Error(
                 Errors.ScopeClosed(this._id, makeEntryId(type, name)),
             );
-        const entries = this._registrar.findAllTypeEntries(type, name);
-        const instances: TypeMap[Key][] = [];
-        for (const entry of entries)
-            instances.push(this.getInstanceByEntry(entry));
-        return instances;
+        return this._registrar
+            .findAllTypeEntries(type, name)
+            .filter((it) => this.verifyIsEntryRestriction(it, true))
+            .map((it) =>
+                this.entryOnResolveMiddleware(
+                    this.getInstanceByEntry(this.entryOnRequestMiddleware(it)),
+                    it,
+                ),
+            );
     }
     // endregion IInstanceResolver
 
@@ -312,6 +308,75 @@ export class DIScope<TypeMap extends TTypeMapBase>
             checkIsDisposable(inst) && inst.dispose();
         });
         this._local.clear();
+    }
+
+    private verifyIsEntryRestriction<
+        TypeMap extends TTypeMapBase,
+        Type extends keyof TypeMap,
+    >(entry: TTypeEntry<TypeMap, Type>, noThrow = false): boolean {
+        if (!entry.scope || (Array.isArray(entry.scope) && !entry.scope.length))
+            return true;
+
+        const scopeFold: TScopeID[] = [this._id];
+        for (
+            let scopeRef = this._parentScopeRef;
+            scopeRef != null;
+            scopeRef = scopeRef._parentScopeRef
+        ) {
+            scopeFold.push(scopeRef._id);
+        }
+
+        const isAllowed = Array.isArray(entry.scope)
+            ? entry.scope.some((it: TScopeID) => scopeFold.includes(it))
+            : scopeFold.includes(entry.scope as TScopeID);
+
+        if (isAllowed) return true;
+        if (noThrow) return false;
+
+        throw new Error(
+            Errors.ScopeRestrictionError(
+                entry.$id,
+                entry.scope as TScopeID,
+                scopeFold,
+            ),
+        );
+    }
+
+    private entryOnRequestMiddleware<Type extends keyof TypeMap>(
+        entry: TTypeEntry<TypeMap, Type>,
+    ): TTypeEntry<TypeMap, Type> {
+        let newEntry = entry;
+        this._middlewares.forEach((middleware) => {
+            if (middleware.onRequest) {
+                newEntry = middleware.onRequest(newEntry, entry, this);
+                if (newEntry.$id !== entry.$id)
+                    throw new Error(
+                        Errors.MiddlewareEntryTypeMismatch(
+                            middleware.name ?? "",
+                            newEntry.$id,
+                            entry.$id,
+                        ),
+                    );
+            }
+        });
+        return newEntry;
+    }
+
+    private entryOnResolveMiddleware<Type extends keyof TypeMap>(
+        instance: TypeMap[Type],
+        entry: TTypeEntry<TypeMap, Type>,
+    ): TypeMap[Type] {
+        if (instance == null) return instance;
+        this._middlewares.forEach((middleware) => {
+            if (middleware.onResolve) {
+                instance = middleware.onResolve(
+                    instance,
+                    entry,
+                    this,
+                ) as TypeMap[Type];
+            }
+        });
+        return instance;
     }
 
     // endregion Private methods
