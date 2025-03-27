@@ -26,6 +26,11 @@ import { ModulesManager } from "./modules/ModulesManager";
 import { DIScope } from "./DIScope";
 import type { TContainerMiddleware } from "./middleware";
 
+type TTypeRequirement<TypeMap extends TTypeMapBase> = {
+    type: keyof TypeMap;
+    name?: string;
+};
+
 export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
         IContainerBuilderBinder<TypeMap>,
@@ -39,6 +44,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     private _moduleContext: TAnyDIModule<any> | undefined;
 
     private readonly _middlewares = new Set<TContainerMiddleware<TypeMap>>();
+
+    private readonly _requiredTypes = new Set<TTypeRequirement<TypeMap>>();
 
     // region IContainerBuilderExplorer
 
@@ -73,6 +80,11 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     // endregion IContainerBuilderExplorer
 
     // region IContainerBuilderBinder
+
+    public requireType<T extends keyof TypeMap>(type: T, name?: string): this {
+        this._requiredTypes.add({ type, name });
+        return this;
+    }
 
     /**
      * Binds an existing instance to a specified type.
@@ -192,6 +204,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
      */
     public build(): DIContainer<TypeMap> {
         if (this._types.size === 0) throw new Error(Errors.EmptyContainer);
+        this.verifyRequiredTypes();
         return new DIScope(Symbol("global"), {
             middlewares: this._middlewares,
             registrar: new Registrar(this._types),
@@ -245,5 +258,19 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 throw new Error(Errors.BindingConflict($id));
         }
         return false;
+    }
+
+    private verifyRequiredTypes(): void {
+        this._requiredTypes.forEach((requirement) => {
+            const $id = makeEntryId(requirement.type, requirement.name);
+            const entry = this._types.get($id);
+            if (!entry)
+                throw new Error(
+                    Errors.MissingRequiredTypeError(
+                        requirement.type.toString(),
+                        requirement.name,
+                    ),
+                );
+        });
     }
 }

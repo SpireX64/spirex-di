@@ -132,6 +132,8 @@ export interface IContainerBuilderExplorer<TypeMap extends TTypeMapBase> {
 }
 
 export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
+    requireType<T extends keyof TypeMap>(type: T): this;
+
     bindInstance<T extends keyof TypeMap>(
         type: T,
         instance: TypeMap[T],
