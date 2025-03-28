@@ -5,7 +5,12 @@ import {
 } from "../types";
 
 export type TModuleBuilder<TypeMap extends TTypeMapBase> =
-    IContainerBuilderBinder<TypeMap> & IContainerConditionalBuilder<TypeMap>;
+    IContainerBuilderBinder<TypeMap> &
+        IContainerConditionalBuilder<TypeMap> & {
+            addModule<ModuleTypeMap extends TTypeMapBase>(
+                module: TAnyDIModule<ModuleTypeMap>,
+            ): TModuleBuilder<TypeMap & ModuleTypeMap>;
+        };
 
 export type TStaticBuilderDelegate<TypeMap extends TTypeMapBase> = (
     builder: TModuleBuilder<TypeMap>,

@@ -179,6 +179,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         module: TAnyDIModule<ModuleTypeMap>,
     ): DIContainerBuilder<TypeMap & ModuleTypeMap> {
         const builder = this as DIContainerBuilder<TypeMap & ModuleTypeMap>;
+        if (this._modules.has(module)) return builder;
+
         this._moduleContext = module;
         if (module.type === "static") {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
