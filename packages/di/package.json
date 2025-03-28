@@ -1,6 +1,6 @@
 {
   "name": "@spirex/di",
-  "version": "1.0.0-alpha",
+  "version": "1.0.0-alpha.1",
   "license": "MIT",
   "private": false,
   "description": "Powerful and highly flexible dependency injection (DI) library designed for modern JavaScript and TypeScript applications",
