@@ -22,6 +22,19 @@
   },
   "main": "build/index.js",
   "module": "build/index.mjs",
+  "exports": {
+    ".": {
+      "import": {
+        "default": "./build/index.mjs"
+      },
+      "require": {
+        "default": "./build/index.cjs"
+      },
+      "default": {
+        "default": "./build/index.js"
+      }
+    }
+  },
   "scripts": {
     "test": "jest",
     "test:c": "jest --coverage",
