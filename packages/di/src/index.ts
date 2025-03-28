@@ -14,6 +14,7 @@ export {
 
 export type * from "./modules/types";
 export type * from "./types";
+export type * from "./middleware";
 
 export {
     isInstanceTypeEntry,

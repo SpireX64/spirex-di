@@ -33,7 +33,7 @@ export type DIContainer<TypeMap extends TTypeMapBase> =
         IScopeResolver<TypeMap>;
 
 export type TDIScopeTransfers<TypeMap extends TTypeMapBase> = {
-    middlewares: ReadonlySet<TContainerMiddleware<TypeMap>>;
+    middlewares: ReadonlySet<TContainerMiddleware>;
     registrar: Registrar<TypeMap>;
     activator: InstanceActivator<TypeMap>;
     modules: ModulesManager;
@@ -49,7 +49,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
     private readonly _id: TScopeID;
     private readonly _registrar: Registrar<TypeMap>;
     private readonly _activator: InstanceActivator<TypeMap>;
-    private readonly _middlewares: ReadonlySet<TContainerMiddleware<TypeMap>>;
+    private readonly _middlewares: ReadonlySet<TContainerMiddleware>;
     private readonly _modules: ModulesManager;
     private readonly _parentScopeRef: DIScope<TypeMap> | null = null;
     private readonly _children = new Map<TScopeID, DIScope<TypeMap>>();
@@ -113,6 +113,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
         );
         this._children.set(id, scope);
         this._middlewares.forEach((middleware) =>
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             middleware.onScopeWasOpen?.(scope),
         );
         return scope;
@@ -121,6 +123,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
     public close(): void {
         if (this._closed) return;
         this._middlewares.forEach((middleware) =>
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             middleware.onScopeWillClose?.(this),
         );
         this._closed = true;
@@ -276,6 +280,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
             this._middlewares.forEach((middleware) => {
                 if (middleware.onCreated)
                     instance = middleware.onCreated(
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-expect-error
                         entry,
                         instance,
                     ) as TypeMap[Key];
@@ -293,6 +299,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
                 this._middlewares.forEach((middleware) => {
                     if (middleware.onCreated)
                         instance = middleware.onCreated(
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                            // @ts-expect-error
                             entry,
                             instance as TypeMap[Key],
                         ) as TypeMap[Key];
@@ -392,6 +400,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
             if (middleware.onResolve) {
                 instance = middleware.onResolve(
                     instance,
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-expect-error
                     entry,
                     this,
                 ) as TypeMap[Type];

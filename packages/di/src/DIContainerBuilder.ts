@@ -43,7 +43,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private _moduleContext: TAnyDIModule<any> | undefined;
 
-    private readonly _middlewares = new Set<TContainerMiddleware<TypeMap>>();
+    private readonly _middlewares = new Set<TContainerMiddleware>();
 
     private readonly _requiredTypes = new Set<TTypeRequirement<TypeMap>>();
 
@@ -181,7 +181,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         return this;
     }
 
-    public use(middleware: TContainerMiddleware<TypeMap>): this {
+    public use(middleware: TContainerMiddleware): this {
         this._middlewares.add(middleware);
         return this;
     }
