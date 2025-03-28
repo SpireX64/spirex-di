@@ -379,7 +379,7 @@ describe("DIContainerBuilder", () => {
     describe("Finding entries", () => {
         test("Find not exist entry", () => {
             // Arrange ----------
-            const builder = new DIContainerBuilder();
+            const builder = new DIContainerBuilder<{ value: string }>();
 
             // Act --------------
             const entry = builder.findSomeTypeEntry("value");
@@ -390,7 +390,7 @@ describe("DIContainerBuilder", () => {
 
         test("Find not exist entry with name", () => {
             // Arrange -----------
-            const builder = new DIContainerBuilder();
+            const builder = new DIContainerBuilder<{ type: string }>();
 
             // Act ---------------
             const entry = builder.findSomeTypeEntry("type", "name");

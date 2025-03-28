@@ -13,6 +13,7 @@ import type {
     TTypesConflictResolve,
     IContainerConditionalBuilder,
     TContainerConditionalBuilderPredicate,
+    TAliasDefinition,
 } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
 import { validateLifecycle } from "./internal/validators";
@@ -30,7 +31,8 @@ type TTypeRequirement<TypeMap extends TTypeMapBase> = {
     name?: string;
 };
 
-export class DIContainerBuilder<TypeMap extends TTypeMapBase>
+// eslint-disable-next-line @typescript-eslint/ban-types
+export class DIContainerBuilder<TypeMap extends TTypeMapBase = {}>
     implements
         IContainerBuilderBinder<TypeMap>,
         IContainerBuilderExplorer<TypeMap>,
@@ -45,6 +47,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     private readonly _middlewares = new Set<TContainerMiddleware<TypeMap>>();
 
     private readonly _requiredTypes = new Set<TTypeRequirement<TypeMap>>();
+
+    private readonly _aliasesMap = new Map<string, string>();
 
     // region IContainerBuilderExplorer
 
@@ -82,6 +86,14 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
 
     public requireType<T extends keyof TypeMap>(type: T, name?: string): this {
         this._requiredTypes.add({ type, name });
+        return this;
+    }
+
+    public alias(definition: TAliasDefinition): this {
+        this._aliasesMap.set(
+            makeEntryId(definition.asType, definition.asName),
+            makeEntryId(definition.type, definition.name),
+        );
         return this;
     }
 
@@ -210,7 +222,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         this.verifyRequiredTypes();
         return new DIScope(Symbol("global"), {
             middlewares: this._middlewares,
-            registrar: new Registrar(this._types),
+            registrar: new Registrar(this._types, this._aliasesMap),
             activator: new InstanceActivator<TypeMap>(),
             modules: this._modules,
         });
@@ -224,6 +236,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         let newEntry = entry;
         this._middlewares.forEach((middleware) => {
             if (middleware.onBind) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
                 newEntry = middleware.onBind(newEntry, entry);
                 if (entry.$id !== newEntry.$id)
                     throw new Error(

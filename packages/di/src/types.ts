@@ -133,8 +133,17 @@ export interface IContainerBuilderExplorer<TypeMap extends TTypeMapBase> {
     ): readonly TTypeEntry<TypeMap, Key>[];
 }
 
+export type TAliasDefinition = {
+    type: string;
+    name?: string;
+    asType: string;
+    asName?: string;
+};
+
 export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
     requireType<T extends keyof TypeMap>(type: T): this;
+
+    alias(definition: TAliasDefinition): this;
 
     bindInstance<T extends keyof TypeMap>(
         type: T,

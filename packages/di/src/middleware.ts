@@ -4,25 +4,25 @@ import type { DIScope } from "./DIScope";
 export type TContainerMiddleware<TypeMap extends TTypeMapBase> = Partial<{
     name: string;
 
-    onBind<Entry extends TTypeEntry<TypeMap, keyof TypeMap>>(
-        entry: Entry,
-        originEntry: Entry,
-    ): Entry;
+    onBind(
+        entry: TTypeEntry<TypeMap, keyof TypeMap>,
+        originEntry: TTypeEntry<TypeMap, keyof TypeMap>,
+    ): TTypeEntry<TypeMap, keyof TypeMap>;
 
-    onCreated<Entry extends TTypeEntry<TypeMap, keyof TypeMap>>(
-        entry: Entry,
+    onCreated(
+        entry: TTypeEntry<TypeMap, keyof TypeMap>,
         instance: TypeMap[keyof TypeMap],
     ): TypeMap[keyof TypeMap];
 
-    onRequest<Entry extends TTypeEntry<TypeMap, keyof TypeMap>>(
-        entry: Entry,
-        originEntry: Entry,
+    onRequest(
+        entry: TTypeEntry<TypeMap, keyof TypeMap>,
+        originEntry: TTypeEntry<TypeMap, keyof TypeMap>,
         scope: DIScope<TypeMap>,
-    ): Entry;
+    ): TTypeEntry<TypeMap, keyof TypeMap>;
 
-    onResolve<Entry extends TTypeEntry<TypeMap, keyof TypeMap>>(
+    onResolve(
         instance: TypeMap[keyof TypeMap],
-        entry: Entry,
+        entry: TTypeEntry<TypeMap, keyof TypeMap>,
         scope: DIScope<TypeMap>,
     ): TypeMap[keyof TypeMap];
 

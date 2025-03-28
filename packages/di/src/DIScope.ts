@@ -367,6 +367,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
         let newEntry = entry;
         this._middlewares.forEach((middleware) => {
             if (middleware.onRequest) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
                 newEntry = middleware.onRequest(newEntry, entry, this);
                 if (newEntry.$id !== entry.$id)
                     throw new Error(
