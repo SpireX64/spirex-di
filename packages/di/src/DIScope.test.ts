@@ -122,7 +122,9 @@ describe("DIScope", () => {
             test("Get instance of type after scope close", () => {
                 // Arrange ----
                 const scopeId = "TestScope";
-                const scope = makeScopeInstance({ id: scopeId });
+                const scope = makeScopeInstance<{ value: string }>({
+                    id: scopeId,
+                });
 
                 scope.close();
 
@@ -373,7 +375,9 @@ describe("DIScope", () => {
 
             test("Get instance provider of type after scope close", () => {
                 const scopeId = "TestScope";
-                const scope = makeScopeInstance({ id: scopeId });
+                const scope = makeScopeInstance<{ value: string }>({
+                    id: scopeId,
+                });
 
                 scope.close();
 

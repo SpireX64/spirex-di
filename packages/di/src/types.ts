@@ -4,7 +4,7 @@ import type {
     TDynamicModuleHandle,
 } from "./modules/types";
 
-export type TTypeMapBase = Record<string, unknown>;
+export type TTypeMapBase = object;
 
 export type TProvider<T> = () => T;
 
@@ -133,17 +133,17 @@ export interface IContainerBuilderExplorer<TypeMap extends TTypeMapBase> {
     ): readonly TTypeEntry<TypeMap, Key>[];
 }
 
-export type TAliasDefinition = {
-    type: string;
+export type TAliasDefinition<TypeMap extends TTypeMapBase> = {
+    type: keyof TypeMap;
     name?: string;
-    asType: string;
+    asType: keyof TypeMap;
     asName?: string;
 };
 
 export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
     requireType<T extends keyof TypeMap>(type: T): this;
 
-    alias(definition: TAliasDefinition): this;
+    alias(definition: TAliasDefinition<TypeMap>): this;
 
     bindInstance<T extends keyof TypeMap>(
         type: T,

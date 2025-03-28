@@ -25,8 +25,7 @@ export {
 } from "./utils";
 
 export namespace DI {
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    export const builder = <TypeMap extends TTypeMapBase = {}>() =>
+    export const builder = <TypeMap extends TTypeMapBase>() =>
         new DIContainerBuilder<TypeMap>();
 
     export function module(

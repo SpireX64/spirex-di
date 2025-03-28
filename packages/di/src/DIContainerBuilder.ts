@@ -31,8 +31,7 @@ type TTypeRequirement<TypeMap extends TTypeMapBase> = {
     name?: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-export class DIContainerBuilder<TypeMap extends TTypeMapBase = {}>
+export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
         IContainerBuilderBinder<TypeMap>,
         IContainerBuilderExplorer<TypeMap>,
@@ -89,7 +88,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase = {}>
         return this;
     }
 
-    public alias(definition: TAliasDefinition): this {
+    public alias(definition: TAliasDefinition<TypeMap>): this {
         this._aliasesMap.set(
             makeEntryId(definition.asType, definition.asName),
             makeEntryId(definition.type, definition.name),
@@ -190,7 +189,9 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase = {}>
     public addModule<ModuleTypeMap extends TTypeMapBase>(
         module: TAnyDIModule<ModuleTypeMap>,
     ): DIContainerBuilder<TypeMap & ModuleTypeMap> {
-        const builder = this as DIContainerBuilder<TypeMap & ModuleTypeMap>;
+        const builder = this as unknown as DIContainerBuilder<
+            TypeMap & ModuleTypeMap
+        >;
         if (this._modules.has(module)) return builder;
 
         this._moduleContext = module;
