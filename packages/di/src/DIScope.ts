@@ -145,6 +145,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
             );
         let entry = this._registrar.findTypeEntry(type, name);
         if (!entry) throw Error(Errors.TypeBindingNotFound(type.toString()));
+        entry = this.entryOnRequestMiddleware(entry);
 
         if (
             entry.module?.type === "dynamic" &&
@@ -155,7 +156,6 @@ export class DIScope<TypeMap extends TTypeMapBase>
             );
         }
 
-        entry = this.entryOnRequestMiddleware(entry);
         this.verifyIsEntryRestriction(entry);
         return this.entryOnResolveMiddleware(
             this.getInstanceByEntry(entry),
@@ -412,7 +412,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-expect-error
                 newEntry = middleware.onRequest(newEntry, entry, this);
-                if (newEntry.$id !== entry.$id)
+                if (newEntry.type !== entry.type)
                     throw new Error(
                         Errors.MiddlewareEntryTypeMismatch(
                             middleware.name ?? "",
