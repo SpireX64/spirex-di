@@ -323,7 +323,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
     ): TypeMap[Key] {
         if (isInstanceTypeEntry(entry)) {
             if (
-                entry.module?.type === "dynamic" &&
+                entry.module != null &&
+                entry.module.type === "dynamic" &&
                 typeof entry.instance === "function" &&
                 entry.instance.length < 0
             ) {

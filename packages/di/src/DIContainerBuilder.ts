@@ -50,10 +50,10 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
 
     private readonly _aliasesMap = new Map<TEntryId, TEntryId>();
 
-    private _defaults: TContainerBuilderDefaults | null;
+    private _defaults: TContainerBuilderDefaults | undefined;
 
     public constructor(defaults?: TContainerBuilderDefaults) {
-        this._defaults = defaults ?? null;
+        this._defaults = defaults;
     }
 
     // region IContainerExplorer
@@ -120,8 +120,10 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         instance: TypeMap[Key],
         options?: TBindingOptions,
     ): this {
-        const $id: TEntryId = makeEntryId(type, options?.name);
-        const ifConflict = options?.ifConflict ?? this._defaults?.ifConflict;
+        const $id: TEntryId = makeEntryId(type, options && options.name);
+        const ifConflict =
+            (options && options.ifConflict) ||
+            (this._defaults && this._defaults.ifConflict);
         if (this.validateBinding($id, ifConflict)) return this;
 
         this.putEntry(
@@ -129,8 +131,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 $id,
                 type,
                 instance,
-                name: options?.name,
-                scope: options?.scope,
+                name: options && options.name,
+                scope: options && options.scope,
                 module: this._moduleContext[this._moduleContext.length - 1],
             } as TTypeInstanceEntry<TypeMap, Key>,
             ifConflict === "append",
@@ -155,13 +157,16 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         factory: TTypeFactory<TypeMap, K>,
         options?: TFactoryBindingOptions,
     ): this {
-        const $id: TEntryId = makeEntryId(type, options?.name);
-        const ifConflict = options?.ifConflict ?? this._defaults?.ifConflict;
+        const $id: TEntryId = makeEntryId(type, options && options.name);
+        const ifConflict =
+            (options && options.ifConflict) ||
+            (this._defaults && this._defaults.ifConflict);
         if (this.validateBinding($id, ifConflict)) return this;
 
-        const lifecycle: TLifecycle = validateLifecycle(options?.lifecycle)
-            ? options.lifecycle
-            : (this._defaults?.factoryLifecycle ?? "singleton");
+        const lifecycle: TLifecycle =
+            options && validateLifecycle(options.lifecycle)
+                ? options.lifecycle
+                : (this._defaults?.factoryLifecycle ?? "singleton");
 
         this.putEntry(
             {
@@ -169,8 +174,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 type,
                 factory,
                 lifecycle,
-                name: options?.name,
-                scope: options?.scope,
+                name: options && options.name,
+                scope: options && options.scope,
                 module: this._moduleContext[this._moduleContext.length - 1],
             } as TTypeFactoryEntry<TypeMap, K>,
             ifConflict === "append",
@@ -210,12 +215,12 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
             module.builderDelegate(builder);
         } else {
             if (
-                !this._defaults?.factoryLifecycle ||
+                !this._defaults ||
                 this._defaults.factoryLifecycle === "singleton"
             ) {
                 const defaultsBackup = this._defaults;
                 this._defaults = {
-                    ifConflict: this._defaults?.ifConflict,
+                    ifConflict: defaultsBackup && defaultsBackup.ifConflict,
                     factoryLifecycle: "lazy",
                 };
                 module.builderDelegate(
@@ -273,7 +278,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 if (entry.$id !== newEntry.$id)
                     throw new Error(
                         Errors.MiddlewareEntryTypeMismatch(
-                            middleware.name ?? "",
+                            middleware.name || "",
                             newEntry.$id,
                             entry.$id,
                         ),
