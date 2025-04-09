@@ -141,6 +141,7 @@ export class ModulesManager {
         const managerRef = this;
         return new Proxy(stub, {
             get(_, key): unknown {
+                if (key === "length") return -1;
                 const esModule = managerRef._cache.get(module.name);
                 if (esModule) {
                     const propPath =

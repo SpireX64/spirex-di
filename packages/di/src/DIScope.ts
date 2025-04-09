@@ -273,7 +273,18 @@ export class DIScope<TypeMap extends TTypeMapBase>
         entry: TTypeEntry<TypeMap, Key>,
         withoutActivation?: boolean,
     ): TypeMap[Key] {
-        if (isInstanceTypeEntry(entry)) return entry.instance;
+        if (isInstanceTypeEntry(entry)) {
+            if (
+                entry.module?.type === "dynamic" &&
+                typeof entry.instance === "function" &&
+                entry.instance.length < 0
+            ) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                return entry.instance.valueOf();
+            }
+            return entry.instance;
+        }
         if (entry.lifecycle === "transient") {
             let instance = this._activator.createInstance(entry, this);
             this._middlewares.forEach((middleware) => {
