@@ -53,7 +53,7 @@ export class DIScope<TypeMap extends TTypeMapBase>
     private readonly _modules: ModulesManager;
     private readonly _parentScopeRef: DIScope<TypeMap> | null = null;
     private readonly _children = new Map<TScopeID, DIScope<TypeMap>>();
-    private readonly _local: InstancesStorage<TypeMap>;
+    private readonly _local = new InstancesStorage<TypeMap>();
 
     private _closed = false;
 
@@ -70,9 +70,8 @@ export class DIScope<TypeMap extends TTypeMapBase>
         this._parentScopeRef = parent ?? null;
         if (parent) {
             this._parentScopeRef = parent;
-            this._local = new InstancesStorage<TypeMap>();
         } else {
-            this._local = this.activateSingletons();
+            this.activateSingletons();
         }
     }
 
@@ -312,15 +311,13 @@ export class DIScope<TypeMap extends TTypeMapBase>
     }
 
     /** @internal */
-    private activateSingletons(): InstancesStorage<TypeMap> {
-        const storage = new InstancesStorage<TypeMap>();
+    private activateSingletons(): void {
         this._registrar.forEach((entry) => {
             if (isFactoryTypeEntry(entry) && entry.lifecycle === "singleton") {
                 const instance = this._activator.createInstance(entry, this);
-                storage.storeInstance(entry, instance);
+                this._local.storeInstance(entry, instance);
             }
         });
-        return storage;
     }
 
     /** @internal */
