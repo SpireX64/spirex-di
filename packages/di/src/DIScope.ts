@@ -1,4 +1,5 @@
-import {
+import type {
+    IContainerExplorer,
     IInstanceResolver,
     IModuleHandleResolver,
     IScopeHandle,
@@ -28,7 +29,8 @@ export interface IScopeResolver<TypeMap extends TTypeMapBase> {
 }
 
 export type DIContainer<TypeMap extends TTypeMapBase> =
-    IInstanceResolver<TypeMap> &
+    IContainerExplorer<TypeMap> &
+        IInstanceResolver<TypeMap> &
         IModuleHandleResolver &
         IScopeResolver<TypeMap>;
 
@@ -41,6 +43,7 @@ export type TDIScopeTransfers<TypeMap extends TTypeMapBase> = {
 
 export class DIScope<TypeMap extends TTypeMapBase>
     implements
+        IContainerExplorer<TypeMap>,
         IInstanceResolver<TypeMap>,
         IScopeResolver<TypeMap>,
         IScopeHandleResolver,
@@ -265,6 +268,29 @@ export class DIScope<TypeMap extends TTypeMapBase>
             );
     }
     // endregion IInstanceResolver
+
+    // region: IContainerExplorer
+    public hasEntry<T extends keyof TypeMap>(
+        type: T,
+        name?: string | undefined,
+    ): boolean {
+        return this._registrar.hasType(type, name);
+    }
+
+    public findSomeTypeEntry<T extends keyof TypeMap>(
+        type: T,
+        name?: string | undefined,
+    ): TTypeEntry<TypeMap, T> | null {
+        return this._registrar.findTypeEntry(type, name);
+    }
+
+    public findAllTypeEntries<Key extends keyof TypeMap>(
+        type: Key,
+        name?: string | undefined,
+    ): readonly TTypeEntry<TypeMap, Key>[] {
+        return this._registrar.findAllTypeEntries(type, name);
+    }
+    // endregion: IContainerExplorer
 
     // region Private methods
 

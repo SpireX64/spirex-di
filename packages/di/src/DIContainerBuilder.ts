@@ -1,6 +1,6 @@
 import type {
     IContainerBuilderBinder,
-    IContainerBuilderExplorer,
+    IContainerExplorer,
     TBindingOptions,
     TEntryId,
     TFactoryBindingOptions,
@@ -35,7 +35,7 @@ type TTypeRequirement<TypeMap extends TTypeMapBase> = {
 export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     implements
         IContainerBuilderBinder<TypeMap>,
-        IContainerBuilderExplorer<TypeMap>,
+        IContainerExplorer<TypeMap>,
         IContainerConditionalBuilder<TypeMap>
 {
     private readonly _types: TTypeEntriesMap<TypeMap> = new Map();

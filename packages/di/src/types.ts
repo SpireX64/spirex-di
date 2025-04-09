@@ -116,7 +116,7 @@ export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
     ): readonly TypeMap[T][];
 }
 
-export interface IContainerBuilderExplorer<TypeMap extends TTypeMapBase> {
+export interface IContainerExplorer<TypeMap extends TTypeMapBase> {
     hasEntry<T extends keyof TypeMap>(
         type: T,
         name?: string | undefined,
@@ -165,7 +165,7 @@ export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
 
 export type TContainerConditionalBuilderPredicate<
     TypeMap extends TTypeMapBase,
-> = (explorer: IContainerBuilderExplorer<TypeMap>) => boolean;
+> = (explorer: IContainerExplorer<TypeMap>) => boolean;
 
 export interface IContainerConditionalBuilder<TypeMap extends TTypeMapBase> {
     when(
