@@ -50,7 +50,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
 
     private readonly _aliasesMap = new Map<string, string>();
 
-    private readonly _defaults: TContainerBuilderDefaults | null;
+    private _defaults: TContainerBuilderDefaults | null;
 
     public constructor(defaults?: TContainerBuilderDefaults) {
         this._defaults = defaults ?? null;
@@ -209,9 +209,30 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
             // @ts-expect-error
             module.builderDelegate(builder);
         } else {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            module.builderDelegate(builder, this._modules.getESModule(module));
+            if (
+                !this._defaults?.factoryLifecycle ||
+                this._defaults.factoryLifecycle === "singleton"
+            ) {
+                const defaultsBackup = this._defaults;
+                this._defaults = {
+                    ifConflict: this._defaults?.ifConflict,
+                    factoryLifecycle: "lazy",
+                };
+                module.builderDelegate(
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-expect-error
+                    builder,
+                    this._modules.getESModule(module),
+                );
+                this._defaults = defaultsBackup;
+            } else {
+                module.builderDelegate(
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-expect-error
+                    builder,
+                    this._modules.getESModule(module),
+                );
+            }
         }
         this._modules.add(module);
         this._moduleContext = undefined;
