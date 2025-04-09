@@ -14,6 +14,7 @@ import type {
     IContainerConditionalBuilder,
     TContainerConditionalBuilderPredicate,
     TAliasDefinition,
+    TContainerBuilderDefaults,
 } from "./types";
 import type { TTypeEntriesMap } from "./internal/types";
 import { validateLifecycle } from "./internal/validators";
@@ -48,6 +49,12 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     private readonly _requiredTypes = new Set<TTypeRequirement<TypeMap>>();
 
     private readonly _aliasesMap = new Map<string, string>();
+
+    private readonly _defaults: TContainerBuilderDefaults | null;
+
+    public constructor(defaults?: TContainerBuilderDefaults) {
+        this._defaults = defaults ?? null;
+    }
 
     // region IContainerBuilderExplorer
 
@@ -114,7 +121,8 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         options?: TBindingOptions,
     ): this {
         const $id: TEntryId = makeEntryId(type, options?.name);
-        if (this.validateBinding($id, options?.ifConflict)) return this;
+        const ifConflict = options?.ifConflict ?? this._defaults?.ifConflict;
+        if (this.validateBinding($id, ifConflict)) return this;
 
         this.putEntry(
             {
@@ -125,7 +133,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 scope: options?.scope,
                 module: this._moduleContext,
             } as TTypeInstanceEntry<TypeMap, Key>,
-            options?.ifConflict === "append",
+            ifConflict === "append",
         );
         return this;
     }
@@ -148,11 +156,12 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         options?: TFactoryBindingOptions,
     ): this {
         const $id: TEntryId = makeEntryId(type, options?.name);
-        if (this.validateBinding($id, options?.ifConflict)) return this;
+        const ifConflict = options?.ifConflict ?? this._defaults?.ifConflict;
+        if (this.validateBinding($id, ifConflict)) return this;
 
         const lifecycle: TLifecycle = validateLifecycle(options?.lifecycle)
             ? options.lifecycle
-            : "singleton";
+            : (this._defaults?.factoryLifecycle ?? "singleton");
 
         this.putEntry(
             {
@@ -164,7 +173,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 scope: options?.scope,
                 module: this._moduleContext,
             } as TTypeFactoryEntry<TypeMap, K>,
-            options?.ifConflict === "append",
+            ifConflict === "append",
         );
         return this;
     }

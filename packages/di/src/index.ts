@@ -1,4 +1,4 @@
-import { TTypeMapBase } from "./types";
+import type { TTypeMapBase, TContainerBuilderDefaults } from "./types";
 import { DIContainerBuilder } from "./DIContainerBuilder";
 import type { TAnyDIModule, TDynamicImportDelegate } from "./modules/types";
 import { dynamicModuleFactory } from "./modules/dynamicModuleFactory";
@@ -26,8 +26,9 @@ export {
 } from "./utils";
 
 export namespace DI {
-    export const builder = <TypeMap extends TTypeMapBase>() =>
-        new DIContainerBuilder<TypeMap>();
+    export const builder = <TypeMap extends TTypeMapBase>(
+        defaults?: TContainerBuilderDefaults,
+    ) => new DIContainerBuilder<TypeMap>(defaults);
 
     export function module(
         name: string,

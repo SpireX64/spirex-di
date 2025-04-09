@@ -140,6 +140,11 @@ export type TAliasDefinition<TypeMap extends TTypeMapBase> = {
     asName?: string;
 };
 
+export type TContainerBuilderDefaults = {
+    ifConflict?: TTypesConflictResolve;
+    factoryLifecycle?: TLifecycle;
+};
+
 export interface IContainerBuilderBinder<TypeMap extends TTypeMapBase> {
     requireType<T extends keyof TypeMap>(type: T): this;
 
