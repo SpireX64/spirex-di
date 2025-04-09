@@ -42,7 +42,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
     private readonly _modules = new ModulesManager();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private _moduleContext: TAnyDIModule<any> | undefined;
+    private _moduleContext: TAnyDIModule<any>[] = [];
 
     private readonly _middlewares = new Set<TContainerMiddleware>();
 
@@ -131,7 +131,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 instance,
                 name: options?.name,
                 scope: options?.scope,
-                module: this._moduleContext,
+                module: this._moduleContext[this._moduleContext.length - 1],
             } as TTypeInstanceEntry<TypeMap, Key>,
             ifConflict === "append",
         );
@@ -171,7 +171,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
                 lifecycle,
                 name: options?.name,
                 scope: options?.scope,
-                module: this._moduleContext,
+                module: this._moduleContext[this._moduleContext.length - 1],
             } as TTypeFactoryEntry<TypeMap, K>,
             ifConflict === "append",
         );
@@ -203,7 +203,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         >;
         if (this._modules.has(module)) return builder;
 
-        this._moduleContext = module;
+        this._moduleContext.push(module);
         if (module.type === "static") {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
@@ -235,7 +235,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
             }
         }
         this._modules.add(module);
-        this._moduleContext = undefined;
+        this._moduleContext.pop();
         return builder;
     }
 
