@@ -48,7 +48,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
 
     private readonly _requiredTypes = new Set<TTypeRequirement<TypeMap>>();
 
-    private readonly _aliasesMap = new Map<string, string>();
+    private readonly _aliasesMap = new Map<TEntryId, TEntryId>();
 
     private _defaults: TContainerBuilderDefaults | null;
 
@@ -56,7 +56,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         this._defaults = defaults ?? null;
     }
 
-    // region IContainerBuilderExplorer
+    // region IContainerExplorer
 
     public hasEntry<Key extends keyof TypeMap>(
         type: Key,
@@ -86,7 +86,7 @@ export class DIContainerBuilder<TypeMap extends TTypeMapBase>
         return Array.from(item) as TTypeEntry<TypeMap, Key>[];
     }
 
-    // endregion IContainerBuilderExplorer
+    // endregion IContainerExplorer
 
     // region IContainerBuilderBinder
 

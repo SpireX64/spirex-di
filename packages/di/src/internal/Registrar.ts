@@ -14,6 +14,10 @@ export class Registrar<TypeMap extends TTypeMapBase> {
         this._aliasesMap = aliasesMap;
     }
 
+    public getAliases(): ReadonlyMap<TEntryId, TEntryId> | undefined {
+        return this._aliasesMap;
+    }
+
     public hasType<Key extends keyof TypeMap>(
         type: Key,
         name?: string | undefined,

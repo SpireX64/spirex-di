@@ -116,6 +116,10 @@ export interface IInstanceResolver<TypeMap extends TTypeMapBase> {
     ): readonly TypeMap[T][];
 }
 
+export interface IContainerTypesProvider<TypeMap extends TTypeMapBase> {
+    getTypes(): { [Type in keyof TypeMap]: Type };
+}
+
 export interface IContainerExplorer<TypeMap extends TTypeMapBase> {
     hasEntry<T extends keyof TypeMap>(
         type: T,

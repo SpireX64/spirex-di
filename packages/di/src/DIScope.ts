@@ -1,5 +1,6 @@
 import type {
     IContainerExplorer,
+    IContainerTypesProvider,
     IInstanceResolver,
     IModuleHandleResolver,
     IScopeHandle,
@@ -18,7 +19,7 @@ import {
     isInstanceTypeEntry,
 } from "./utils";
 import { InstanceActivator } from "./internal/InstanceActivator";
-import { makeEntryId } from "./internal/utils";
+import { ID_SEP, makeEntryId } from "./internal/utils";
 import { makePhantomInstance } from "./internal/phantom";
 import { ModulesManager } from "./modules/ModulesManager";
 import type { TDynamicDIModule, TDynamicModuleHandle } from "./modules/types";
@@ -30,6 +31,7 @@ export interface IScopeResolver<TypeMap extends TTypeMapBase> {
 
 export type DIContainer<TypeMap extends TTypeMapBase> =
     IContainerExplorer<TypeMap> &
+        IContainerTypesProvider<TypeMap> &
         IInstanceResolver<TypeMap> &
         IModuleHandleResolver &
         IScopeResolver<TypeMap>;
@@ -44,6 +46,7 @@ export type TDIScopeTransfers<TypeMap extends TTypeMapBase> = {
 export class DIScope<TypeMap extends TTypeMapBase>
     implements
         IContainerExplorer<TypeMap>,
+        IContainerTypesProvider<TypeMap>,
         IInstanceResolver<TypeMap>,
         IScopeResolver<TypeMap>,
         IScopeHandleResolver,
@@ -290,6 +293,25 @@ export class DIScope<TypeMap extends TTypeMapBase>
     ): readonly TTypeEntry<TypeMap, Key>[] {
         return this._registrar.findAllTypeEntries(type, name);
     }
+
+    public getTypes(): { [Type in keyof TypeMap]: Type } {
+        const typesEnum = {};
+        // Collecting all bound types
+        this._registrar.forEach(({ type }) => {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            typesEnum[type] = type;
+        });
+        // Collecting all type aliases
+        this._registrar.getAliases()?.forEach((_, alias) => {
+            const type = alias.split(ID_SEP)[0];
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            typesEnum[type] = type;
+        });
+        return typesEnum as { [Type in keyof TypeMap]: Type };
+    }
+
     // endregion: IContainerExplorer
 
     // region Private methods
