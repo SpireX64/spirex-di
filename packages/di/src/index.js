@@ -1,6 +1,8 @@
 export function createContainerBuilder() {
+    /** The registry of type bindings */
     var entries = new Map();
 
+    /** Adds a type entry in the registry */
     function putEntry(entry) {
         entries.set(entry.type, entry);
     }
