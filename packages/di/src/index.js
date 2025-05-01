@@ -12,10 +12,12 @@ export function createContainerBuilder() {
         entries.set(entry.type, entry);
     }
 
-    function verifyBinding(type) {
+    function verifyBinding(type, strategy) {
         if (entries.has(type)) {
+            if (strategy === "keep") return true;
             throw new Error(Errors.BindingConflict(type));
         }
+        return false;
     }
 
     // region Public methods
@@ -28,24 +30,24 @@ export function createContainerBuilder() {
         return entries.get(type);
     }
 
-    function bindInstance(type, instance) {
+    function bindInstance(type, instance, options) {
         var instanceEntry = {
             type,
             instance,
         };
 
-        verifyBinding(type);
+        if (verifyBinding(type, options && options.ifConflict)) return this;
         putEntry(Object.freeze(instanceEntry));
         return this;
     }
 
-    function bindFactory(type, factory) {
+    function bindFactory(type, factory, options) {
         var factoryEntry = {
             type,
             factory,
         };
 
-        verifyBinding(type);
+        if (verifyBinding(type, options && options.ifConflict)) return this;
         putEntry(Object.freeze(factoryEntry));
         return this;
     }

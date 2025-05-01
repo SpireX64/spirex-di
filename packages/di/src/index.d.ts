@@ -17,6 +17,12 @@ type TTypeFactory<
     T extends keyof TypeMap,
 > = () => TypeMap[T];
 
+type TTypesBindingResolveStrategy = "throw" | "keep";
+
+type TBindingOptions = {
+    ifConflict?: TTypesBindingResolveStrategy;
+};
+
 /**
  * Base structure for a type entry in the container registry.
  *
@@ -79,6 +85,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     bindInstance<T extends keyof TypeMap>(
         type: T,
         instance: TypeMap[T],
+        options?: TBindingOptions,
     ): IContainerBuilder<TypeMap>;
 
     /**
@@ -93,6 +100,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     bindFactory<T extends keyof TypeMap>(
         type: T,
         factory: TTypeFactory<TypeMap, T>,
+        options?: TBindingOptions,
     ): IContainerBuilder<TypeMap>;
 
     /**

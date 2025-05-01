@@ -125,18 +125,42 @@ describe("ContainerBuilder", () => {
                 test("WHEN strategy 'throw' (default)", () => {
                     // Arrange -------
                     var typeKey = "typeKey";
+                    var expectedValue = 11;
                     var builder = createContainerBuilder();
-                    builder.bindInstance(typeKey, 11);
+                    builder.bindInstance(typeKey, expectedValue);
 
                     // Act -----------
                     var err = catchError(() =>
                         builder.bindInstance(typeKey, 22),
                     );
 
+                    var entry = builder.findEntry(typeKey);
+
                     // Assert --------
                     expect(err).to.not.be.undefined;
                     expect(err.message).to.contains("Binding conflict");
                     expect(err.message).to.contains(typeKey);
+
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.instance).to.equal(expectedValue);
+                });
+
+                test("WHEN strategy 'keep'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var expectedValue = 11;
+                    var builder = createContainerBuilder();
+                    builder.bindInstance(typeKey, expectedValue);
+
+                    // Act ---------
+                    builder.bindInstance(typeKey, 22, { ifConflict: "keep" });
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.instance).to.equal(expectedValue);
                 });
             });
         });
@@ -173,20 +197,45 @@ describe("ContainerBuilder", () => {
                 test("WHEN strategy 'throw' (default)", () => {
                     // Arrange -------
                     var typeKey = "typeKey";
-                    var factoryMockFn = vi.fn();
+                    var expectedFactory = vi.fn();
                     var builder = createContainerBuilder();
-                    builder.bindFactory(typeKey, factoryMockFn);
+                    builder.bindFactory(typeKey, expectedFactory);
 
                     // Act -----------
                     var err = catchError(() =>
-                        builder.bindFactory(typeKey, factoryMockFn),
+                        builder.bindFactory(typeKey, () => {}),
                     );
+                    var entry = builder.findEntry(typeKey);
 
                     // Assert --------
-                    expect(factoryMockFn).not.toHaveBeenCalled();
                     expect(err).to.not.be.undefined;
                     expect(err.message).to.contains("Binding conflict");
                     expect(err.message).to.contains(typeKey);
+
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(expectedFactory).not.toHaveBeenCalled();
+                });
+
+                test("WHEN strategy 'keep'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var expectedFactory = vi.fn();
+                    var builder = createContainerBuilder();
+                    builder.bindFactory(typeKey, expectedFactory);
+
+                    // Act ---------
+                    builder.bindFactory(typeKey, () => {}, {
+                        ifConflict: "keep",
+                    });
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(expectedFactory).not.toHaveBeenCalled();
                 });
             });
         });
