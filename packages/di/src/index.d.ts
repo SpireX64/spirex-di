@@ -78,6 +78,10 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      */
     hasEntry(type: string, name?: string): IContainerBuilder<TypeMap>;
 
+    findEntry(
+        type: keyof TypeMap,
+    ): TTypeEntry<TypeMap, typeof type> | undefined;
+
     /**
      * Finalizes the bindings and builds a container instance.
      *

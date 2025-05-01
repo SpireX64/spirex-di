@@ -39,6 +39,33 @@ describe("ContainerBuilder", () => {
                 expect(result).to.be.true;
             });
         });
+
+        describe("findEntry", () => {
+            test("WHEN type have at least one binding", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var builder = createContainerBuilder();
+                builder.bindInstance(typeKey, 42);
+
+                // Act -----------
+                var entry = builder.findEntry(typeKey);
+
+                // Assert --------
+                expect(entry).not.undefined;
+                expect(entry.type).to.equal(typeKey);
+            });
+
+            test("WHEN type have no bindings", () => {
+                // Arrange -------
+                var builder = createContainerBuilder();
+
+                // Act -----------
+                var entry = builder.findEntry("typeKey");
+
+                // Assert --------
+                expect(entry).to.be.undefined;
+            });
+        });
     });
 
     describe("Binding", () => {

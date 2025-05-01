@@ -13,6 +13,10 @@ export function createContainerBuilder() {
         return entries.has(entry);
     }
 
+    function findEntry(type) {
+        return entries.get(type);
+    }
+
     function bindInstance(type, instance) {
         var instanceEntry = {
             type,
@@ -43,6 +47,7 @@ export function createContainerBuilder() {
 
     return {
         hasEntry,
+        findEntry,
         bindInstance,
         bindFactory,
         build,
