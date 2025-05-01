@@ -12,6 +12,7 @@ export {
     DIContainerBuilder,
 };
 
+export type { DIScope, DIContainer, IScopeResolver } from "./DIScope";
 export type * from "./modules/types";
 export type * from "./types";
 export type * from "./middleware";

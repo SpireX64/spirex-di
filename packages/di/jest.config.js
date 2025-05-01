@@ -1,7 +1,6 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
     displayName: "@spirex/di",
-    preset: "ts-jest",
     testEnvironment: "node",
     clearMocks: true,
     testTimeout: 200,

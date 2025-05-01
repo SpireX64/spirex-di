@@ -350,11 +350,25 @@ export class DIScope<TypeMap extends TTypeMapBase>
 
         let instance = this._local.getInstance(entry);
         if (!instance) {
-            if (this._parentScopeRef && entry.lifecycle !== "scope") {
+            if (
+                this._parentScopeRef && // Not in the global scope
+                (entry.lifecycle !== "scope" || // Type entry is not scoped
+                    (entry.scope &&
+                        // Current scope does not match the type entry's scope
+                        ((Array.isArray(entry.scope) &&
+                            !entry.scope.includes(this._id)) ||
+                            entry.scope !== this._id)))
+            ) {
+                // Delegate instance resolution to the parent scope
                 return this._parentScopeRef.getInstanceByEntry(entry);
             }
+
             if (!withoutActivation) {
+                // If instance is not created and activation is allowed
+                // then create and activate a new instance for the type entry
                 instance = this._activator.createInstance(entry, this);
+
+                // Apply all onCreated middlewares to the new instance
                 this._middlewares.forEach((middleware) => {
                     if (middleware.onCreated)
                         instance = middleware.onCreated(

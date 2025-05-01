@@ -1,5 +1,5 @@
 const { terser } = require("rollup-plugin-terser");
-const { default: typescript } = require("@rollup/plugin-typescript");
+const copy = require("rollup-plugin-copy");
 
 const release = process.env.NODE_ENV === "production";
 
@@ -16,7 +16,7 @@ const terserPlugin =
     });
 
 const sourceDir = "./src";
-const sourceFile = `${sourceDir}/index.ts`;
+const sourceFile = `${sourceDir}/index.js`;
 const outDir = "./build";
 const output = `${outDir}/index`;
 
@@ -29,7 +29,7 @@ exports.default = [
             format: "umd",
             sourcemap: release ? false : "inline",
         },
-        plugins: [typescript(), terserPlugin],
+        plugins: [terserPlugin],
     },
     {
         input: sourceFile,
@@ -37,14 +37,7 @@ exports.default = [
             file: `${output}.mjs`,
             format: "es",
         },
-        plugins: [
-            typescript({
-                declaration: true,
-                declarationDir: outDir,
-                exclude: `${sourceDir}/*.test.ts`,
-            }),
-            terserPlugin,
-        ],
+        plugins: [terserPlugin],
     },
     {
         input: sourceFile,
@@ -52,6 +45,16 @@ exports.default = [
             file: `${output}.cjs`,
             format: "cjs",
         },
-        plugins: [typescript(), terserPlugin],
+        plugins: [
+            terserPlugin,
+            copy({
+                targets: [
+                    {
+                        src: `${sourceDir}/index.d.ts`,
+                        dest: outDir,
+                    },
+                ],
+            }),
+        ],
     },
 ];
