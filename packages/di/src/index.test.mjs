@@ -73,14 +73,26 @@ describe("ContainerBuilder", () => {
             test("WHEN binding instance or value to the type", () => {
                 // Arrange ----
                 var typeKey = "typeKey";
+                var expectedValue = 42;
                 var builder = createContainerBuilder();
 
                 // Act --------
-                var chainingBuilderRef = builder.bindInstance(typeKey, 42);
+                var chainingBuilderRef = builder.bindInstance(
+                    typeKey,
+                    expectedValue,
+                );
+                var instanceEntry = builder.findEntry(typeKey);
 
                 // Assert -----
                 expect(builder.hasEntry(typeKey)).to.be.true;
                 expect(chainingBuilderRef).to.equal(builder);
+
+                expect(instanceEntry).instanceOf(Object);
+                expect(instanceEntry.type).to.equal(typeKey);
+                expect("instance" in instanceEntry).to.be.true;
+                expect(instanceEntry.instance).to.equal(expectedValue);
+                expect("factory" in instanceEntry).to.be.false;
+                expect(instanceEntry.factory).to.be.undefined;
             });
         });
 
@@ -96,11 +108,19 @@ describe("ContainerBuilder", () => {
                     typeKey,
                     factoryMockFn,
                 );
+                var factoryEntry = builder.findEntry(typeKey);
 
                 // Assert ------
                 expect(builder.hasEntry(typeKey)).to.be.true;
                 expect(factoryMockFn).not.toHaveBeenCalled();
                 expect(chainingBuilderRef).to.equal(builder);
+
+                expect(factoryEntry).instanceOf(Object);
+                expect(factoryEntry.type).to.equal(typeKey);
+                expect("factory" in factoryEntry).to.be.true;
+                expect(factoryEntry.factory).to.equal(factoryMockFn);
+                expect("instance" in factoryEntry).to.be.false;
+                expect(factoryEntry.instance).to.be.undefined;
             });
         });
     });

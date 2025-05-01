@@ -21,7 +21,6 @@ export function createContainerBuilder() {
         var instanceEntry = {
             type,
             instance,
-            factory: undefined,
         };
 
         putEntry(instanceEntry);
@@ -31,7 +30,6 @@ export function createContainerBuilder() {
     function bindFactory(type, factory) {
         var factoryEntry = {
             type,
-            instance: undefined,
             factory,
         };
 
