@@ -18,23 +18,23 @@ type TTypeFactory<
 > = () => TypeMap[T];
 
 type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
-    type: T;
+    readonly type: T;
 };
 
 type TInstanceTypeEntry<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
 > = TTypeEntryBase<TypeMap, T> & {
-    instance: TypeMap[T];
-    factory: undefined;
+    readonly instance: TypeMap[T];
+    readonly factory: undefined;
 };
 
 type TFactoryTypeEntry<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
 > = TTypeEntryBase<TypeMap, T> & {
-    factory: TTypeFactory<TypeMap, T>;
-    instance: undefined;
+    readonly factory: TTypeFactory<TypeMap, T>;
+    readonly instance: undefined;
 };
 
 type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =

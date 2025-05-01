@@ -88,6 +88,7 @@ describe("ContainerBuilder", () => {
                 expect(chainingBuilderRef).to.equal(builder);
 
                 expect(instanceEntry).instanceOf(Object);
+                expect(instanceEntry).to.be.frozen;
                 expect(instanceEntry.type).to.equal(typeKey);
                 expect("instance" in instanceEntry).to.be.true;
                 expect(instanceEntry.instance).to.equal(expectedValue);
@@ -116,6 +117,7 @@ describe("ContainerBuilder", () => {
                 expect(chainingBuilderRef).to.equal(builder);
 
                 expect(factoryEntry).instanceOf(Object);
+                expect(factoryEntry).to.be.frozen;
                 expect(factoryEntry.type).to.equal(typeKey);
                 expect("factory" in factoryEntry).to.be.true;
                 expect(factoryEntry.factory).to.equal(factoryMockFn);

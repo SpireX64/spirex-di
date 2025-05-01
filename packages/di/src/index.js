@@ -23,7 +23,7 @@ export function createContainerBuilder() {
             instance,
         };
 
-        putEntry(instanceEntry);
+        putEntry(Object.freeze(instanceEntry));
         return this;
     }
 
@@ -33,7 +33,7 @@ export function createContainerBuilder() {
             factory,
         };
 
-        putEntry(factoryEntry);
+        putEntry(Object.freeze(factoryEntry));
         return this;
     }
 
