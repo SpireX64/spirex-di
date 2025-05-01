@@ -7,35 +7,44 @@ export function createContainerBuilder() {
         entries.set(entry.type, entry);
     }
 
+    // region Public methods
+
+    function hasEntry(entry) {
+        return entries.has(entry);
+    }
+
+    function bindInstance(type, instance) {
+        var instanceEntry = {
+            type,
+            instance,
+            factory: undefined,
+        };
+
+        putEntry(instanceEntry);
+        return this;
+    }
+
+    function bindFactory(type, factory) {
+        var factoryEntry = {
+            type,
+            instance: undefined,
+            factory,
+        };
+
+        putEntry(factoryEntry);
+        return this;
+    }
+
+    function build() {
+        return {};
+    }
+
+    // endregion Public methods
+
     return {
-        hasEntry(type) {
-            return entries.has(type);
-        },
-
-        bindInstance(type, instance) {
-            var instanceEntry = {
-                type,
-                instance,
-                factory: undefined,
-            };
-
-            putEntry(instanceEntry);
-            return this;
-        },
-
-        bindFactory(type, factory) {
-            var factoryEntry = {
-                type,
-                instance: undefined,
-                factory,
-            };
-
-            putEntry(factoryEntry);
-            return this;
-        },
-
-        build() {
-            return {};
-        },
+        hasEntry,
+        bindInstance,
+        bindFactory,
+        build,
     };
 }
