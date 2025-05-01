@@ -4,6 +4,14 @@
  */
 type TTypeMapBase = object;
 
+/**
+ * A factory function that produces an instance of a type from the container.
+ *
+ * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
+ * @typeParam T - A specific token key from the TypeMap.
+ *
+ * @returns An instance of the type associated with the token `T`.
+ */
 type TTypeFactory<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
@@ -13,7 +21,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     /**
      * Binds a specific instance to a type.
      *
-     * @typeParam T - A type token of the TypeMap
+     * @typeParam T - A key of the type map representing the type token to bind.
      * @param type - The type to bind.
      * @param instance - The instance to associate with the type.
      * @returns The current builder instance for chaining.
@@ -23,6 +31,15 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         instance: TypeMap[T],
     ): IContainerBuilder<TypeMap>;
 
+    /**
+     * Binds a factory function to a type.
+     * The factory will be used to create the instance when the container resolves the given type.
+     *
+     * @typeParam T - A key of the type map representing the type token to bind.
+     * @param type The type key to bind the factory to.
+     * @param factory A factory function that returns an instance of the type.
+     * @returns The current builder instance for chaining.
+     */
     bindFactory<T extends keyof TypeMap>(
         type: T,
         factory: TTypeFactory<TypeMap, T>,
