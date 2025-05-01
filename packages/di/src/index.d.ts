@@ -17,9 +17,20 @@ type TTypeFactory<
     T extends keyof TypeMap,
 > = () => TypeMap[T];
 
+/**
+ * Strategy to apply when a binding for a given type already exists.
+ *
+ * - `"throw"`: Throws an error.
+ * - `"keep"`: Keeps the existing binding and skips the new one.
+ * - `"replace"`: Replaces the existing binding with the new one.
+ */
 type TTypesBindingResolveStrategy = "throw" | "keep" | "replace";
 
+/**
+ * Options to control how the binding should behave during registration.
+ */
 type TBindingOptions = {
+    /** Defines the strategy to apply when a binding conflict occurs */
     ifConflict?: TTypesBindingResolveStrategy;
 };
 
@@ -75,11 +86,15 @@ type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
 
 interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     /**
-     * Binds a specific instance to a type.
+     * Binds a concrete instance to a type.
      *
      * @typeParam T - A key of the type map representing the type token to bind.
      * @param type - The type to bind.
      * @param instance - The instance to associate with the type.
+     * @param options Optional params that control how the binding behaves.
+     *
+     * @throws If a binding already exists and the conflict strategy is set to `"throw"`
+     *
      * @returns The current builder instance for chaining.
      */
     bindInstance<T extends keyof TypeMap>(
@@ -95,6 +110,10 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      * @typeParam T - A key of the type map representing the type token to bind.
      * @param type - The type key to bind the factory to.
      * @param factory - A factory function that returns an instance of the type.
+     * @param options Optional params that control how the binding behaves.
+     *
+     * @throws If a binding already exists and the conflict strategy is set to `"throw"`
+     *
      * @returns The current builder instance for chaining.
      */
     bindFactory<T extends keyof TypeMap>(
