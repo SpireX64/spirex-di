@@ -5,5 +5,5 @@ coverage/
 docs/
 yarn.lock
 tsconfig.json
-jest.config.js
+vitest.config.mjs
 rollup.config.js
