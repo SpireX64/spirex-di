@@ -162,6 +162,25 @@ describe("ContainerBuilder", () => {
                     expect(entry.type).to.equal(typeKey);
                     expect(entry.instance).to.equal(expectedValue);
                 });
+
+                test("WHEN strategy 'replace'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var expectedValue = 11;
+                    var builder = createContainerBuilder();
+                    builder.bindInstance(typeKey, 22);
+
+                    // Act ---------
+                    builder.bindInstance(typeKey, expectedValue, {
+                        ifConflict: "replace",
+                    });
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.instance).to.equal(expectedValue);
+                });
             });
         });
 
@@ -228,6 +247,26 @@ describe("ContainerBuilder", () => {
                     // Act ---------
                     builder.bindFactory(typeKey, () => {}, {
                         ifConflict: "keep",
+                    });
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(expectedFactory).not.toHaveBeenCalled();
+                });
+
+                test("WHEN strategy 'replace'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var expectedFactory = vi.fn();
+                    var builder = createContainerBuilder();
+                    builder.bindFactory(typeKey, () => {});
+
+                    // Act ---------
+                    builder.bindFactory(typeKey, expectedFactory, {
+                        ifConflict: "replace",
                     });
                     var entry = builder.findEntry(typeKey);
 

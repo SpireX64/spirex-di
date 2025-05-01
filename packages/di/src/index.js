@@ -15,7 +15,8 @@ export function createContainerBuilder() {
     function verifyBinding(type, strategy) {
         if (entries.has(type)) {
             if (strategy === "keep") return true;
-            throw new Error(Errors.BindingConflict(type));
+            if (!strategy || strategy === "throw")
+                throw new Error(Errors.BindingConflict(type));
         }
         return false;
     }

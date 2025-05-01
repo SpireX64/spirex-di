@@ -17,7 +17,7 @@ type TTypeFactory<
     T extends keyof TypeMap,
 > = () => TypeMap[T];
 
-type TTypesBindingResolveStrategy = "throw" | "keep";
+type TTypesBindingResolveStrategy = "throw" | "keep" | "replace";
 
 type TBindingOptions = {
     ifConflict?: TTypesBindingResolveStrategy;
