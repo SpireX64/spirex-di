@@ -1,6 +1,31 @@
 import { vi, describe, test, expect } from "vitest";
 import { createContainerBuilder } from "./index";
 
+/**
+ * Executes a procedure and captures any thrown Error instance.
+ *
+ * Useful in tests when you want to inspect the error object,
+ * such as checking that the message contains debugging details.
+ *
+ * @param procedure {Function} A function expected to potentially throw an error.
+ * @returns The thrown Error instance if one occurs, or `undefined` otherwise.
+ *
+ * @example
+ * const error = catchError(() => {
+ *     service.mayThrow();
+ * });
+ * expect(error).to.not.be.undefined;
+ * expect(error.message).to.contain("expected part of the message");
+ */
+function catchError(procedure) {
+    try {
+        procedure();
+    } catch (e) {
+        if (e instanceof Error) return e;
+    }
+    return undefined;
+}
+
 // @ts-nocheck
 describe("ContainerBuilder", () => {
     describe("Create", () => {
@@ -95,6 +120,25 @@ describe("ContainerBuilder", () => {
                 expect("factory" in instanceEntry).to.be.false;
                 expect(instanceEntry.factory).to.be.undefined;
             });
+
+            describe("Conflict", () => {
+                test("WHEN strategy 'throw' (default)", () => {
+                    // Arrange -------
+                    var typeKey = "typeKey";
+                    var builder = createContainerBuilder();
+                    builder.bindInstance(typeKey, 11);
+
+                    // Act -----------
+                    var err = catchError(() =>
+                        builder.bindInstance(typeKey, 22),
+                    );
+
+                    // Assert --------
+                    expect(err).to.not.be.undefined;
+                    expect(err.message).to.contains("Binding conflict");
+                    expect(err.message).to.contains(typeKey);
+                });
+            });
         });
 
         describe("Factory", () => {
@@ -124,16 +168,37 @@ describe("ContainerBuilder", () => {
                 expect("instance" in factoryEntry).to.be.false;
                 expect(factoryEntry.instance).to.be.undefined;
             });
+
+            describe("Conflict", () => {
+                test("WHEN strategy 'throw' (default)", () => {
+                    // Arrange -------
+                    var typeKey = "typeKey";
+                    var factoryMockFn = vi.fn();
+                    var builder = createContainerBuilder();
+                    builder.bindFactory(typeKey, factoryMockFn);
+
+                    // Act -----------
+                    var err = catchError(() =>
+                        builder.bindFactory(typeKey, factoryMockFn),
+                    );
+
+                    // Assert --------
+                    expect(factoryMockFn).not.toHaveBeenCalled();
+                    expect(err).to.not.be.undefined;
+                    expect(err.message).to.contains("Binding conflict");
+                    expect(err.message).to.contains(typeKey);
+                });
+            });
         });
     });
 
     describe("BuildContainer", () => {
         test("WHEN build", () => {
-            // Arrnage --------
+            // Arrange --------
             var builder = createContainerBuilder();
 
             // Act ---------
-            const container = builder.build();
+            var container = builder.build();
 
             // Assert -----
             expect(container).to.be.an.instanceOf(Object);
