@@ -4,6 +4,11 @@
  */
 type TTypeMapBase = object;
 
+type TTypeFactory<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = () => TypeMap[T];
+
 interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     /**
      * Binds a specific instance to a type.
@@ -16,6 +21,11 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     bindInstance<T extends keyof TypeMap>(
         type: T,
         instance: TypeMap[T],
+    ): IContainerBuilder<TypeMap>;
+
+    bindFactory<T extends keyof TypeMap>(
+        type: T,
+        factory: TTypeFactory<TypeMap, T>,
     ): IContainerBuilder<TypeMap>;
 
     /**

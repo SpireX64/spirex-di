@@ -13,12 +13,25 @@ export function createContainerBuilder() {
         },
 
         bindInstance(type, instance) {
-            var instanceBindingEntry = {
+            var instanceEntry = {
                 type,
                 instance,
+                factory: undefined,
             };
 
-            putEntry(instanceBindingEntry);
+            putEntry(instanceEntry);
+            return this;
+        },
+
+        bindFactory(type, factory) {
+            var factoryEntry = {
+                type,
+                instance: undefined,
+                factory,
+            };
+
+            putEntry(factoryEntry);
+            return this;
         },
 
         build() {
