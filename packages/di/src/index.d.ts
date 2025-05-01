@@ -17,6 +17,30 @@ type TTypeFactory<
     T extends keyof TypeMap,
 > = () => TypeMap[T];
 
+type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
+    type: T;
+};
+
+type TInstanceTypeEntry<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = TTypeEntryBase<TypeMap, T> & {
+    instance: TypeMap[T];
+    factory: undefined;
+};
+
+type TFactoryTypeEntry<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = TTypeEntryBase<TypeMap, T> & {
+    factory: TTypeFactory<TypeMap, T>;
+    instance: undefined;
+};
+
+type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
+    | TInstanceTypeEntry<TypeMap, T>
+    | TFactoryTypeEntry<TypeMap, T>;
+
 interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     /**
      * Binds a specific instance to a type.
