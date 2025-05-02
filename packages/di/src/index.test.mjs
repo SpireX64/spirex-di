@@ -115,10 +115,63 @@ describe("ContainerBuilder", () => {
                 expect(instanceEntry).instanceOf(Object);
                 expect(instanceEntry).to.be.frozen;
                 expect(instanceEntry.type).to.equal(typeKey);
+                expect(instanceEntry.name).is.undefined;
                 expect("instance" in instanceEntry).to.be.true;
                 expect(instanceEntry.instance).to.equal(expectedValue);
                 expect("factory" in instanceEntry).to.be.false;
                 expect(instanceEntry.factory).to.be.undefined;
+            });
+
+            test("WHEN binding instance to the type with name", () => {
+                // Arrange ----
+                var typeKey = "typeKey";
+                var name = "typeName";
+                var expectedValue = 42;
+                const builder = createContainerBuilder();
+
+                // Act --------
+                builder.bindInstance(typeKey, expectedValue, { name });
+                var instanceEntryWithoutName = builder.findEntry(typeKey);
+                var instanceEntry = builder.findEntry(typeKey, name);
+
+                // Assert -----
+                expect(builder.hasEntry(typeKey)).to.be.false;
+                expect(instanceEntryWithoutName).is.undefined;
+
+                expect(builder.hasEntry(typeKey, name)).to.be.true;
+                expect(instanceEntry).instanceOf(Object);
+                expect(instanceEntry).to.be.frozen;
+                expect(instanceEntry.type).to.equal(typeKey);
+                expect(instanceEntry.name).to.equal(name);
+                expect("instance" in instanceEntry).to.be.true;
+                expect(instanceEntry.instance).to.equal(expectedValue);
+                expect("factory" in instanceEntry).to.be.false;
+                expect(instanceEntry.factory).to.be.undefined;
+            });
+
+            test("WHEN binding instance to the type with name THAT already bound but without name", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var name = "typeName";
+                var builder = createContainerBuilder();
+                builder.bindInstance(typeKey, 11);
+
+                // Act -----------
+                builder.bindInstance(typeKey, 22, { name });
+
+                var entryWithoutName = builder.findEntry(typeKey);
+                var entryWithName = builder.findEntry(typeKey, name);
+
+                // Assert --------
+                expect(entryWithName).not.to.be.undefined;
+                expect(entryWithName.type).to.equal(typeKey);
+                expect(entryWithName.name).to.equal(name);
+
+                expect(entryWithoutName).not.to.be.undefined;
+                expect(entryWithoutName.type).to.equal(typeKey);
+                expect(entryWithoutName.name).is.undefined;
+
+                expect(entryWithoutName).not.equal(entryWithName);
             });
 
             describe("Conflict", () => {
@@ -206,10 +259,67 @@ describe("ContainerBuilder", () => {
                 expect(factoryEntry).instanceOf(Object);
                 expect(factoryEntry).to.be.frozen;
                 expect(factoryEntry.type).to.equal(typeKey);
+                expect(factoryEntry.name).is.undefined;
                 expect("factory" in factoryEntry).to.be.true;
                 expect(factoryEntry.factory).to.equal(factoryMockFn);
                 expect("instance" in factoryEntry).to.be.false;
                 expect(factoryEntry.instance).to.be.undefined;
+            });
+
+            test("WHEN binding simple factory function to the type with name", () => {
+                // Arrange -----
+                var typeKey = "typeKey";
+                var name = "typeName";
+                var factoryMockFn = vi.fn();
+                var builder = createContainerBuilder();
+
+                // Act ---------
+                var chainingBuilderRef = builder.bindFactory(
+                    typeKey,
+                    factoryMockFn,
+                    { name },
+                );
+                var factoryEntryWithoutName = builder.findEntry(typeKey);
+                var factoryEntry = builder.findEntry(typeKey, name);
+
+                // Assert ------
+                expect(builder.hasEntry(typeKey)).to.be.false;
+                expect(factoryEntryWithoutName).is.undefined;
+
+                expect(builder.hasEntry(typeKey, name)).to.be.true;
+                expect(factoryMockFn).not.toHaveBeenCalled();
+                expect(chainingBuilderRef).to.equal(builder);
+
+                expect(factoryEntry).instanceOf(Object);
+                expect(factoryEntry).to.be.frozen;
+                expect(factoryEntry.type).to.equal(typeKey);
+                expect(factoryEntry.name).to.equal(name);
+                expect("factory" in factoryEntry).to.be.true;
+                expect(factoryEntry.factory).to.equal(factoryMockFn);
+                expect("instance" in factoryEntry).to.be.false;
+                expect(factoryEntry.instance).to.be.undefined;
+            });
+
+            test("WHEN binding type factory to the type with name THAT already bound but without name", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var name = "typeName";
+                var builder = createContainerBuilder();
+                builder.bindFactory(typeKey, () => {});
+
+                // Act -----------
+                builder.bindFactory(typeKey, () => {}, { name });
+                var entryWithoutName = builder.findEntry(typeKey);
+                var entryWithName = builder.findEntry(typeKey, name);
+
+                // Assert --------
+                expect(entryWithoutName).not.to.be.undefined;
+                expect(entryWithoutName.type).to.equal(typeKey);
+                expect(entryWithoutName.name).is.undefined;
+
+                expect(entryWithName).not.to.be.undefined;
+                expect(entryWithName.type).to.equal(typeKey);
+                expect(entryWithName.name).to.equal(name);
             });
 
             describe("Conflict", () => {

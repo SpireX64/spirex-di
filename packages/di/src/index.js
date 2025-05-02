@@ -15,6 +15,23 @@ var Errors = Object.freeze({
         `Binding conflict. The type '${type}' is already bound.`,
 });
 
+/** A char used to separate the type and name in the unique ID of a binding */
+var ID_SEP = "$";
+
+/**
+ * Creates a unique identifier string for a binding entry based on its type and optional name.
+ *
+ * The ID is used internally to distinguish bindings, including support for named bindings.
+ * This ID is stored in the `$id` field of a binding entry and is used as the internal key.
+ *
+ * @param type - The type token of the binding.
+ * @param name - Optional name for the binding (used for named bindings).
+ * @return A unique string identifier for the binding.
+ */
+function makeEntryId(type, name) {
+    return !!name ? type + ID_SEP + name : type;
+}
+
 export function createContainerBuilder() {
     /** The registry of type bindings */
     var entries = new Map();
@@ -26,7 +43,7 @@ export function createContainerBuilder() {
      * @internal
      */
     function putEntry(entry) {
-        entries.set(entry.type, entry);
+        entries.set(entry.$id, Object.freeze(entry));
     }
 
     /**
@@ -37,18 +54,18 @@ export function createContainerBuilder() {
      * - If the strategy is `"throw"` or not provided, and a conflict exists, an error is thrown.
      * - If no conflict exists, returns `false` to allow the binding to proceed.
      *
-     * @param type The type token to check for existing bindings.
+     * @param id The unique type identifier to check for existing bindings.
      * @param strategy The strategy to use if a binding already exists.
      * @returns `true` if the binding should be skipped; `false` if it can proceed.
      *
      * @throws {Error} If a binding conflict exists and the strategy is `"throw"` or undefined.
      * @internal
      */
-    function verifyBinding(type, strategy) {
-        if (entries.has(type)) {
+    function verifyBinding(id, strategy) {
+        if (entries.has(id)) {
             if (strategy === "keep") return true;
             if (!strategy || strategy === "throw")
-                throw new Error(Errors.BindingConflict(type));
+                throw new Error(Errors.BindingConflict(id));
         }
         return false;
     }
@@ -57,33 +74,35 @@ export function createContainerBuilder() {
 
     // region PUBLIC METHODS
 
-    function hasEntry(entry) {
-        return entries.has(entry);
+    function hasEntry(type, name) {
+        return entries.has(makeEntryId(type, name));
     }
 
-    function findEntry(type) {
-        return entries.get(type);
+    function findEntry(type, name) {
+        return entries.get(makeEntryId(type, name));
     }
 
     function bindInstance(type, instance, options) {
-        var instanceEntry = {
+        var $id = makeEntryId(type, options && options.name);
+        if (verifyBinding($id, options && options.ifConflict)) return this;
+        putEntry({
+            $id,
             type,
+            name: options && options.name,
             instance,
-        };
-
-        if (verifyBinding(type, options && options.ifConflict)) return this;
-        putEntry(Object.freeze(instanceEntry));
+        });
         return this;
     }
 
     function bindFactory(type, factory, options) {
-        var factoryEntry = {
+        var $id = makeEntryId(type, options && options.name);
+        if (verifyBinding($id, options && options.ifConflict)) return this;
+        putEntry({
+            $id,
             type,
+            name: options && options.name,
             factory,
-        };
-
-        if (verifyBinding(type, options && options.ifConflict)) return this;
-        putEntry(Object.freeze(factoryEntry));
+        });
         return this;
     }
 

@@ -32,6 +32,9 @@ type TTypesBindingResolveStrategy = "throw" | "keep" | "replace";
 type TBindingOptions = {
     /** Defines the strategy to apply when a binding conflict occurs */
     ifConflict?: TTypesBindingResolveStrategy;
+
+    /** Optional name qualifier */
+    name?: string | undefined;
 };
 
 /**
@@ -41,8 +44,23 @@ type TBindingOptions = {
  * @typeParam T - A key from the type map representing the registered type.
  */
 type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
-    /** The type token associated with the entry. */
+    /**
+     * A unique identifier for the binding entry.
+     * This ID is used internally to distinguish between different bindings of the same type.
+     * */
+    readonly $id: string;
+    /**
+     * The type token (key) for the binding entry.
+     * Represents the service or type that is being bound in the container.
+     * */
     readonly type: T;
+
+    /**
+     * An optional name for the binding entry, used for named bindings.
+     * If provided, this value helps to distinguish between different bindings of the same type.
+     * If the binding does not have a name, this field will be `undefined`.
+     */
+    readonly name: string | undefined;
 };
 
 /**
@@ -135,11 +153,13 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      * Finds a registered entry (instance or factory) by its type token.
      * The returned entry is frozen and can't to be mutated.
      * @param type - The type token to search for.
+     * @param name - Optional name qualifier.
      *
      * @returns A type entry if found, or `undefined` if not bound.
      */
     findEntry(
         type: keyof TypeMap,
+        name?: string,
     ): Readonly<TTypeEntry<TypeMap, typeof type>> | undefined;
 
     /**
