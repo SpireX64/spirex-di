@@ -39,6 +39,10 @@ type TBindingOptions = {
     name?: string | undefined;
 };
 
+type TFactoryBindingOptions = TBindingOptions & {
+    lifecycle?: TLifecycle;
+};
+
 /**
  * Base structure for a type entry in the container registry.
  *
@@ -141,7 +145,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     bindFactory<T extends keyof TypeMap>(
         type: T,
         factory: TTypeFactory<TypeMap, T>,
-        options?: TBindingOptions,
+        options?: TFactoryBindingOptions,
     ): IContainerBuilder<TypeMap>;
 
     /**

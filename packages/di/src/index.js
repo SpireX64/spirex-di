@@ -105,7 +105,7 @@ export function createContainerBuilder(builderOptions) {
             type,
             name: options && options.name,
             factory,
-            lifecycle: defaultLifecycle,
+            lifecycle: (options && options.lifecycle) || defaultLifecycle,
         });
         return this;
     }

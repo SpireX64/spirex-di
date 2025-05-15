@@ -419,6 +419,23 @@ describe("ContainerBuilder", () => {
                     expect(entry).toBeDefined();
                     expect(entry.lifecycle).toBe(expectedLifecycle);
                 });
+
+                test("WHEN set lifecycle via binding options", () => {
+                    // Arrange -------
+                    var typeKey = "typeKey";
+                    var expectedLifecycle = "transient";
+                    var builder = createContainerBuilder();
+
+                    // Act -----------
+                    builder.bindFactory(typeKey, () => {}, {
+                        lifecycle: expectedLifecycle,
+                    });
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert --------
+                    expect(entry).toBeDefined();
+                    expect(entry.lifecycle).toBe(expectedLifecycle);
+                });
             });
         });
     });
