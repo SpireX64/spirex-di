@@ -459,6 +459,29 @@ describe("ContainerBuilder", () => {
                 });
             });
         });
+
+        describe("Alias", () => {
+            test("WHEN bind alias for type", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var aliasKey = "aliasKey";
+                var builder = createContainerBuilder();
+                builder.bindInstance(typeKey);
+
+                // Act -------------
+                builder.bindAlias(aliasKey, typeKey);
+
+                var hasAliasEntry = builder.hasEntry(aliasKey);
+                var originEntry = builder.findEntry(typeKey);
+                var aliasEntry = builder.findEntry(aliasKey);
+
+                // Assert ----------
+                expect(hasAliasEntry).is.true;
+                expect(aliasEntry).toBeDefined();
+                expect(originEntry).toBeDefined();
+                expect(aliasEntry).toBe(originEntry);
+            });
+        });
     });
 
     describe("BuildContainer", () => {

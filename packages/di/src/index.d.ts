@@ -43,6 +43,11 @@ type TFactoryBindingOptions = TBindingOptions & {
     lifecycle?: TLifecycle;
 };
 
+type TAliasBindingOptions = TBindingOptions & {
+    /** Name qualifier of the origin type binding */
+    originName?: string | undefined;
+};
+
 /**
  * Base structure for a type entry in the container registry.
  *
@@ -146,6 +151,12 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         type: T,
         factory: TTypeFactory<TypeMap, T>,
         options?: TFactoryBindingOptions,
+    ): IContainerBuilder<TypeMap>;
+
+    bindAlias<TAlias extends keyof TypeMap, TOrigin extends keyof TypeMap>(
+        type: TAlias,
+        originType: TypeMap[TOrigin] extends TypeMap[TAlias] ? TOrigin : never,
+        options?: TAliasBindingOptions,
     ): IContainerBuilder<TypeMap>;
 
     /**

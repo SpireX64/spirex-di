@@ -41,6 +41,9 @@ export function createContainerBuilder(builderOptions) {
     /** The registry of type bindings */
     var entries = new Map();
 
+    /** The map of type alias bindings */
+    var aliases = new Map();
+
     // region INTERNAL METHODS
 
     /**
@@ -67,7 +70,7 @@ export function createContainerBuilder(builderOptions) {
      * @internal
      */
     function verifyBinding(id, strategy) {
-        if (entries.has(id)) {
+        if (entries.has(id) || aliases.has(id)) {
             strategy ||= defaultConflictResolve;
             if (strategy === "keep") return true;
             if (!strategy || strategy === "throw")
@@ -76,16 +79,28 @@ export function createContainerBuilder(builderOptions) {
         return false;
     }
 
+    function resolveEntryId(type, name) {
+        var $id;
+        for (
+            var $alias = makeEntryId(type, name);
+            $alias;
+            $alias = aliases.get($alias)
+        ) {
+            $id = $alias;
+        }
+        return $id;
+    }
+
     // endregion INTERNAL METHODS
 
     // region PUBLIC METHODS
 
     function hasEntry(type, name) {
-        return entries.has(makeEntryId(type, name));
+        return entries.has(resolveEntryId(type, name));
     }
 
     function findEntry(type, name) {
-        return entries.get(makeEntryId(type, name));
+        return entries.get(resolveEntryId(type, name));
     }
 
     function bindInstance(type, instance, options) {
@@ -113,6 +128,15 @@ export function createContainerBuilder(builderOptions) {
         return this;
     }
 
+    function bindAlias(type, originType, options) {
+        var $aliasId = makeEntryId(type, options && options.name);
+        if (verifyBinding($aliasId, options && options.ifConflict)) return this;
+        aliases.set(
+            $aliasId,
+            makeEntryId(originType, options && options.originName),
+        );
+    }
+
     function build() {
         return {};
     }
@@ -124,6 +148,7 @@ export function createContainerBuilder(builderOptions) {
         findEntry,
         bindInstance,
         bindFactory,
+        bindAlias,
         build,
     };
 }
