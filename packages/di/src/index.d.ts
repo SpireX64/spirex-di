@@ -4,6 +4,8 @@
  */
 type TTypeMapBase = object;
 
+type TLifecycle = "singleton" | "lazy" | "transient";
+
 /**
  * A factory function that produces an instance of a type from the container.
  *
@@ -95,6 +97,8 @@ type TFactoryTypeEntry<
 
     /** Always `undefined` to indicate it's not an instance entry. */
     readonly instance: undefined;
+
+    readonly lifecycle: keyof TLifecycle;
 };
 
 /** A type entry, either an instance entry or a factory entry */

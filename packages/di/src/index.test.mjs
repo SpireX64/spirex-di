@@ -127,7 +127,7 @@ describe("ContainerBuilder", () => {
                 var typeKey = "typeKey";
                 var name = "typeName";
                 var expectedValue = 42;
-                const builder = createContainerBuilder();
+                var builder = createContainerBuilder();
 
                 // Act --------
                 builder.bindInstance(typeKey, expectedValue, { name });
@@ -385,6 +385,22 @@ describe("ContainerBuilder", () => {
                     expect(entry.type).to.equal(typeKey);
                     expect(entry.factory).to.equal(expectedFactory);
                     expect(expectedFactory).not.toHaveBeenCalled();
+                });
+            });
+
+            describe("Lifecycle", () => {
+                test("WHEN keep default lifecycle", () => {
+                    // Arrange --------
+                    var typeKey = "typeKey";
+                    var builder = createContainerBuilder();
+
+                    // Act ------------
+                    builder.bindFactory(typeKey, () => {});
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ---------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.lifecycle).toBe("singleton");
                 });
             });
         });

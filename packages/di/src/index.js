@@ -102,6 +102,7 @@ export function createContainerBuilder() {
             type,
             name: options && options.name,
             factory,
+            lifecycle: "singleton",
         });
         return this;
     }
