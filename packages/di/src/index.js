@@ -32,7 +32,10 @@ function makeEntryId(type, name) {
     return !!name ? type + ID_SEP + name : type;
 }
 
-export function createContainerBuilder() {
+export function createContainerBuilder(builderOptions) {
+    var defaultLifecycle =
+        (builderOptions && builderOptions.lifecycle) || "singleton";
+
     /** The registry of type bindings */
     var entries = new Map();
 
@@ -102,7 +105,7 @@ export function createContainerBuilder() {
             type,
             name: options && options.name,
             factory,
-            lifecycle: "singleton",
+            lifecycle: defaultLifecycle,
         });
         return this;
     }

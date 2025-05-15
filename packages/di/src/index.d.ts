@@ -174,12 +174,17 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     build(): object;
 }
 
+type TContainerBuilderOptions = {
+    lifecycle?: TLifecycle;
+};
+
 /**
  * Creates a new dependency injection container builder.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
+ * @param builderOptions
  * @returns A new container builder instance.
  */
-export declare function createContainerBuilder<
-    TypeMap extends TTypeMapBase,
->(): IContainerBuilder<TypeMap>;
+export declare function createContainerBuilder<TypeMap extends TTypeMapBase>(
+    builderOptions?: TContainerBuilderOptions,
+): IContainerBuilder<TypeMap>;

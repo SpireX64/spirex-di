@@ -399,8 +399,25 @@ describe("ContainerBuilder", () => {
                     var entry = builder.findEntry(typeKey);
 
                     // Assert ---------
-                    expect(entry).not.to.be.undefined;
+                    expect(entry).toBeDefined();
                     expect(entry.lifecycle).toBe("singleton");
+                });
+
+                test("WHEN change default lifecycle via builder options", () => {
+                    // Arrange --------
+                    var typeKey = "typeKey";
+                    var expectedLifecycle = "lazy";
+                    var builder = createContainerBuilder({
+                        lifecycle: expectedLifecycle,
+                    });
+
+                    // Act ------------
+                    builder.bindFactory(typeKey, () => {});
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ---------
+                    expect(entry).toBeDefined();
+                    expect(entry.lifecycle).toBe(expectedLifecycle);
                 });
             });
         });
