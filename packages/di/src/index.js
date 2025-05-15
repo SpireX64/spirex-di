@@ -35,6 +35,8 @@ function makeEntryId(type, name) {
 export function createContainerBuilder(builderOptions) {
     var defaultLifecycle =
         (builderOptions && builderOptions.lifecycle) || "singleton";
+    var defaultConflictResolve =
+        (builderOptions && builderOptions.ifConflict) || "throw";
 
     /** The registry of type bindings */
     var entries = new Map();
@@ -66,6 +68,7 @@ export function createContainerBuilder(builderOptions) {
      */
     function verifyBinding(id, strategy) {
         if (entries.has(id)) {
+            strategy ||= defaultConflictResolve;
             if (strategy === "keep") return true;
             if (!strategy || strategy === "throw")
                 throw new Error(Errors.BindingConflict(id));

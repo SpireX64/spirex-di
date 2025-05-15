@@ -180,6 +180,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
 
 type TContainerBuilderOptions = {
     lifecycle?: TLifecycle;
+    ifConflict?: TTypesBindingResolveStrategy;
 };
 
 /**

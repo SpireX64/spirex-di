@@ -386,6 +386,27 @@ describe("ContainerBuilder", () => {
                     expect(entry.factory).to.equal(expectedFactory);
                     expect(expectedFactory).not.toHaveBeenCalled();
                 });
+
+                test("WHEN set default strategy via builder options", () => {
+                    // Arrange -------
+                    var typeKey = "typeKey";
+                    var expectedStrategy = "replace";
+                    var expectedFactory = vi.fn();
+                    var builder = createContainerBuilder({
+                        ifConflict: expectedStrategy,
+                    });
+                    builder.bindFactory(typeKey, () => {});
+
+                    // Act -----------
+                    builder.bindFactory(typeKey, expectedFactory);
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert --------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(expectedFactory).not.toHaveBeenCalled();
+                });
             });
 
             describe("Lifecycle", () => {
