@@ -13,10 +13,15 @@
 export var DIErrors = Object.freeze({
     BindingConflict: (type) =>
         `Binding conflict. The type '${type}' is already bound.`,
+
     AliasCycle: (aliasStack) =>
         `Alias resolution cycle detected: ${aliasStack.join(" -> ")}`,
+
     AliasMissingRef: (aliasId, originId) =>
         `Alias "${aliasId}" refers to non-existent type binding "${originId}".`,
+
+    MiddlewareEntryTypeMismatch: (middlewareName, newEntryId, originEntryId) =>
+        `Middleware "${middlewareName || "unnamed"}" altered the entry type: Expected '${originEntryId}', but received '${newEntryId}`,
 });
 
 /** A char used to separate the type and name in the unique ID of a binding */
@@ -40,7 +45,8 @@ function isTypeEntry(mayBeTypeEntry) {
     return (
         mayBeTypeEntry &&
         typeof mayBeTypeEntry === "object" &&
-        "$id" in mayBeTypeEntry
+        "$id" in mayBeTypeEntry &&
+        "type" in mayBeTypeEntry
     );
 }
 
@@ -59,6 +65,8 @@ export function createContainerBuilder(builderOptions) {
     /** Internal map of registered alias entries. */
     var aliases = new Map();
 
+    var middlewares = new Set();
+
     // region INTERNAL METHODS
 
     /**
@@ -76,21 +84,45 @@ export function createContainerBuilder(builderOptions) {
      * @internal
      */
     function putEntry(entry, multibinding) {
-        Object.freeze(entry);
+        var entryToBind = entry;
+        middlewares.forEach((middleware) => {
+            if (middleware.onBind) {
+                entryToBind = middleware.onBind(entryToBind, entry);
+                if (
+                    !entryToBind ||
+                    !isTypeEntry(entryToBind) ||
+                    entryToBind.$id !== entry.$id ||
+                    entryToBind.type !== entry.type
+                ) {
+                    throw new Error(
+                        DIErrors.MiddlewareEntryTypeMismatch(
+                            middleware.name,
+                            entryToBind && entryToBind.$id,
+                            entry.$id,
+                        ),
+                    );
+                }
+            }
+        });
 
-        var existingEntry = entries.get(entry.$id);
+        Object.freeze(entryToBind);
+
+        var existingEntry = entries.get(entryToBind.$id);
         if (!existingEntry || !multibinding) {
             // No existing entry, or multibinding not enabled:
             // simply store the new entry (replacing any existing one).
-            entries.set(entry.$id, entry);
+            entries.set(entryToBind.$id, entryToBind);
         } else if (isTypeEntry(existingEntry)) {
             // Existing entry is a single binding:
             // convert it to a Set and add both the old and new entries.
-            entries.set(entry.$id, new Set().add(existingEntry).add(entry));
+            entries.set(
+                entryToBind.$id,
+                new Set().add(existingEntry).add(entryToBind),
+            );
         } else {
             // Existing entry is already a Set:
             // add the new entry to the existing set.
-            existingEntry.add(entry);
+            existingEntry.add(entryToBind);
         }
     }
 
@@ -225,6 +257,15 @@ export function createContainerBuilder(builderOptions) {
         return this;
     }
 
+    function use(middleware) {
+        middlewares.add(middleware);
+        return this;
+    }
+
+    function hasMiddleware(middleware) {
+        return middlewares.has(middleware);
+    }
+
     function build() {
         // Aliases verification
         aliases.forEach(($origin, $alias, map) => {
@@ -244,6 +285,7 @@ export function createContainerBuilder(builderOptions) {
     // endregion PUBLIC METHODS
 
     return {
+        hasMiddleware,
         hasEntry,
         findEntry,
         findAllEntries,
@@ -251,6 +293,7 @@ export function createContainerBuilder(builderOptions) {
         bindInstance,
         bindFactory,
         bindAlias,
+        use,
         build,
     };
 }

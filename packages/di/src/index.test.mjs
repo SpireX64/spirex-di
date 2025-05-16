@@ -948,6 +948,251 @@ describe("ContainerBuilder", () => {
         });
     });
 
+    describe("Middleware", () => {
+        describe("Add middleware", () => {
+            test("WHEN add middleware to builder", () => {
+                // Arrange --------
+                var builder = createContainerBuilder();
+                var middleware = {}; // Yup, empty middlewares are allowed
+
+                // Act ------------
+                builder.use(middleware);
+
+                var middlewareWasAdded = builder.hasMiddleware(middleware);
+
+                // Assert ---------
+                expect(middlewareWasAdded).is.true;
+            });
+
+            test("WHEN check middleware not added", () => {
+                // Arrange ---------
+                var builder = createContainerBuilder();
+
+                // Act -------------
+                var middlewareWasAdded = builder.hasMiddleware({});
+
+                // Assert ----------
+                expect(middlewareWasAdded).is.false;
+            });
+        });
+
+        describe("onBind hook", () => {
+            test("WHEN bind instance", () => {
+                // Arrange ------------
+                var typeKey = "typeKey";
+                var onBindMock = vi.fn((entry) => entry);
+                var builder = createContainerBuilder().use({
+                    onBind: onBindMock,
+                });
+
+                // Act ----------------
+                builder.bindInstance(typeKey, 42);
+
+                var entry = builder.findEntry(typeKey);
+
+                // Assert -------------
+                expect(entry).toBeDefined();
+                expect(onBindMock).toHaveBeenCalledWith(entry, entry);
+            });
+
+            test("WHEN bind factory", () => {
+                // Arrange ------------
+                var typeKey = "typeKey";
+                var onBindMock = vi.fn((entry) => entry);
+                var builder = createContainerBuilder().use({
+                    onBind: onBindMock,
+                });
+
+                // Act ----------------
+                builder.bindFactory(typeKey, () => {});
+
+                var entry = builder.findEntry(typeKey);
+
+                // Assert -------------
+                expect(entry).toBeDefined();
+                expect(onBindMock).toHaveBeenCalledWith(entry, entry);
+            });
+
+            test("WHEN modify entry with onBind one middleware", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var onBindMock = vi.fn((entry) => ({
+                    ...entry,
+                    instance: expectedValue,
+                }));
+                var builder = createContainerBuilder().use({
+                    onBind: onBindMock,
+                });
+
+                // Act -----------
+                builder.bindInstance(typeKey, 0);
+
+                var entry = builder.findEntry(typeKey);
+                var entries = builder.findAllEntries(typeKey);
+
+                // Assert --------
+                // 1. onBind hook was called on type instance bind
+                expect(onBindMock).toHaveBeenCalled();
+
+                // 2. Type instance binding was override by onBind
+                expect(entry).toBeDefined();
+                expect(entry.instance).toBe(expectedValue);
+                expect(entries).has.length(1); // It's not multibinding
+                expect(entries[0]).toBe(entry);
+            });
+
+            test("WHEN modify entry with onBind many middlewares", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var value = 3;
+                var expectedValue = value * 5 + 10;
+                var onBindMockA = vi.fn((entry) => ({
+                    ...entry,
+                    instance: entry.instance * 5,
+                }));
+                var onBindMockB = vi.fn((entry) => ({
+                    ...entry,
+                    instance: entry.instance + 10,
+                }));
+
+                var builder = createContainerBuilder()
+                    .use({ onBind: onBindMockA })
+                    .use({ onBind: onBindMockB });
+
+                // Act ----------
+                builder.bindInstance(typeKey, value);
+
+                var entry = builder.findEntry(typeKey);
+                var entries = builder.findAllEntries(typeKey);
+
+                // Assert -------
+                // 1. All onBind hooks were called on type instance bind
+                expect(onBindMockA).toHaveBeenCalled();
+                expect(onBindMockB).toHaveBeenCalled();
+
+                // 2. Type instance binding was override by onBind
+                expect(entry).toBeDefined();
+                expect(entry.instance).toBe(expectedValue);
+                expect(entries).has.length(1); // It's not multibinding
+                expect(entries[0]).toBe(entry);
+            });
+
+            test("WHEN try to change entry id", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var newTypeKey = "newTypeKey";
+                var middlewareName = "bindMiddleware";
+                var builder = createContainerBuilder().use({
+                    name: middlewareName,
+                    onBind: (entry) => ({
+                        ...entry,
+                        $id: newTypeKey,
+                    }),
+                });
+
+                // Act -----------
+                var error = catchError(() => builder.bindInstance(typeKey));
+
+                // Assert --------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.MiddlewareEntryTypeMismatch(
+                        middlewareName,
+                        newTypeKey,
+                        typeKey,
+                    ),
+                );
+            });
+
+            test("WHEN try to return not a type entry object", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var middlewareName = "bindMiddleware";
+                var builder = createContainerBuilder().use({
+                    name: middlewareName,
+                    onBind: () => ({ type: typeKey }),
+                });
+
+                // Act -------------
+                var error = catchError(() => builder.bindInstance(typeKey, 1));
+
+                // Assert ----------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.MiddlewareEntryTypeMismatch(
+                        middlewareName,
+                        undefined,
+                        typeKey,
+                    ),
+                );
+            });
+
+            test("WHEN try to return undefined or null object", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var builder = createContainerBuilder().use({
+                    onBind: () => {}, // Oh no, type entry return was forgotten :(
+                });
+
+                // Act -----------
+                var error = catchError(() => {
+                    builder.bindInstance(typeKey, 11);
+                });
+
+                // Assert --------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.MiddlewareEntryTypeMismatch(
+                        "unnamed",
+                        undefined,
+                        typeKey,
+                    ),
+                );
+            });
+
+            test("WHEN bind instance before middleware add", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var onBindMock = vi.fn((entry) => ({ ...entry, instance: 0 }));
+                var builder = createContainerBuilder();
+
+                // Act ------------
+                builder
+                    .bindInstance(typeKey, expectedValue)
+                    .use({ onBind: onBindMock });
+
+                var entry = builder.findEntry(typeKey);
+
+                // Assert ---------
+                // 1. Middleware was not called
+                expect(onBindMock).not.toHaveBeenCalled();
+                // 2. Entry was not changed
+                expect(entry).toBeDefined();
+                expect(entry.instance).toBe(expectedValue);
+            });
+
+            test("WHEN middleware without onBind hook", () => {
+                // Arrange ----------
+                var builder = createContainerBuilder().use({});
+
+                // Act --------------
+                builder
+                    .bindInstance("instanceKey", 42)
+                    .bindFactory("factoryKey", () => {});
+
+                var instanceEntry = builder.findEntry("instanceKey");
+                var factoryEntry = builder.findEntry("factoryKey");
+
+                // Assert -----------
+                // It's ok. Middleware will be ignored when bind instance or factory
+                expect(instanceEntry).toBeDefined();
+                expect(factoryEntry).toBeDefined();
+            });
+        });
+    });
+
     describe("Building container", () => {
         test("WHEN build", () => {
             // Arrange --------

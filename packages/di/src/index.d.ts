@@ -129,6 +129,18 @@ type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
     | TInstanceTypeEntry<TypeMap, T>
     | TFactoryTypeEntry<TypeMap, T>;
 
+type AnyTypeMap = Record<string, any>;
+
+type TContainerBuilderMiddlewareOnBind = (
+    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
+    originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
+) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
+
+type TContainerMiddleware = {
+    name?: string;
+    onBind?: TContainerBuilderMiddlewareOnBind;
+};
+
 interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     /**
      * Binds a concrete instance to a type.
@@ -188,6 +200,8 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         options?: TAliasBindingOptions,
     ): IContainerBuilder<TypeMap>;
 
+    hasMiddleware(middleware: TContainerMiddleware): boolean;
+
     /**
      * Checks whether a binding exists for the given type and optional name.
      *
@@ -233,6 +247,8 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      * @returns The origin type reference, or undefined if no alias is registered.
      */
     getAlias(type: keyof TypeMap, name?: string): string | undefined;
+
+    use(middleware: TContainerMiddleware): IContainerBuilder<TypeMap>;
 
     /**
      * Finalizes the bindings and builds a container instance.
