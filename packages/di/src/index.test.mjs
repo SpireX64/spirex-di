@@ -694,7 +694,6 @@ describe("ContainerBuilder", () => {
                     // Arrange -----
                     var typeKey = "typeKey";
                     var aliasKey = "aliasKey";
-                    var expectedValue = 11;
                     var builder = createContainerBuilder()
                         .bindInstance(typeKey, 22)
                         .bindAlias(aliasKey, "foo");
@@ -713,7 +712,6 @@ describe("ContainerBuilder", () => {
                     // Arrange -----
                     var typeKey = "typeKey";
                     var aliasKey = "aliasKey";
-                    var expectedValue = 11;
                     var builder = createContainerBuilder({
                         ifConflict: "replace",
                     })
@@ -837,10 +835,10 @@ describe("ContainerBuilder", () => {
                     expect(aliasBAfter).toBe(typeKey);
 
                     expect(aliasCBefore).toBe(aliasB);
-                    expect(aliasBAfter).toBe(typeKey);
+                    expect(aliasCAfter).toBe(typeKey);
 
                     expect(aliasDBefore).toBe(aliasC);
-                    expect(aliasBAfter).toBe(typeKey);
+                    expect(aliasDAfter).toBe(typeKey);
                 });
             });
         });
