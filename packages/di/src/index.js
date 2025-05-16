@@ -37,15 +37,18 @@ function makeEntryId(type, name) {
 }
 
 export function createContainerBuilder(builderOptions) {
+    /** The default lifecycle to use when a binding does not explicitly define one. */
     var defaultLifecycle =
         (builderOptions && builderOptions.lifecycle) || "singleton";
+
+    /** The default conflict resolution strategy to use for bindings. */
     var defaultConflictResolve =
         (builderOptions && builderOptions.ifConflict) || "throw";
 
-    /** The registry of type bindings */
+    /** Internal map of registered type bindings */
     var entries = new Map();
 
-    /** The map of type alias bindings */
+    /** Internal map of registered alias entries. */
     var aliases = new Map();
 
     // region INTERNAL METHODS
@@ -70,7 +73,7 @@ export function createContainerBuilder(builderOptions) {
      * @param strategy The strategy to use if a binding already exists.
      * @returns `true` if the binding should be skipped; `false` if it can proceed.
      *
-     * @throws {Error} If a binding conflict exists and the strategy is `"throw"` or undefined.
+     * @throws {DIErrors.BindingConflict} If a binding conflict exists and the strategy is `"throw"` or undefined.
      * @internal
      */
     function verifyBinding(id, strategy) {
@@ -83,6 +86,18 @@ export function createContainerBuilder(builderOptions) {
         return false;
     }
 
+    /**
+     * Resolves the final target entry ID for a given type and optional name,
+     * following any alias chains.
+     *
+     * @param type - The type key to resolve.
+     * @param name - Optional binding name.
+     * @param aliasId - Optional starting alias ID.
+     * @return The resolved binding entry ID, or undefined if not found.
+     *
+     * @throws {DIErrors.AliasCycle} when an alias cycle is detected
+     * @internal
+     */
     function resolveEntryId(type, name, aliasId) {
         var $id;
         var aliasStack = [];

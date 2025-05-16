@@ -4,6 +4,13 @@
  */
 type TTypeMapBase = object;
 
+/**
+ * Defines the lifecycle for a binding in the container.
+ *
+ * - `"singleton"` — The instance is created eagerly with the container and exists as a single shared instance.
+ * - `"lazy"` — The instance is created on first resolution and cached; only one instance exists.
+ * - `"transient"` — A new instance is created on each resolution.
+ */
 type TLifecycle = "singleton" | "lazy" | "transient";
 
 /**
@@ -39,12 +46,18 @@ type TBindingOptions = {
     name?: string | undefined;
 };
 
+/** Options for configuring a factory-based binding. */
 type TFactoryBindingOptions = TBindingOptions & {
+    /** Determines how and when the instance is created and cached. */
     lifecycle?: TLifecycle;
 };
 
+/** Options for configuring an alias binding. */
 type TAliasBindingOptions = TBindingOptions & {
-    /** Name qualifier of the origin type binding */
+    /**
+     * Name qualifier of the origin binding that this alias points to.
+     * Useful when aliasing named bindings.
+     */
     originName?: string | undefined;
 };
 
@@ -124,7 +137,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      * @param instance - The instance to associate with the type.
      * @param options Optional params that control how the binding behaves.
      *
-     * @throws If a binding already exists and the conflict strategy is set to `"throw"`
+     * @throws {Error} If a binding already exists and the conflict strategy is set to `"throw"`
      *
      * @returns The current builder instance for chaining.
      */
@@ -143,7 +156,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      * @param factory - A factory function that returns an instance of the type.
      * @param options Optional params that control how the binding behaves.
      *
-     * @throws If a binding already exists and the conflict strategy is set to `"throw"`
+     * @throws {Error} If a binding already exists and the conflict strategy is set to `"throw"`
      *
      * @returns The current builder instance for chaining.
      */
@@ -153,6 +166,21 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         options?: TFactoryBindingOptions,
     ): IContainerBuilder<TypeMap>;
 
+    /**
+     * Binds an alias to an existing binding or another alias.
+     *
+     * @typeParam TAlias - The type key for the alias.
+     * @typeParam TOrigin - The type key for the origin binding.
+     *
+     * @param type - The key for the alias type (must be declared in the container's type map).
+     * @param originType - The key of the existing binding to alias (must be compatible with alias type).
+     * @param options - Optional options for the alias binding.
+     *
+     * @throws {Error} if an alias cycle is detected
+     * @throws {Error} if binding or alias with the same type and name already exists
+     *
+     * @returns The current builder instance for chaining.
+     */
     bindAlias<TAlias extends keyof TypeMap, TOrigin extends keyof TypeMap>(
         type: TAlias,
         originType: TypeMap[TOrigin] extends TypeMap[TAlias] ? TOrigin : never,
@@ -181,6 +209,13 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         name?: string,
     ): Readonly<TTypeEntry<TypeMap, typeof type>> | undefined;
 
+    /**
+     * Returns the origin type reference that an alias points to, if any.
+     * @param type - The alias type key.
+     * @param name - Optional alias name (for named bindings).
+     *
+     * @returns The origin type reference, or undefined if no alias is registered.
+     */
     getAlias(type: keyof TypeMap, name?: string): string | undefined;
 
     /**
@@ -191,8 +226,12 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     build(): object;
 }
 
+/** Global options for the container builder. */
 type TContainerBuilderOptions = {
+    /** Default lifecycle for bindings (if not specified in individual bindings). */
     lifecycle?: TLifecycle;
+
+    /** Default conflict resolution strategy when a binding for the same type already exists. */
     ifConflict?: TTypesBindingResolveStrategy;
 };
 
@@ -200,8 +239,8 @@ type TContainerBuilderOptions = {
  * Creates a new dependency injection container builder.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
- * @param builderOptions
- * @returns A new container builder instance.
+ * @param builderOptions - Optional builder settings.
+ * @returns A new container builder used to configure and build the DI container.
  */
 export declare function createContainerBuilder<TypeMap extends TTypeMapBase>(
     builderOptions?: TContainerBuilderOptions,
