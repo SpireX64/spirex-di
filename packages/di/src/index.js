@@ -8,11 +8,13 @@
  * All values are frozen to ensure immutability and prevent accidental modification at runtime.
  *
  * @example
- * throw new Error(Errors.BindingConflict('MyService'));
+ * throw new Error(DIErrors.BindingConflict('MyService'));
  */
-var Errors = Object.freeze({
+export var DIErrors = Object.freeze({
     BindingConflict: (type) =>
         `Binding conflict. The type '${type}' is already bound.`,
+    AliasCycle: (aliasStack) =>
+        `Alias resolution cycle detected: ${aliasStack.join(" -> ")}`,
 });
 
 /** A char used to separate the type and name in the unique ID of a binding */
@@ -74,18 +76,23 @@ export function createContainerBuilder(builderOptions) {
             strategy ||= defaultConflictResolve;
             if (strategy === "keep") return true;
             if (!strategy || strategy === "throw")
-                throw new Error(Errors.BindingConflict(id));
+                throw new Error(DIErrors.BindingConflict(id));
         }
         return false;
     }
 
-    function resolveEntryId(type, name) {
+    function resolveEntryId(type, name, aliasId) {
         var $id;
+        var aliasStack = [];
+        if (aliasId) aliasStack.push(aliasId);
         for (
             var $alias = makeEntryId(type, name);
             $alias;
             $alias = aliases.get($alias)
         ) {
+            var isCycle = aliasStack.includes($alias);
+            aliasStack.push($alias);
+            if (isCycle) throw new Error(DIErrors.AliasCycle(aliasStack));
             $id = $alias;
         }
         return $id;
@@ -131,10 +138,16 @@ export function createContainerBuilder(builderOptions) {
     function bindAlias(type, originType, options) {
         var $aliasId = makeEntryId(type, options && options.name);
         if (verifyBinding($aliasId, options && options.ifConflict)) return this;
-        aliases.set(
+
+        // Alias chain optimisation
+        var $originId = resolveEntryId(
+            originType,
+            options && options.originName,
             $aliasId,
-            makeEntryId(originType, options && options.originName),
         );
+
+        aliases.set($aliasId, $originId);
+        return this;
     }
 
     function build() {
