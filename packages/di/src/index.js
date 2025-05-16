@@ -15,6 +15,8 @@ export var DIErrors = Object.freeze({
         `Binding conflict. The type '${type}' is already bound.`,
     AliasCycle: (aliasStack) =>
         `Alias resolution cycle detected: ${aliasStack.join(" -> ")}`,
+    AliasMissingRef: (aliasId, originId) =>
+        `Alias "${aliasId}" refers to non-existent type binding "${originId}".`,
 });
 
 /** A char used to separate the type and name in the unique ID of a binding */
@@ -151,6 +153,19 @@ export function createContainerBuilder(builderOptions) {
     }
 
     function build() {
+        // Aliases verification
+        aliases.forEach(($origin, $alias, map) => {
+            var realOriginId = resolveEntryId($origin);
+
+            // Verify alias origin type binding
+            var originEntry = entries.get(realOriginId);
+            if (!originEntry)
+                throw new Error(DIErrors.AliasMissingRef($alias, realOriginId));
+
+            // Optimize alias reference
+            if (realOriginId !== $origin) map.set($alias, realOriginId);
+        });
+
         return {};
     }
 

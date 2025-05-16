@@ -631,7 +631,7 @@ describe("ContainerBuilder", () => {
         });
     });
 
-    describe("BuildContainer", () => {
+    describe("Building container", () => {
         test("WHEN build", () => {
             // Arrange --------
             var builder = createContainerBuilder();
@@ -641,6 +641,44 @@ describe("ContainerBuilder", () => {
 
             // Assert -----
             expect(container).to.be.an.instanceOf(Object);
+        });
+
+        describe("Aliases building", () => {
+            describe("Verify alias origin type exist", () => {
+                test("WHEN alias origin type is exists", () => {
+                    // Arrange -------
+                    var builder = createContainerBuilder()
+                        .bindInstance("typeKey", 42)
+                        .bindAlias("aliasKey", "typeKey");
+
+                    // Act -----------
+                    var container = builder.build();
+
+                    // Assert --------
+                    expect(container).instanceOf(Object);
+                });
+
+                test("WHEN alias origin type is not exists", () => {
+                    // Arrange ------
+                    var typeKey = "typeKey";
+                    var aliasKey = "aliasKey";
+                    var builder = createContainerBuilder().bindAlias(
+                        aliasKey,
+                        typeKey,
+                    );
+
+                    // Act ----------
+                    var error = catchError(() => {
+                        builder.build();
+                    });
+
+                    // Assert ------
+                    expect(error).toBeDefined();
+                    expect(error.message).is.equal(
+                        DIErrors.AliasMissingRef(aliasKey, typeKey),
+                    );
+                });
+            });
         });
     });
 });
