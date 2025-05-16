@@ -14,6 +14,8 @@ export var DIErrors = Object.freeze({
     BindingConflict: (type) =>
         `Binding conflict. The type '${type}' is already bound.`,
 
+    MissingRequiredTypeError: (type) => `Required type "${type}" is not bound.`,
+
     AliasCycle: (aliasStack) =>
         `Alias resolution cycle detected: ${aliasStack.join(" -> ")}`,
 
@@ -36,8 +38,9 @@ var ID_SEP = "$";
  * @param type - The type token of the binding.
  * @param name - Optional name for the binding (used for named bindings).
  * @return A unique string identifier for the binding.
+ * @internal
  */
-function makeEntryId(type, name) {
+export function makeEntryId(type, name) {
     return !!name ? type + ID_SEP + name : type;
 }
 
@@ -64,6 +67,8 @@ export function createContainerBuilder(builderOptions) {
 
     /** Internal map of registered alias entries. */
     var aliases = new Map();
+
+    var requiredTypes = new Set();
 
     var middlewares = new Set();
 
@@ -210,6 +215,11 @@ export function createContainerBuilder(builderOptions) {
         return aliases.get(makeEntryId(type, name));
     }
 
+    function requireType(type, name) {
+        requiredTypes.add(makeEntryId(type, name));
+        return this;
+    }
+
     function bindInstance(type, instance, options) {
         var $id = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
@@ -279,6 +289,12 @@ export function createContainerBuilder(builderOptions) {
             if (realOriginId !== $origin) map.set($alias, realOriginId);
         });
 
+        // Required types verification
+        requiredTypes.forEach(($id) => {
+            if (!entries.has($id) && !aliases.has($id))
+                throw new Error(DIErrors.MissingRequiredTypeError($id));
+        });
+
         return {};
     }
 
@@ -290,6 +306,7 @@ export function createContainerBuilder(builderOptions) {
         findEntry,
         findAllEntries,
         getAlias,
+        requireType,
         bindInstance,
         bindFactory,
         bindAlias,

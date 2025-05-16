@@ -1,6 +1,6 @@
 import { vi, describe, test, expect } from "vitest";
 import { createContainerBuilder } from "./index";
-import { DIErrors } from "./index.js";
+import { DIErrors, makeEntryId } from "./index.js";
 
 /**
  * Executes a procedure and captures any thrown Error instance.
@@ -1304,6 +1304,97 @@ describe("ContainerBuilder", () => {
                     expect(aliasDBefore).toBe(aliasC);
                     expect(aliasDAfter).toBe(typeKey);
                 });
+            });
+        });
+
+        describe("Type binding requirement", () => {
+            test("WHEN type required but not bound", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var builder = createContainerBuilder().requireType(typeKey);
+
+                // Act ------------
+                var error = catchError(() => {
+                    builder.build();
+                });
+
+                // Assert ----------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.MissingRequiredTypeError(typeKey),
+                );
+            });
+
+            test("WHEN type with name required but not bound", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var builder = createContainerBuilder()
+                    .requireType(typeKey, typeName)
+                    .bindInstance(typeKey, 42);
+
+                // Act ------------
+                var error = catchError(() => {
+                    builder.build();
+                });
+
+                // Assert ---------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.MissingRequiredTypeError(
+                        makeEntryId(typeKey, typeName),
+                    ),
+                );
+            });
+
+            test("WHEN required type bound", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var builder = createContainerBuilder()
+                    .requireType(typeKey)
+                    .bindInstance(typeKey, 42);
+
+                // Act ------------
+                builder.build();
+                var entry = builder.findEntry(typeKey);
+
+                // Assert ---------
+                // No error thrown, type entry exists
+                expect(entry).toBeDefined();
+            });
+
+            test("WHEN required type with name bound", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var builder = createContainerBuilder()
+                    .requireType(typeKey, typeName)
+                    .bindInstance(typeKey, 42, { name: typeName });
+
+                // Act ------------
+                builder.build();
+                var entry = builder.findEntry(typeKey, typeName);
+
+                // Assert ---------
+                // No error thrown, type entry exits
+                expect(entry).toBeDefined();
+            });
+
+            test("WHEN required type bound as alias", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var aliasKey = "aliasKey";
+                var builder = createContainerBuilder()
+                    .requireType(aliasKey)
+                    .bindInstance(typeKey, 42)
+                    .bindAlias(aliasKey, typeKey);
+
+                // Act -----------
+                builder.build();
+                var entry = builder.findEntry(typeKey);
+
+                // Assert --------
+                expect(entry).toBeDefined();
             });
         });
     });

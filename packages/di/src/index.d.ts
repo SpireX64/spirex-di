@@ -223,6 +223,20 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     ): IContainerBuilder<TypeMap>;
 
     /**
+     * Declares that the specified type binding is required during container building.
+     * This ensures that a binding for the given type (and optionally name) exists when building container.
+     * If the binding is missing, an error will be thrown during the build phase.
+     *
+     * @param type - The type key to require a binding for.
+     * @param name - Optional name of the binding if using named bindings.
+     *
+     * @throws {Error} If the required binding is not present when building container.
+     *
+     * @returns The container builder instance for chaining.
+     */
+    requireType(type: keyof TypeMap, name?: string): IContainerBuilder<TypeMap>;
+
+    /**
      * Checks whether the given middleware is already registered in the container builder.
      *
      * @param middleware - The middleware instance to check.
