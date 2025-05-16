@@ -679,6 +679,70 @@ describe("ContainerBuilder", () => {
                     );
                 });
             });
+
+            describe("Alias reference optimization", () => {
+                test("WHEN no optimization required", () => {
+                    // Arrange --------
+                    var typeKey = "typeKey";
+                    var aliasKey = "aliasKey";
+                    var builder = createContainerBuilder()
+                        .bindInstance(typeKey, 42)
+                        .bindAlias(aliasKey, typeKey);
+
+                    // Act ------------
+                    var aliasRefBefore = builder.getAlias(aliasKey);
+
+                    builder.build();
+
+                    var aliasRefAfter = builder.getAlias(aliasKey);
+
+                    // Assert ---------
+                    expect(aliasRefBefore).toBe(typeKey);
+                    expect(aliasRefAfter).toBe(aliasRefBefore);
+                });
+
+                test("WHEN optimization performed", () => {
+                    // Arrange ----------
+                    var typeKey = "typeKey";
+                    var aliasA = "aliasA";
+                    var aliasB = "aliasB";
+                    var aliasC = "aliasC";
+                    var aliasD = "aliasD";
+
+                    var builder = createContainerBuilder()
+                        .bindInstance(typeKey, 42)
+                        .bindAlias(aliasA, typeKey)
+                        .bindAlias(aliasB, aliasA)
+                        .bindAlias(aliasC, aliasB)
+                        .bindAlias(aliasD, aliasC);
+
+                    // Act --------------
+                    var aliasABefore = builder.getAlias(aliasA);
+                    var aliasBBefore = builder.getAlias(aliasB);
+                    var aliasCBefore = builder.getAlias(aliasC);
+                    var aliasDBefore = builder.getAlias(aliasD);
+
+                    builder.build();
+
+                    var aliasAAfter = builder.getAlias(aliasA);
+                    var aliasBAfter = builder.getAlias(aliasB);
+                    var aliasCAfter = builder.getAlias(aliasC);
+                    var aliasDAfter = builder.getAlias(aliasD);
+
+                    // Assert -----------
+                    expect(aliasABefore).toBe(typeKey);
+                    expect(aliasAAfter).toBe(typeKey);
+
+                    expect(aliasBBefore).toBe(aliasA);
+                    expect(aliasBAfter).toBe(typeKey);
+
+                    expect(aliasCBefore).toBe(aliasB);
+                    expect(aliasBAfter).toBe(typeKey);
+
+                    expect(aliasDBefore).toBe(aliasC);
+                    expect(aliasBAfter).toBe(typeKey);
+                });
+            });
         });
     });
 });

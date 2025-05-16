@@ -112,6 +112,10 @@ export function createContainerBuilder(builderOptions) {
         return entries.get(resolveEntryId(type, name));
     }
 
+    function getAlias(type, name) {
+        return aliases.get(makeEntryId(type, name));
+    }
+
     function bindInstance(type, instance, options) {
         var $id = makeEntryId(type, options && options.name);
         if (verifyBinding($id, options && options.ifConflict)) return this;
@@ -141,14 +145,13 @@ export function createContainerBuilder(builderOptions) {
         var $aliasId = makeEntryId(type, options && options.name);
         if (verifyBinding($aliasId, options && options.ifConflict)) return this;
 
-        // Alias chain optimisation
-        var $originId = resolveEntryId(
-            originType,
-            options && options.originName,
-            $aliasId,
-        );
+        // Check alias reference cycle
+        resolveEntryId(originType, options && options.originName, $aliasId);
 
-        aliases.set($aliasId, $originId);
+        aliases.set(
+            $aliasId,
+            makeEntryId(originType, options && options.originName),
+        );
         return this;
     }
 
@@ -158,8 +161,7 @@ export function createContainerBuilder(builderOptions) {
             var realOriginId = resolveEntryId($origin);
 
             // Verify alias origin type binding
-            var originEntry = entries.get(realOriginId);
-            if (!originEntry)
+            if (!entries.has(realOriginId))
                 throw new Error(DIErrors.AliasMissingRef($alias, realOriginId));
 
             // Optimize alias reference
@@ -174,6 +176,7 @@ export function createContainerBuilder(builderOptions) {
     return {
         hasEntry,
         findEntry,
+        getAlias,
         bindInstance,
         bindFactory,
         bindAlias,

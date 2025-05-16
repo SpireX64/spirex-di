@@ -181,6 +181,8 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         name?: string,
     ): Readonly<TTypeEntry<TypeMap, typeof type>> | undefined;
 
+    getAlias(type: keyof TypeMap, name?: string): string | undefined;
+
     /**
      * Finalizes the bindings and builds a container instance.
      *
