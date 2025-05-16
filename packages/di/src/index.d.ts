@@ -163,7 +163,12 @@ interface IContainerMiddleware {
     onBind?: TContainerBuilderMiddlewareOnBind;
 }
 
-interface IContainerBuilder<TypeMap extends TTypeMapBase> {
+/**
+ * Provides type binding methods.
+ *
+ * @template TypeMap - The type map that defines all valid type keys and their corresponding types.
+ */
+interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     /**
      * Binds a concrete instance to a type.
      *
@@ -174,13 +179,13 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      *
      * @throws {Error} If a binding already exists and the conflict strategy is set to `"throw"`
      *
-     * @returns The current builder instance for chaining.
+     * @returns The current binder instance for chaining.
      */
     bindInstance<T extends keyof TypeMap>(
         type: T,
         instance: TypeMap[T],
         options?: TBindingOptions,
-    ): IContainerBuilder<TypeMap>;
+    ): this;
 
     /**
      * Binds a factory function to a type.
@@ -193,19 +198,19 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      *
      * @throws {Error} If a binding already exists and the conflict strategy is set to `"throw"`
      *
-     * @returns The current builder instance for chaining.
+     * @returns The current binder instance for chaining.
      */
     bindFactory<T extends keyof TypeMap>(
         type: T,
         factory: TTypeFactory<TypeMap, T>,
         options?: TFactoryBindingOptions,
-    ): IContainerBuilder<TypeMap>;
+    ): this;
 
     /**
      * Binds an alias to an existing binding or another alias.
      *
-     * @typeParam TAlias - The type key for the alias.
-     * @typeParam TOrigin - The type key for the origin binding.
+     * @template TAlias - The type key for the alias.
+     * @template TOrigin - The type key for the origin binding.
      *
      * @param type - The key for the alias type (must be declared in the container's type map).
      * @param originType - The key of the existing binding to alias (must be compatible with alias type).
@@ -214,12 +219,37 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      * @throws {Error} if an alias cycle is detected
      * @throws {Error} if binding or alias with the same type and name already exists
      *
-     * @returns The current builder instance for chaining.
+     * @returns The current binder instance for chaining.
      */
     bindAlias<TAlias extends keyof TypeMap, TOrigin extends keyof TypeMap>(
         type: TAlias,
         originType: TypeMap[TOrigin] extends TypeMap[TAlias] ? TOrigin : never,
         options?: TAliasBindingOptions,
+    ): this;
+}
+
+/**
+ * A delegate function that receives a type binding interface
+ * to register type bindings.
+ *
+ * @template TypeMap - The type map that defines all valid type keys and their corresponding types.
+ * @param binder - An interface providing methods for binding types.
+ */
+type TBinderDelegate<TypeMap extends TTypeMapBase> = (
+    binder: ITypeEntryBinder<TypeMap>,
+) => void;
+
+interface IContainerBuilder<TypeMap extends TTypeMapBase>
+    extends ITypeEntryBinder<TypeMap> {
+    /**
+     * Conditionally applies bindings based on the provided boolean condition.
+     * @param condition - The condition to evaluate.
+     * @param delegate - A function that declares bindings when the condition is true.
+     * @returns The container builder instance for chaining.
+     */
+    when(
+        condition: boolean,
+        delegate: TBinderDelegate<TypeMap>,
     ): IContainerBuilder<TypeMap>;
 
     /**

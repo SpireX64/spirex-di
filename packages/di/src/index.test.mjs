@@ -946,6 +946,32 @@ describe("ContainerBuilder", () => {
                 });
             });
         });
+
+        describe("Conditional", () => {
+            test.each([true, false])(
+                "WHEN binding condition is '%s'",
+                (condition) => {
+                    // Arrange ----------
+                    var aliasKey = "aliasKey";
+                    var instanceKey = "instanceKey";
+                    var factoryKey = "factoryKey";
+                    var builder = createContainerBuilder();
+
+                    // Act --------------
+                    builder.when(condition, (binder) =>
+                        binder
+                            .bindInstance(instanceKey, 42)
+                            .bindFactory(factoryKey, () => {})
+                            .bindAlias(aliasKey, instanceKey),
+                    );
+
+                    // Assert -----------
+                    expect(builder.hasEntry(aliasKey)).toBe(condition);
+                    expect(builder.hasEntry(instanceKey)).toBe(condition);
+                    expect(builder.hasEntry(factoryKey)).toBe(condition);
+                },
+            );
+        });
     });
 
     describe("Middleware", () => {

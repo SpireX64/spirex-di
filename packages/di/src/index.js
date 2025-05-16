@@ -253,6 +253,11 @@ export function createContainerBuilder(builderOptions) {
         return this;
     }
 
+    function when(condition, delegate) {
+        if (condition) delegate(this);
+        return this;
+    }
+
     function bindAlias(type, originType, options) {
         var $aliasId = makeEntryId(type, options && options.name);
         if (verifyBinding($aliasId, options && options.ifConflict)) return this;
@@ -310,6 +315,7 @@ export function createContainerBuilder(builderOptions) {
         bindInstance,
         bindFactory,
         bindAlias,
+        when,
         use,
         build,
     };
