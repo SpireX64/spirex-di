@@ -1,6 +1,6 @@
 import { vi, describe, test, expect } from "vitest";
 import { createContainerBuilder } from "./index";
-import { DIErrors, makeEntryId } from "./index.js";
+import { DIErrors } from "./index.js";
 
 /**
  * Executes a procedure and captures any thrown Error instance.
@@ -1367,9 +1367,7 @@ describe("ContainerBuilder", () => {
                 // Assert ---------
                 expect(error).toBeDefined();
                 expect(error.message).to.equal(
-                    DIErrors.MissingRequiredTypeError(
-                        makeEntryId(typeKey, typeName),
-                    ),
+                    DIErrors.MissingRequiredTypeError(typeKey + "$" + typeName),
                 );
             });
 

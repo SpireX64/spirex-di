@@ -38,9 +38,8 @@ var ID_SEP = "$";
  * @param type - The type token of the binding.
  * @param name - Optional name for the binding (used for named bindings).
  * @return A unique string identifier for the binding.
- * @internal
  */
-export function makeEntryId(type, name) {
+function makeEntryId(type, name) {
     return !!name ? type + ID_SEP + name : type;
 }
 
