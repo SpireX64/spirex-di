@@ -235,6 +235,25 @@ describe("ContainerBuilder", () => {
                     expect(entry.type).to.equal(typeKey);
                     expect(entry.instance).to.equal(expectedValue);
                 });
+
+                test("WHEN set default strategy via builder options", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var expectedValue = 11;
+                    var builder = createContainerBuilder({
+                        ifConflict: "replace",
+                    });
+                    builder.bindInstance(typeKey, 22);
+
+                    // Act ---------
+                    builder.bindInstance(typeKey, expectedValue);
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.instance).to.equal(expectedValue);
+                });
             });
         });
 
@@ -627,6 +646,87 @@ describe("ContainerBuilder", () => {
                 expect(error.message).to.equal(
                     DIErrors.AliasCycle([aliasKey, aliasKey]),
                 );
+            });
+
+            describe("Conflict", () => {
+                test("WHEN strategy 'throw' (default)", () => {
+                    // Arrange -------
+                    var typeKey = "typeKey";
+                    var aliasKey = "aliasKey";
+                    var expectedValue = 11;
+                    var builder = createContainerBuilder()
+                        .bindInstance(typeKey, expectedValue)
+                        .bindAlias(aliasKey, typeKey);
+
+                    // Act -----------
+                    var err = catchError(() =>
+                        builder.bindAlias(aliasKey, "foo"),
+                    );
+
+                    var aliasRef = builder.getAlias(aliasKey);
+
+                    // Assert --------
+                    expect(err).to.not.be.undefined;
+                    expect(err.message).to.equal(
+                        DIErrors.BindingConflict(aliasKey),
+                    );
+                    expect(aliasRef).to.equal(typeKey);
+                });
+
+                test("WHEN strategy 'keep'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var aliasKey = "aliasKey";
+                    var expectedValue = 11;
+                    var builder = createContainerBuilder()
+                        .bindInstance(typeKey, expectedValue)
+                        .bindAlias(aliasKey, typeKey);
+
+                    // Act ---------
+                    builder.bindAlias(aliasKey, "asd", { ifConflict: "keep" });
+                    var aliasRef = builder.getAlias(aliasKey);
+
+                    // Assert ------
+                    expect(aliasRef).to.equal(typeKey);
+                });
+
+                test("WHEN strategy 'replace'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var aliasKey = "aliasKey";
+                    var expectedValue = 11;
+                    var builder = createContainerBuilder()
+                        .bindInstance(typeKey, 22)
+                        .bindAlias(aliasKey, "foo");
+
+                    // Act ---------
+                    builder.bindAlias(aliasKey, typeKey, {
+                        ifConflict: "replace",
+                    });
+                    var aliasRef = builder.getAlias(aliasKey);
+
+                    // Assert ------
+                    expect(aliasRef).to.equal(typeKey);
+                });
+
+                test("WHEN set default strategy via builder options", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var aliasKey = "aliasKey";
+                    var expectedValue = 11;
+                    var builder = createContainerBuilder({
+                        ifConflict: "replace",
+                    })
+                        .bindInstance(typeKey, 22)
+                        .bindAlias(aliasKey, "foo");
+
+                    // Act ---------
+                    builder.bindAlias(aliasKey, typeKey);
+                    var aliasRef = builder.getAlias(aliasKey);
+
+                    // Assert ------
+                    expect(aliasRef).to.equal(typeKey);
+                });
             });
         });
     });
