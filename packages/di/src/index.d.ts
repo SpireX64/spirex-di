@@ -129,17 +129,39 @@ type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
     | TInstanceTypeEntry<TypeMap, T>
     | TFactoryTypeEntry<TypeMap, T>;
 
+/**
+ * A generic type map used for middleware to operate independently of specific container type mappings.
+ *
+ * This allows writing reusable and shareable middleware components
+ * that can be applied across different container configurations
+ */
 type AnyTypeMap = Record<string, any>;
 
+/**
+ * A middleware function that intercepts type binding during container building.
+ * Can be used to transform or validate the entry.
+ *
+ * @param entry - The current type entry that is about to be added to the container.
+ * @param originEntry - The original type entry as it was initially defined, before any middleware modifications.
+ * @returns The final type entry to be registered in the container.
+ */
 type TContainerBuilderMiddlewareOnBind = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
 ) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
 
-type TContainerMiddleware = {
+/**
+ * Container middleware.
+ *
+ * Middleware allows intercepting and extending DI behavior.
+ */
+interface IContainerMiddleware {
+    /** Optional name used to identify the middleware in code or error messages. */
     name?: string;
+
+    /** Called when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind;
-};
+}
 
 interface IContainerBuilder<TypeMap extends TTypeMapBase> {
     /**
@@ -200,7 +222,13 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         options?: TAliasBindingOptions,
     ): IContainerBuilder<TypeMap>;
 
-    hasMiddleware(middleware: TContainerMiddleware): boolean;
+    /**
+     * Checks whether the given middleware is already registered in the container builder.
+     *
+     * @param middleware - The middleware instance to check.
+     * @returns `true` if the middleware is already registered; otherwise, `false`.
+     */
+    hasMiddleware(middleware: IContainerMiddleware): boolean;
 
     /**
      * Checks whether a binding exists for the given type and optional name.
@@ -248,7 +276,14 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
      */
     getAlias(type: keyof TypeMap, name?: string): string | undefined;
 
-    use(middleware: TContainerMiddleware): IContainerBuilder<TypeMap>;
+    /**
+     * Registers a middleware instance.
+     * Middleware allows intercepting and extending DI behavior.
+     *
+     * @param middleware - The middleware instance to register.
+     * @returns The container builder instance for chaining.
+     */
+    use(middleware: IContainerMiddleware): IContainerBuilder<TypeMap>;
 
     /**
      * Finalizes the bindings and builds a container instance.
