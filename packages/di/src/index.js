@@ -36,6 +36,14 @@ function makeEntryId(type, name) {
     return !!name ? type + ID_SEP + name : type;
 }
 
+function isTypeEntry(mayBeTypeEntry) {
+    return (
+        mayBeTypeEntry &&
+        typeof mayBeTypeEntry === "object" &&
+        "$id" in mayBeTypeEntry
+    );
+}
+
 export function createContainerBuilder(builderOptions) {
     /** The default lifecycle to use when a binding does not explicitly define one. */
     var defaultLifecycle =
@@ -54,11 +62,36 @@ export function createContainerBuilder(builderOptions) {
     // region INTERNAL METHODS
 
     /**
-     * Adds a type entry in the registry
+     * Adds a type entry in the registry.
+     * All entries are frozen to ensure immutability.
+     *
+     * When `multibinding` is `false` or not set, the entry replaces any existing entry with the same `$id`.
+     * When `multibinding` is `true` and an entry with the same `$id` already exists:
+     * - If the existing entry is a single binding, it will be converted into a `Set` containing both the old and new entries.
+     * - If the existing entry is already a `Set` (i.e. multibinding), the new entry is added to the set.
+     *
+     * @param entry - entry The type binding entry to store.
+     * @param multibinding - Allows multiple entries under the same type. Otherwise, the new entry replaces the existing one.
+     *
      * @internal
      */
-    function putEntry(entry) {
-        entries.set(entry.$id, Object.freeze(entry));
+    function putEntry(entry, multibinding) {
+        Object.freeze(entry);
+
+        var existingEntry = entries.get(entry.$id);
+        if (!existingEntry || !multibinding) {
+            // No existing entry, or multibinding not enabled:
+            // simply store the new entry (replacing any existing one).
+            entries.set(entry.$id, entry);
+        } else if (isTypeEntry(existingEntry)) {
+            // Existing entry is a single binding:
+            // convert it to a Set and add both the old and new entries.
+            entries.set(entry.$id, new Set().add(existingEntry).add(entry));
+        } else {
+            // Existing entry is already a Set:
+            // add the new entry to the existing set.
+            existingEntry.add(entry);
+        }
     }
 
     /**
@@ -124,7 +157,21 @@ export function createContainerBuilder(builderOptions) {
     }
 
     function findEntry(type, name) {
-        return entries.get(resolveEntryId(type, name));
+        var binding = entries.get(resolveEntryId(type, name));
+
+        // Return the binding if it doesn't exist (undefined)
+        // or if it's a single binding entry
+        if (!binding || isTypeEntry(binding)) return binding;
+
+        // Binding is a Set (multibinding), just return the first entry
+        return binding.values().next().value;
+    }
+
+    function findAllEntries(type, name) {
+        var typeEntry = entries.get(resolveEntryId(type, name));
+        if (!typeEntry) return [];
+        if (isTypeEntry(typeEntry)) return Array.of(typeEntry);
+        return Array.from(typeEntry);
     }
 
     function getAlias(type, name) {
@@ -133,26 +180,34 @@ export function createContainerBuilder(builderOptions) {
 
     function bindInstance(type, instance, options) {
         var $id = makeEntryId(type, options && options.name);
-        if (verifyBinding($id, options && options.ifConflict)) return this;
-        putEntry({
-            $id,
-            type,
-            name: options && options.name,
-            instance,
-        });
+        var ifConflict = options && options.ifConflict;
+        if (verifyBinding($id, ifConflict)) return this;
+        putEntry(
+            {
+                $id,
+                type,
+                name: options && options.name,
+                instance,
+            },
+            ifConflict === "append",
+        );
         return this;
     }
 
     function bindFactory(type, factory, options) {
         var $id = makeEntryId(type, options && options.name);
-        if (verifyBinding($id, options && options.ifConflict)) return this;
-        putEntry({
-            $id,
-            type,
-            name: options && options.name,
-            factory,
-            lifecycle: (options && options.lifecycle) || defaultLifecycle,
-        });
+        var ifConflict = options && options.ifConflict;
+        if (verifyBinding($id, ifConflict)) return this;
+        putEntry(
+            {
+                $id,
+                type,
+                name: options && options.name,
+                factory,
+                lifecycle: (options && options.lifecycle) || defaultLifecycle,
+            },
+            ifConflict === "append",
+        );
         return this;
     }
 
@@ -191,6 +246,7 @@ export function createContainerBuilder(builderOptions) {
     return {
         hasEntry,
         findEntry,
+        findAllEntries,
         getAlias,
         bindInstance,
         bindFactory,

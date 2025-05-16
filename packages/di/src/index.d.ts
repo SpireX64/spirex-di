@@ -32,8 +32,9 @@ type TTypeFactory<
  * - `"throw"`: Throws an error.
  * - `"keep"`: Keeps the existing binding and skips the new one.
  * - `"replace"`: Replaces the existing binding with the new one.
+ * - `"append"`: Adds the new binding alongside the existing one(s)
  */
-type TTypesBindingResolveStrategy = "throw" | "keep" | "replace";
+type TTypesBindingResolveStrategy = "throw" | "keep" | "replace" | "append";
 
 /**
  * Options to control how the binding should behave during registration.
@@ -208,6 +209,21 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase> {
         type: keyof TypeMap,
         name?: string,
     ): Readonly<TTypeEntry<TypeMap, typeof type>> | undefined;
+
+    /**
+     * Returns all type binding entries matching the specified type and optional name.
+     *
+     * This method retrieves both single and multi-bindings associated with the given type and name.
+     * If no matching entries are found, an empty array is returned.
+     *
+     * @param type - The type for which to retrieve binding entries.
+     * @param name - Optional name qualifier of the binding, if named bindings are used.
+     * @returns An array of all matching binding entries. Returns an empty array if none are found.
+     */
+    findAllEntries(
+        type: keyof TypeMap,
+        name?: string,
+    ): Readonly<TTypeEntry<TypeMap, typeof type>>[];
 
     /**
      * Returns the origin type reference that an alias points to, if any.

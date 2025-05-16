@@ -91,6 +91,82 @@ describe("ContainerBuilder", () => {
                 // Assert --------
                 expect(entry).to.be.undefined;
             });
+
+            test("WHEN type have bunch of bindings", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var builder = createContainerBuilder()
+                    .bindInstance(typeKey, 11)
+                    .bindInstance(typeKey, 22, { ifConflict: "append" });
+
+                // Act -------------
+                var entry = builder.findEntry(typeKey);
+
+                // Assert ----------
+                // Returns the first bound entry
+                expect(entry).toBeDefined();
+                expect(entry.instance).toBe(11);
+            });
+        });
+
+        describe("findAllEntries", () => {
+            test("WHEN there are no bindings for given type", () => {
+                // Arrange ----------
+                var builder = createContainerBuilder();
+
+                // Act --------------
+                var entries = builder.findAllEntries("typeKey");
+
+                // Assert -----------
+                expect(entries).instanceOf(Array);
+                expect(entries).is.empty;
+            });
+
+            test("WHEN there are no bindings for given type and name", () => {
+                // Arrange ----------
+                var builder = createContainerBuilder();
+
+                // Act --------------
+                var entries = builder.findAllEntries("typeKey", "typeName");
+
+                // Assert -----------
+                expect(entries).instanceOf(Array);
+                expect(entries).is.empty;
+            });
+
+            test("WHEN there is only one binding for given type", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var builder = createContainerBuilder().bindInstance(
+                    typeKey,
+                    42,
+                );
+
+                // Act -------------
+                var entries = builder.findAllEntries(typeKey);
+
+                // Assert ----------
+                expect(entries).instanceOf(Array);
+                expect(entries).has.length(1);
+            });
+
+            test("WHEN there is only one binding for given type and name", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var builder = createContainerBuilder().bindInstance(
+                    typeKey,
+                    42,
+                    { name: typeName },
+                );
+
+                // Act -------------
+                var entries = builder.findAllEntries(typeKey, typeName);
+
+                // Assert ----------
+                expect(entries).instanceOf(Array);
+                expect(entries).has.length(1);
+            });
         });
     });
 
@@ -253,6 +329,73 @@ describe("ContainerBuilder", () => {
                     expect(entry).not.to.be.undefined;
                     expect(entry.type).to.equal(typeKey);
                     expect(entry.instance).to.equal(expectedValue);
+                });
+
+                test("WHEN strategy 'append' for first bind", () => {
+                    // Arrange --------
+                    var typeKey = "typeKey";
+                    var builder = createContainerBuilder();
+
+                    // Act ------------
+                    builder.bindInstance(typeKey, 42, {
+                        ifConflict: "append",
+                    });
+
+                    var entry = builder.findEntry(typeKey);
+                    var allEntries = builder.findAllEntries(typeKey);
+
+                    // Assert ---------
+                    expect(entry).toBeDefined();
+                    expect(entry.instance).toBe(42);
+                    expect(allEntries).have.length(1);
+                    expect(allEntries[0]).toBe(entry);
+                });
+
+                test("WHEN strategy 'append' for next bindings", () => {
+                    // Arrange --------
+                    var typeKey = "typeKey";
+                    var values = [11, 22, 33];
+                    var builder = createContainerBuilder().bindInstance(
+                        typeKey,
+                        values[0],
+                    );
+
+                    // Act ------------
+                    builder.bindInstance(typeKey, values[1], {
+                        ifConflict: "append",
+                    });
+                    builder.bindInstance(typeKey, values[2], {
+                        ifConflict: "append",
+                    });
+
+                    var allEntries = builder.findAllEntries(typeKey);
+
+                    // Assert ---------
+                    expect(allEntries).have.length(values.length);
+                    expect(allEntries.map((it) => it.instance)).toEqual(
+                        expect.arrayContaining(values),
+                    );
+                });
+
+                test("WHEN strategy 'replace' after 'append'", () => {
+                    // Arrange ----------
+                    var typeKey = "typeKey";
+                    var builder = createContainerBuilder()
+                        .bindInstance(typeKey, 11, { ifConflict: "append" })
+                        .bindInstance(typeKey, 22, { ifConflict: "append" });
+
+                    // Act --------------
+                    builder.bindInstance(typeKey, 33, {
+                        ifConflict: "replace",
+                    });
+
+                    var entry = builder.findEntry(typeKey);
+                    var allEntries = builder.findAllEntries(typeKey);
+
+                    // Assert -----------
+                    expect(entry).toBeDefined();
+                    expect(entry.instance).toBe(33);
+                    expect(allEntries).have.length(1);
                 });
             });
         });
@@ -426,6 +569,82 @@ describe("ContainerBuilder", () => {
                     expect(entry.type).to.equal(typeKey);
                     expect(entry.factory).to.equal(expectedFactory);
                     expect(expectedFactory).not.toHaveBeenCalled();
+                });
+
+                test("WHEN strategy 'append' for first bind", () => {
+                    // Arrange --------
+                    var typeKey = "typeKey";
+                    var expectedFactory = () => {};
+                    var builder = createContainerBuilder();
+
+                    // Act ------------
+                    builder.bindFactory(typeKey, expectedFactory, {
+                        ifConflict: "append",
+                    });
+
+                    var entry = builder.findEntry(typeKey);
+                    var allEntries = builder.findAllEntries(typeKey);
+
+                    // Assert ---------
+                    expect(entry).toBeDefined();
+                    expect(entry.factory).toBe(expectedFactory);
+                    expect(allEntries).have.length(1);
+                    expect(allEntries[0]).toBe(entry);
+                });
+
+                test("WHEN strategy 'append' for next bindings", () => {
+                    // Arrange --------
+                    var typeKey = "typeKey";
+                    var factories = [() => 11, () => 22, () => 33];
+                    var builder = createContainerBuilder().bindFactory(
+                        typeKey,
+                        factories[0],
+                    );
+
+                    // Act ------------
+                    builder.bindFactory(typeKey, factories[1], {
+                        ifConflict: "append",
+                    });
+                    builder.bindFactory(typeKey, factories[2], {
+                        ifConflict: "append",
+                    });
+
+                    var allEntries = builder.findAllEntries(typeKey);
+
+                    // Assert ---------
+                    expect(allEntries).have.length(factories.length);
+                    expect(allEntries.map((it) => it.factory)).toEqual(
+                        expect.arrayContaining(factories),
+                    );
+                });
+
+                test("WHEN strategy 'replace' after 'append'", () => {
+                    // Arrange ----------
+                    var typeKey = "typeKey";
+                    var expectedFactory = () => {};
+                    var builder = createContainerBuilder()
+                        .bindFactory(typeKey, () => {}, {
+                            ifConflict: "append",
+                        })
+                        .bindFactory(typeKey, () => {}, {
+                            ifConflict: "append",
+                        });
+
+                    // Act --------------
+                    builder.bindFactory(typeKey, expectedFactory, {
+                        ifConflict: "replace",
+                    });
+
+                    var entry = builder.findEntry(typeKey);
+                    var allEntries = builder.findAllEntries(typeKey);
+
+                    // Assert -----------
+                    expect(entry).toBeDefined();
+                    expect(entry.factory).toBe(expectedFactory);
+                    expect(allEntries).have.length(1);
+                    expect(allEntries.map((it) => it.factory)).toContain(
+                        expectedFactory,
+                    );
                 });
             });
 
