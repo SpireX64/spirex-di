@@ -28,7 +28,7 @@ function catchError(procedure) {
 }
 
 // @ts-nocheck
-describe("ContainerBuilder", () => {
+describe("Container Builder", () => {
     describe("Create", () => {
         test("WHEN use default factory", () => {
             // Act -------------------
@@ -1419,6 +1419,167 @@ describe("ContainerBuilder", () => {
 
                 // Assert --------
                 expect(entry).toBeDefined();
+            });
+        });
+    });
+});
+
+describe("Container Scope", () => {
+    describe("Resolve type instances", () => {
+        describe("Get type instance", () => {
+            test("WHEN get not bound type instance", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var scope = createContainerBuilder().build();
+
+                // Act ------------
+                var error = catchError(() => {
+                    scope.get(typeKey);
+                });
+
+                // Assert ---------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.TypeBindingNotFound(typeKey),
+                );
+            });
+
+            test("WHEN get not bound type instance with name", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var scope = createContainerBuilder().build();
+
+                // Act ------------
+                var error = catchError(() => {
+                    scope.get(typeKey, typeName);
+                });
+
+                // Assert ---------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.TypeBindingNotFound(typeKey, typeName),
+                );
+            });
+
+            test("WHEN get from instance binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var scope = createContainerBuilder()
+                    .bindInstance(typeKey, expectedValue)
+                    .build();
+
+                // Act ------------
+                var resolvedValue = scope.get(typeKey);
+
+                // Assert ---------
+                expect(resolvedValue).toBe(expectedValue);
+            });
+
+            test("WHEN get from named instance binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var expectedValue = 42;
+                var scope = createContainerBuilder()
+                    .bindInstance(typeKey, expectedValue, { name: typeName })
+                    .build();
+
+                // Act ------------
+                var resolvedValue = scope.get(typeKey, typeName);
+
+                // Assert ---------
+                expect(resolvedValue).toBe(expectedValue);
+            });
+
+            test("WHEN get from factory binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var factoryMock = vi.fn(() => expectedValue);
+                var scope = createContainerBuilder()
+                    .bindFactory(typeKey, factoryMock)
+                    .build();
+
+                // Act ------------
+                var resolvedValue = scope.get(typeKey);
+
+                // Assert ---------
+                expect(resolvedValue).toBe(expectedValue);
+                expect(factoryMock).toHaveBeenCalled();
+            });
+
+            test("WHEN get from named factory binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var expectedValue = 42;
+                var factoryMock = vi.fn(() => expectedValue);
+                var scope = createContainerBuilder()
+                    .bindFactory(typeKey, factoryMock, { name: typeName })
+                    .build();
+
+                // Act ------------
+                var resolvedValue = scope.get(typeKey, typeName);
+
+                // Assert ---------
+                expect(resolvedValue).toBe(expectedValue);
+                expect(factoryMock).toHaveBeenCalled();
+            });
+
+            test("WHEN get from alias instance binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var aliasKey = "aliasKey";
+                var expectedValue = 42;
+                var scope = createContainerBuilder()
+                    .bindInstance(typeKey, expectedValue)
+                    .bindAlias(aliasKey, typeKey)
+                    .build();
+
+                // Act ------------
+                var resolvedValue = scope.get(aliasKey);
+
+                // Assert ---------
+                expect(resolvedValue).toBe(expectedValue);
+            });
+
+            test("WHEN get from named alias instance binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var aliasKey = "aliasKey";
+                var aliasName = "aliasName";
+                var expectedValue = 42;
+                var scope = createContainerBuilder()
+                    .bindInstance(typeKey, expectedValue)
+                    .bindAlias(aliasKey, typeKey, { name: aliasName })
+                    .build();
+
+                // Act ------------
+                var resolvedValue = scope.get(aliasKey, aliasName);
+
+                // Assert ---------
+                expect(resolvedValue).toBe(expectedValue);
+            });
+
+            test("WHEN get first instance of multi binding", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var scope = createContainerBuilder()
+                    .bindInstance(typeKey, expectedValue, {
+                        ifConflict: "append",
+                    })
+                    .bindInstance(typeKey, 4, { ifConflict: "append" })
+                    .bindInstance(typeKey, 2, { ifConflict: "append" })
+                    .build();
+
+                // Act ----------
+                var value = scope.get(typeKey);
+
+                // Assert -------
+                expect(value).toBe(expectedValue);
             });
         });
     });

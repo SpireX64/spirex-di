@@ -24,6 +24,9 @@ export var DIErrors = Object.freeze({
 
     MiddlewareEntryTypeMismatch: (middlewareName, newEntryId, originEntryId) =>
         `Middleware "${middlewareName || "unnamed"}" altered the entry type: Expected '${originEntryId}', but received '${newEntryId}`,
+
+    TypeBindingNotFound: (type, name) =>
+        `Type binding ${type}${name ? ` with name "${name}` : ""} not found.`,
 });
 
 /** A char used to separate the type and name in the unique ID of a binding */
@@ -50,6 +53,53 @@ function isTypeEntry(mayBeTypeEntry) {
         "$id" in mayBeTypeEntry &&
         "type" in mayBeTypeEntry
     );
+}
+
+/**
+ * Resolves the final target entry ID for a given type and optional name,
+ * following any alias chains.
+ *
+ * @param aliases - Map of registered alias entries.
+ * @param type - The type key to resolve.
+ * @param name - Optional binding name.
+ * @param aliasId - Optional starting alias ID.
+ * @return The resolved binding entry ID, or undefined if not found.
+ *
+ * @throws {DIErrors.AliasCycle} when an alias cycle is detected
+ */
+function resolveEntryId(aliases, type, name, aliasId) {
+    var $id,
+        aliasStack = [];
+    if (aliasId) aliasStack.push(aliasId);
+    for (
+        var $alias = makeEntryId(type, name);
+        $alias;
+        $alias = aliases.get($alias)
+    ) {
+        var isCycle = aliasStack.includes($alias);
+        aliasStack.push($alias);
+        if (isCycle) throw new Error(DIErrors.AliasCycle(aliasStack));
+        $id = $alias;
+    }
+    return $id;
+}
+
+function createRootContainerScope(blueprint) {
+    function findEntry(type, name) {
+        var $id = resolveEntryId(blueprint.aliases, type, name);
+        var binding = blueprint.entries.get($id);
+        if (!binding || isTypeEntry(binding)) return binding;
+        return binding.values().next().value;
+    }
+
+    function get(type, name) {
+        var entry = findEntry(type, name);
+        if (!entry) throw new Error(DIErrors.TypeBindingNotFound(type, name));
+        if (entry.instance) return entry.instance;
+        return entry.factory();
+    }
+
+    return { id: "", get };
 }
 
 export function createContainerBuilder(builderOptions) {
@@ -155,45 +205,16 @@ export function createContainerBuilder(builderOptions) {
         return false;
     }
 
-    /**
-     * Resolves the final target entry ID for a given type and optional name,
-     * following any alias chains.
-     *
-     * @param type - The type key to resolve.
-     * @param name - Optional binding name.
-     * @param aliasId - Optional starting alias ID.
-     * @return The resolved binding entry ID, or undefined if not found.
-     *
-     * @throws {DIErrors.AliasCycle} when an alias cycle is detected
-     * @internal
-     */
-    function resolveEntryId(type, name, aliasId) {
-        var $id;
-        var aliasStack = [];
-        if (aliasId) aliasStack.push(aliasId);
-        for (
-            var $alias = makeEntryId(type, name);
-            $alias;
-            $alias = aliases.get($alias)
-        ) {
-            var isCycle = aliasStack.includes($alias);
-            aliasStack.push($alias);
-            if (isCycle) throw new Error(DIErrors.AliasCycle(aliasStack));
-            $id = $alias;
-        }
-        return $id;
-    }
-
     // endregion INTERNAL METHODS
 
     // region PUBLIC METHODS
 
     function hasEntry(type, name) {
-        return entries.has(resolveEntryId(type, name));
+        return entries.has(resolveEntryId(aliases, type, name));
     }
 
     function findEntry(type, name) {
-        var binding = entries.get(resolveEntryId(type, name));
+        var binding = entries.get(resolveEntryId(aliases, type, name));
 
         // Return the binding if it doesn't exist (undefined)
         // or if it's a single binding entry
@@ -204,7 +225,7 @@ export function createContainerBuilder(builderOptions) {
     }
 
     function findAllEntries(type, name) {
-        var typeEntry = entries.get(resolveEntryId(type, name));
+        var typeEntry = entries.get(resolveEntryId(aliases, type, name));
         if (!typeEntry) return [];
         if (isTypeEntry(typeEntry)) return Array.of(typeEntry);
         return Array.from(typeEntry);
@@ -262,7 +283,12 @@ export function createContainerBuilder(builderOptions) {
         if (verifyBinding($aliasId, options && options.ifConflict)) return this;
 
         // Check alias reference cycle
-        resolveEntryId(originType, options && options.originName, $aliasId);
+        resolveEntryId(
+            aliases,
+            originType,
+            options && options.originName,
+            $aliasId,
+        );
 
         aliases.set(
             $aliasId,
@@ -283,7 +309,7 @@ export function createContainerBuilder(builderOptions) {
     function build() {
         // Aliases verification
         aliases.forEach(($origin, $alias, map) => {
-            var realOriginId = resolveEntryId($origin);
+            var realOriginId = resolveEntryId(aliases, $origin);
 
             // Verify alias origin type binding
             if (!entries.has(realOriginId))
@@ -299,7 +325,11 @@ export function createContainerBuilder(builderOptions) {
                 throw new Error(DIErrors.MissingRequiredTypeError($id));
         });
 
-        return {};
+        return createRootContainerScope({
+            entries,
+            aliases,
+            middlewares,
+        });
     }
 
     // endregion PUBLIC METHODS

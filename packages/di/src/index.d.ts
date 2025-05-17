@@ -239,6 +239,12 @@ type TBinderDelegate<TypeMap extends TTypeMapBase> = (
     binder: ITypeEntryBinder<TypeMap>,
 ) => void;
 
+interface IContainerScope<TypeMap extends TTypeMapBase> {
+    readonly id: string;
+
+    get<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T];
+}
+
 interface IContainerBuilder<TypeMap extends TTypeMapBase>
     extends ITypeEntryBinder<TypeMap> {
     /**
@@ -334,7 +340,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
      *
      * @returns The built DI container.
      */
-    build(): object;
+    build(): IContainerScope<TypeMap>;
 }
 
 /** Global options for the container builder. */
