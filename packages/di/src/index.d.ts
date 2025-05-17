@@ -324,7 +324,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
      *
      * @returns The origin type reference, or undefined if no alias is registered.
      */
-    getAlias(type: keyof TypeMap, name?: string): string | undefined;
+    getAliasOrigin(type: keyof TypeMap, name?: string): string | undefined;
 
     /**
      * Registers a middleware instance.

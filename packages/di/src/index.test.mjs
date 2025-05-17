@@ -59,10 +59,10 @@ describe("Container Builder", () => {
                 builder.bindInstance(typeKey, 42);
 
                 // Act ----------
-                var result = builder.hasEntry("typeKey");
+                var result = builder.hasEntry(typeKey);
 
                 // Assert -------
-                expect(result).to.be.true;
+                expect(result).is.true;
             });
         });
 
@@ -882,7 +882,7 @@ describe("Container Builder", () => {
                         builder.bindAlias(aliasKey, "foo"),
                     );
 
-                    var aliasRef = builder.getAlias(aliasKey);
+                    var aliasRef = builder.getAliasOrigin(aliasKey);
 
                     // Assert --------
                     expect(err).to.not.be.undefined;
@@ -903,7 +903,7 @@ describe("Container Builder", () => {
 
                     // Act ---------
                     builder.bindAlias(aliasKey, "asd", { ifConflict: "keep" });
-                    var aliasRef = builder.getAlias(aliasKey);
+                    var aliasRef = builder.getAliasOrigin(aliasKey);
 
                     // Assert ------
                     expect(aliasRef).to.equal(typeKey);
@@ -921,7 +921,7 @@ describe("Container Builder", () => {
                     builder.bindAlias(aliasKey, typeKey, {
                         ifConflict: "replace",
                     });
-                    var aliasRef = builder.getAlias(aliasKey);
+                    var aliasRef = builder.getAliasOrigin(aliasKey);
 
                     // Assert ------
                     expect(aliasRef).to.equal(typeKey);
@@ -939,7 +939,7 @@ describe("Container Builder", () => {
 
                     // Act ---------
                     builder.bindAlias(aliasKey, typeKey);
-                    var aliasRef = builder.getAlias(aliasKey);
+                    var aliasRef = builder.getAliasOrigin(aliasKey);
 
                     // Assert ------
                     expect(aliasRef).to.equal(typeKey);
@@ -1278,11 +1278,11 @@ describe("Container Builder", () => {
                         .bindAlias(aliasKey, typeKey);
 
                     // Act ------------
-                    var aliasRefBefore = builder.getAlias(aliasKey);
+                    var aliasRefBefore = builder.getAliasOrigin(aliasKey);
 
                     builder.build();
 
-                    var aliasRefAfter = builder.getAlias(aliasKey);
+                    var aliasRefAfter = builder.getAliasOrigin(aliasKey);
 
                     // Assert ---------
                     expect(aliasRefBefore).toBe(typeKey);
@@ -1305,17 +1305,17 @@ describe("Container Builder", () => {
                         .bindAlias(aliasD, aliasC);
 
                     // Act --------------
-                    var aliasABefore = builder.getAlias(aliasA);
-                    var aliasBBefore = builder.getAlias(aliasB);
-                    var aliasCBefore = builder.getAlias(aliasC);
-                    var aliasDBefore = builder.getAlias(aliasD);
+                    var aliasABefore = builder.getAliasOrigin(aliasA);
+                    var aliasBBefore = builder.getAliasOrigin(aliasB);
+                    var aliasCBefore = builder.getAliasOrigin(aliasC);
+                    var aliasDBefore = builder.getAliasOrigin(aliasD);
 
                     builder.build();
 
-                    var aliasAAfter = builder.getAlias(aliasA);
-                    var aliasBAfter = builder.getAlias(aliasB);
-                    var aliasCAfter = builder.getAlias(aliasC);
-                    var aliasDAfter = builder.getAlias(aliasD);
+                    var aliasAAfter = builder.getAliasOrigin(aliasA);
+                    var aliasBAfter = builder.getAliasOrigin(aliasB);
+                    var aliasCAfter = builder.getAliasOrigin(aliasC);
+                    var aliasDAfter = builder.getAliasOrigin(aliasD);
 
                     // Assert -----------
                     expect(aliasABefore).toBe(typeKey);
