@@ -250,6 +250,17 @@ interface ITypesResolver<TypeMap extends TTypeMapBase> {
      * @throws {Error} If a circular dependency is detected while resolving the instance.
      */
     get<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T];
+
+    /**
+     * Attempts to resolve a type from the container, but does not throw
+     * if the binding is missing. Returns `undefined` instead.
+     *
+     * @typeParam T - A specific token key from the TypeMap.
+     * @param type - The token representing the type to resolve.
+     * @param name -  (Optional) The name of the specific binding to retrieve.
+     * @returns An instance of the requested type, or `undefined` if not found.
+     */
+    maybe<T extends keyof TypeMap>(type: T, name?: string): T | undefined;
 }
 
 /**

@@ -1726,6 +1726,53 @@ describe("Container Scope", () => {
                 );
             });
         });
+
+        describe("Maybe type instance", () => {
+            test("WHEN type has one binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var container = createContainerBuilder()
+                    .bindInstance(typeKey, expectedValue)
+                    .build();
+
+                // Act ------------
+                var instance = container.maybe(typeKey);
+
+                // Assert ---------
+                expect(instance).toBe(expectedValue);
+            });
+
+            test("WHEN type has many bindings", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var container = createContainerBuilder()
+                    .bindInstance(typeKey, expectedValue, {
+                        ifConflict: "append",
+                    })
+                    .bindInstance(typeKey, 11, { ifConflict: "append" })
+                    .build();
+
+                // Act ------------
+                var instance = container.maybe(typeKey);
+
+                // Assert ---------
+                expect(instance).toBe(expectedValue);
+            });
+
+            test("WHEN type has no bindings", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var container = createContainerBuilder().build();
+
+                // Act ----------
+                var instance = container.maybe(typeKey);
+
+                // Assert -------
+                expect(instance).toBeUndefined();
+            });
+        });
     });
 
     describe("Lifecycles", () => {

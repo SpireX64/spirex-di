@@ -283,20 +283,32 @@ function createRootContainerScope(blueprint) {
         return instance;
     }
 
+    function getInstance(entry, scope) {
+        // Return the directly bound instance, if any (from bindInstance)
+        if (entry.instance) return entry.instance;
+
+        // Attempt to get cached instance from current scope
+        var instance =
+            scope.locals.get(entry) || activateInstance(entry, scope);
+
+        // Cache the instance in scope locals if lifecycle is not transient
+        if (entry.lifecycle !== "transient") scope.locals.set(entry, instance);
+
+        return instance;
+    }
+
     var scopePrototype = {
         get(type, name) {
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
-            if (entry.instance) return entry.instance;
+            return getInstance(entry, this);
+        },
 
-            var instance =
-                this.locals.get(entry) || activateInstance(entry, this);
-
-            if (entry.lifecycle !== "transient")
-                this.locals.set(entry, instance);
-
-            return instance;
+        maybe(type, name) {
+            var entry = blueprint.findEntry(type, name);
+            if (entry) return getInstance(entry, this);
+            return undefined;
         },
     };
 
