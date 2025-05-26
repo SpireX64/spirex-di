@@ -21,10 +21,9 @@ type TLifecycle = "singleton" | "lazy" | "transient";
  *
  * @returns An instance of the type associated with the token `T`.
  */
-type TTypeFactory<
-    TypeMap extends TTypeMapBase,
-    T extends keyof TypeMap,
-> = () => TypeMap[T];
+type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
+    r: ITypesResolver<TypeMap>,
+) => TypeMap[T];
 
 /**
  * Strategy to apply when a binding for a given type already exists.
@@ -228,6 +227,10 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     ): this;
 }
 
+interface ITypesResolver<TypeMap extends TTypeMapBase> {
+    get<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T];
+}
+
 /**
  * A delegate function that receives a type binding interface
  * to register type bindings.
@@ -239,10 +242,9 @@ type TBinderDelegate<TypeMap extends TTypeMapBase> = (
     binder: ITypeEntryBinder<TypeMap>,
 ) => void;
 
-interface IContainerScope<TypeMap extends TTypeMapBase> {
+interface IContainerScope<TypeMap extends TTypeMapBase>
+    extends ITypesResolver<TypeMap> {
     readonly id: string;
-
-    get<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T];
 }
 
 interface IContainerBuilder<TypeMap extends TTypeMapBase>

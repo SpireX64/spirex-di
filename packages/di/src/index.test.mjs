@@ -1582,5 +1582,66 @@ describe("Container Scope", () => {
                 expect(value).toBe(expectedValue);
             });
         });
+
+        describe("Get type instance with dependencies", () => {
+            test("WHEN has one dependency", () => {
+                // Arrange ---------
+                const expectedValue = "fooBar";
+                const container = createContainerBuilder()
+                    .bindInstance("instTypeKey", "foo")
+                    .bindFactory(
+                        "factoryTypeKey",
+                        (r) => r.get("instTypeKey") + "Bar",
+                    )
+                    .build();
+
+                // Act -------------
+                const result = container.get("factoryTypeKey");
+
+                // Assert ----------
+                expect(result).toBe(expectedValue);
+            });
+
+            test("WHEN has many dependencies", () => {
+                // Arrange ----------
+                const values = [11, 22, 33];
+                const expectedValue = values.reduce((s, n) => s + n, 0);
+
+                const container = createContainerBuilder()
+                    .bindInstance("value1", values[0])
+                    .bindInstance("value2", values[1])
+                    .bindInstance("value3", values[2])
+                    .bindFactory(
+                        "sum",
+                        (r) =>
+                            r.get("value1") + r.get("value2") + r.get("value3"),
+                    )
+                    .build();
+
+                // Act --------------
+                const result = container.get("sum");
+
+                // Assert -----------
+                expect(result).toBe(expectedValue);
+            });
+
+            test("WHEN has dependencies chain", () => {
+                // Arrange ----------
+                const values = [11, 22, 33];
+                const expectedValue = values.reduce((s, n) => s + n, 0);
+
+                const container = createContainerBuilder()
+                    .bindInstance("value1", values[0])
+                    .bindFactory("value2", (r) => values[1] + r.get("value1"))
+                    .bindFactory("value3", (r) => values[2] + r.get("value2"))
+                    .build();
+
+                // Act --------------
+                const result = container.get("value3");
+
+                // Assert -----------
+                expect(result).toBe(expectedValue);
+            });
+        });
     });
 });

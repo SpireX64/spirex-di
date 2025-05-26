@@ -216,15 +216,14 @@ function createContainerBlueprint() {
 }
 
 function createRootContainerScope(blueprint) {
-    function get(type, name) {
-        var entry = blueprint.findEntry(type, name);
-        if (!entry) throw new Error(DIErrors.TypeBindingNotFound(type, name));
-        if (entry.instance) return entry.instance;
-        return entry.factory();
-    }
-
     const scopePrototype = {
-        get,
+        get(type, name) {
+            var entry = blueprint.findEntry(type, name);
+            if (!entry)
+                throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            if (entry.instance) return entry.instance;
+            return entry.factory(this);
+        },
     };
 
     return Object.setPrototypeOf({ id: "" }, scopePrototype);
