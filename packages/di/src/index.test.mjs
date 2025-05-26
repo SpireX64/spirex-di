@@ -1870,6 +1870,73 @@ describe("Container Scope", () => {
             });
         });
 
-        // describe("Transient", () => {});
+        describe("Transient", () => {
+            test("WHEN build container", () => {
+                // Arrange ------------
+                var expectedValue = 42;
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => ({ value: expectedValue }));
+
+                var builder = createContainerBuilder().bindFactory(
+                    typeKey,
+                    factory,
+                    { lifecycle: "transient" },
+                );
+
+                // Act ----------------
+                builder.build();
+
+                // Assert -------------
+                // Instance of type was not created on container build
+                expect(factory).not.toHaveBeenCalled();
+            });
+
+            test("WHEN get instance", () => {
+                // Arrange ------------
+                var expectedValue = 42;
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => ({ value: expectedValue }));
+
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, { lifecycle: "transient" })
+                    .build();
+
+                // Act ----------------
+                var instance = container.get(typeKey);
+
+                // Assert -------------
+                // 1. Instance of type created on resolve
+                expect(factory).toHaveBeenCalledTimes(1);
+
+                // 2. Resolved with expected value
+                expect(instance.value).toBe(expectedValue);
+            });
+
+            test("WHEN get many instances", () => {
+                // Arrange ------------
+                var expectedValue = 42;
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => ({ value: expectedValue }));
+
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, { lifecycle: "transient" })
+                    .build();
+
+                // Act ----------------
+                var instanceA = container.get(typeKey);
+                var instanceB = container.get(typeKey);
+
+                // Assert -------------
+                // 1. Instance of type was created on each resolve
+                expect(factory).toHaveBeenCalledTimes(2);
+
+                // 2. Resolved with expected value
+                expect(instanceA.value).toBe(expectedValue);
+                expect(instanceB.value).toBe(expectedValue);
+
+                // 3. Resolved instances not a same
+                expect(instanceB).not.toBe(instanceA);
+            });
+        });
     });
 });
