@@ -228,26 +228,48 @@ function createContainerBlueprint() {
 }
 
 function createRootContainerScope(blueprint) {
+    // The activation stack is used to track the chain of type activations
+    // to detect circular dependencies during instance creation
     var activationStack = [];
 
+    /**
+     * Activates (creates) an instance for a given type entry.
+     *
+     * Tracks the current activation path using a stack to detect and prevent circular dependencies.
+     *
+     * @param entry - The type entry to activate. Must contain a factory function and optional cached instance.
+     * @param scope - The current container scope, used to resolve dependencies during factory execution.
+     *
+     * @return The created instance associated with the entry.
+     */
     function activateInstance(entry, scope) {
+        // If it is instance binding, return instance immediately
         if (entry.instance !== undefined) return entry.instance;
 
+        // Check for circular dependency by verifying if the entry is already being activated
         const hasDependencyCycle = activationStack.includes(entry);
+
+        // Push the current entry to the activation stack
         activationStack.push(entry);
 
         if (hasDependencyCycle) {
+            // If a cycle is detected, throw a detailed error
             var error = new Error(
                 DIErrors.DependenciesCycle(
                     entry.$id,
                     activationStack.map((it) => it.$id),
                 ),
             );
+
+            // Clear the activation stack to avoid residual state
             activationStack.length = 0;
             throw error;
         }
 
+        // Call the factory to create the instance, passing the current scope as resolver
         const instance = entry.factory(scope);
+
+        // Remove the entry from the activation stack after successful creation
         activationStack.pop();
 
         return instance;

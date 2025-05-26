@@ -19,10 +19,14 @@ type TLifecycle = "singleton" | "lazy" | "transient";
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
  * @typeParam T - A specific token key from the TypeMap.
  *
+ * @param resolver - A helper object used to resolve other dependencies from the container.
+ *                   It provides access to the container's entries, allowing factories to
+ *                   request other services when constructing a new instance.
+ *
  * @returns An instance of the type associated with the token `T`.
  */
 type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
-    r: ITypesResolver<TypeMap>,
+    resolver: ITypesResolver<TypeMap>,
 ) => TypeMap[T];
 
 /**
@@ -227,7 +231,24 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     ): this;
 }
 
+/**
+ * An interface that provides access to the container's type resolution mechanism.
+ *
+ * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
+ */
 interface ITypesResolver<TypeMap extends TTypeMapBase> {
+    /**
+     * Retrieves an instance associated with the given type token and optional name.
+     *
+     * @typeParam T - A specific token key from the TypeMap.
+     * @param type - The token representing the type to resolve.
+     * @param name - (Optional) The name of the specific binding to retrieve.
+     *
+     * @returns An instance of the requested type.
+     *
+     * @throws {Error} If the requested type or named binding does not exist in the container.
+     * @throws {Error} If a circular dependency is detected while resolving the instance.
+     */
     get<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T];
 }
 
