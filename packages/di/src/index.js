@@ -293,7 +293,13 @@ function createRootContainerScope(blueprint) {
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
             if (entry.instance) return entry.instance;
 
-            return this.locals.get(entry) || activateInstance(entry, this);
+            var instance =
+                this.locals.get(entry) || activateInstance(entry, this);
+
+            if (entry.lifecycle !== "transient")
+                this.locals.set(entry, instance);
+
+            return instance;
         },
     };
 
@@ -304,7 +310,14 @@ function createRootContainerScope(blueprint) {
 
     // Singletons activation
     blueprint.forEach((typeEntry) => {
-        if (typeEntry.factory && typeEntry.lifecycle === "singleton") {
+        if (
+            // Instance is not defined
+            typeEntry.instance === undefined &&
+            // Has factory function
+            typeEntry.factory &&
+            // It is singleton binding
+            typeEntry.lifecycle === "singleton"
+        ) {
             rootScope.locals.set(
                 typeEntry,
                 activateInstance(typeEntry, rootScope),

@@ -1800,7 +1800,75 @@ describe("Container Scope", () => {
             });
         });
 
-        // describe("Lazy singleton", () => {});
+        describe("Lazy singleton", () => {
+            test("WHEN build container", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var factory = vi.fn(() => ({ value: expectedValue }));
+
+                var builder = createContainerBuilder().bindFactory(
+                    typeKey,
+                    factory,
+                    { lifecycle: "lazy" },
+                );
+
+                // Act ----------
+                builder.build();
+
+                // Assert -------
+                // Lazy Singleton was not created on container build
+                expect(factory).not.toHaveBeenCalled();
+            });
+
+            test("WHEN get instance from container", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var factory = vi.fn(() => ({ value: expectedValue }));
+
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, { lifecycle: "lazy" })
+                    .build();
+
+                // Act ----------
+                var instance = container.get(typeKey);
+
+                // Assert -------
+                // Lazy Singleton was created by factory call
+                expect(factory).toHaveBeenCalledTimes(1);
+                expect(factory).toHaveReturnedWith(instance);
+
+                // Resolved expected instance
+                expect(instance.value).toBe(expectedValue);
+            });
+
+            test("WHEN get many instances", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var factory = vi.fn(() => ({ value: expectedValue }));
+
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, { lifecycle: "lazy" })
+                    .build();
+
+                // Act ----------
+                var instanceA = container.get(typeKey);
+                var instanceB = container.get(typeKey);
+
+                // Assert -------
+                // 1. Lazy Singleton was created by factory call
+                expect(factory).toHaveBeenCalledTimes(1);
+                expect(factory).toHaveReturnedWith(instanceA);
+
+                // 2. Resolved expected instance
+                expect(instanceA.value).toBe(expectedValue);
+
+                // 3. Resolved with same instance
+                expect(instanceB).toBe(instanceA);
+            });
+        });
 
         // describe("Transient", () => {});
     });
