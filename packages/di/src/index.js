@@ -254,9 +254,6 @@ function createRootContainerScope(blueprint) {
      * @return The created instance associated with the entry.
      */
     function activateInstance(entry, scope) {
-        // If it is instance binding, return instance immediately
-        if (entry.instance !== undefined) return entry.instance;
-
         // Check for circular dependency by verifying if the entry is already being activated
         const hasDependencyCycle = activationStack.includes(entry);
 
