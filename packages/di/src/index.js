@@ -223,7 +223,11 @@ function createRootContainerScope(blueprint) {
         return entry.factory();
     }
 
-    return { id: "", get };
+    const scopePrototype = {
+        get,
+    };
+
+    return Object.setPrototypeOf({ id: "" }, scopePrototype);
 }
 
 export function createContainerBuilder(builderOptions) {
