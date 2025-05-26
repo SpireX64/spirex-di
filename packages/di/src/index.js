@@ -42,6 +42,9 @@ export var DIErrors = Object.freeze({
                 : entryType + CHAIN_SEP + entryType;
         return `Activation failed: A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainString})`;
     },
+
+    MixedLifecycleBindings: (type, lifecycleA, lifecycleB) =>
+        `Mixed lifecycle bindings detected for type "${type}": ${lifecycleA}, ${lifecycleB}`,
 });
 
 /**
@@ -362,17 +365,37 @@ export function createContainerBuilder(builderOptions) {
      *
      * @param id The unique type identifier to check for existing bindings.
      * @param strategy The strategy to use if a binding already exists.
+     * @param lifecycle (Optional) factory binding lifecycle
      * @returns `true` if the binding should be skipped; `false` if it can proceed.
      *
      * @throws {DIErrors.BindingConflict} If a binding conflict exists and the strategy is `"throw"` or undefined.
      * @internal
      */
-    function verifyBinding(id, strategy) {
-        if (blueprint.entries.has(id) || blueprint.aliases.has(id)) {
+    function verifyBinding(id, strategy, lifecycle) {
+        var existEntry = blueprint.findEntry(id);
+        if (existEntry) {
             strategy ||= defaultConflictResolve;
             if (strategy === "keep") return true;
             if (!strategy || strategy === "throw")
                 throw new Error(DIErrors.BindingConflict(id));
+
+            // Check lifecycle consistency
+            // Only applies when appending to an existing binding
+            // Skip if either binding is an instance (have no lifecycle)
+            if (
+                strategy === "append" &&
+                lifecycle &&
+                existEntry.lifecycle &&
+                existEntry.lifecycle !== lifecycle
+            ) {
+                throw new Error(
+                    DIErrors.MixedLifecycleBindings(
+                        id,
+                        existEntry.lifecycle,
+                        lifecycle,
+                    ),
+                );
+            }
         }
         return false;
     }
@@ -405,14 +428,15 @@ export function createContainerBuilder(builderOptions) {
     function bindFactory(type, factory, options) {
         var $id = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
-        if (verifyBinding($id, ifConflict)) return this;
+        var lifecycle = (options && options.lifecycle) || defaultLifecycle;
+        if (verifyBinding($id, ifConflict, lifecycle)) return this;
         blueprint.addTypeEntry(
             {
                 $id,
                 type,
                 name: options && options.name,
                 factory,
-                lifecycle: (options && options.lifecycle) || defaultLifecycle,
+                lifecycle,
             },
             ifConflict === "append",
         );

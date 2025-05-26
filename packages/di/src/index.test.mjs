@@ -397,6 +397,25 @@ describe("Container Builder", () => {
                     expect(entry.instance).toBe(33);
                     expect(allEntries).have.length(1);
                 });
+
+                test("WHEN append to non-singleton factory", () => {
+                    // Arrange ------
+                    var typeKey = "typeKey";
+                    var builder = createContainerBuilder().bindFactory(
+                        typeKey,
+                        () => 11,
+                        { ifConflict: "append", lifecycle: "transient" },
+                    );
+
+                    // Act ----------
+                    builder.bindInstance(typeKey, 42, { ifConflict: "append" });
+
+                    var entries = builder.findAllEntries(typeKey);
+
+                    // Assert -------
+                    // Both entries was bound
+                    expect(entries).have.length(2);
+                });
             });
         });
 
@@ -644,6 +663,59 @@ describe("Container Builder", () => {
                     expect(allEntries).have.length(1);
                     expect(allEntries.map((it) => it.factory)).toContain(
                         expectedFactory,
+                    );
+                });
+
+                test("WHEN append with different lifecycle to instance", () => {
+                    // Arrange ------
+                    var typeKey = "typeKey";
+                    var builder = createContainerBuilder().bindInstance(
+                        typeKey,
+                        42,
+                        { ifConflict: "append" },
+                    );
+
+                    // Act ----------
+                    builder.bindFactory(typeKey, () => 11, {
+                        lifecycle: "transient",
+                        ifConflict: "append",
+                    });
+                    var entries = builder.findAllEntries(typeKey);
+
+                    // Assert -------
+                    // Both entries was bound
+                    expect(entries).have.length(2);
+                });
+
+                test("WHEN append factories with different lifecycles", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var factoryA = () => 11;
+                    var factoryB = () => 22;
+                    var builder = createContainerBuilder().bindFactory(
+                        typeKey,
+                        factoryA,
+                    );
+
+                    // Act ---------
+                    var error = catchError(() => {
+                        builder.bindFactory(typeKey, factoryB, {
+                            ifConflict: "append",
+                            lifecycle: "transient",
+                        });
+                    });
+
+                    // Assert ------
+                    // 1. Throws error on attempt to bind
+                    expect(error).toBeDefined();
+
+                    // 2. Error describes lifecycle conflict
+                    expect(error.message).to.equal(
+                        DIErrors.MixedLifecycleBindings(
+                            typeKey,
+                            "singleton",
+                            "transient",
+                        ),
                     );
                 });
             });
