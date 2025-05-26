@@ -12,7 +12,7 @@ import { DIErrors } from "./index.js";
  * @returns The thrown Error instance if one occurs, or `undefined` otherwise.
  *
  * @example
- * const error = catchError(() => {
+ * var error = catchError(() => {
  *     service.mayThrow();
  * });
  * expect(error).to.not.be.undefined;
@@ -1586,8 +1586,8 @@ describe("Container Scope", () => {
         describe("Get type instance with dependencies", () => {
             test("WHEN has one dependency", () => {
                 // Arrange ---------
-                const expectedValue = "fooBar";
-                const container = createContainerBuilder()
+                var expectedValue = "fooBar";
+                var container = createContainerBuilder()
                     .bindInstance("instTypeKey", "foo")
                     .bindFactory(
                         "factoryTypeKey",
@@ -1596,7 +1596,7 @@ describe("Container Scope", () => {
                     .build();
 
                 // Act -------------
-                const result = container.get("factoryTypeKey");
+                var result = container.get("factoryTypeKey");
 
                 // Assert ----------
                 expect(result).toBe(expectedValue);
@@ -1604,10 +1604,10 @@ describe("Container Scope", () => {
 
             test("WHEN has many dependencies", () => {
                 // Arrange ----------
-                const values = [11, 22, 33];
-                const expectedValue = values.reduce((s, n) => s + n, 0);
+                var values = [11, 22, 33];
+                var expectedValue = values.reduce((s, n) => s + n, 0);
 
-                const container = createContainerBuilder()
+                var container = createContainerBuilder()
                     .bindInstance("value1", values[0])
                     .bindInstance("value2", values[1])
                     .bindInstance("value3", values[2])
@@ -1619,7 +1619,7 @@ describe("Container Scope", () => {
                     .build();
 
                 // Act --------------
-                const result = container.get("sum");
+                var result = container.get("sum");
 
                 // Assert -----------
                 expect(result).toBe(expectedValue);
@@ -1627,20 +1627,103 @@ describe("Container Scope", () => {
 
             test("WHEN has dependencies chain", () => {
                 // Arrange ----------
-                const values = [11, 22, 33];
-                const expectedValue = values.reduce((s, n) => s + n, 0);
+                var values = [11, 22, 33];
+                var expectedValue = values.reduce((s, n) => s + n, 0);
 
-                const container = createContainerBuilder()
+                var container = createContainerBuilder()
                     .bindInstance("value1", values[0])
                     .bindFactory("value2", (r) => values[1] + r.get("value1"))
                     .bindFactory("value3", (r) => values[2] + r.get("value2"))
                     .build();
 
                 // Act --------------
-                const result = container.get("value3");
+                var result = container.get("value3");
 
                 // Assert -----------
                 expect(result).toBe(expectedValue);
+            });
+
+            test("WHEN has self dependency cycle", () => {
+                // Arrange --------
+                var container = createContainerBuilder()
+                    .bindFactory("typeKey", (r) => r.get("typeKey"), {
+                        lifecycle: "lazy",
+                    })
+                    .build();
+
+                // Act ------------
+                var error = catchError(() => container.get("typeKey"));
+
+                // Assert ---------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.DependenciesCycle("typeKey", ["typeKey"]),
+                );
+            });
+
+            test("WHEN has short dependency cycle", () => {
+                // Arrange --------
+                var expectedTypeStack = ["typeKey", "typeDep", "typeKey"];
+                var container = createContainerBuilder()
+                    .bindFactory("typeDep", (r) => r.get("typeKey"), {
+                        lifecycle: "lazy",
+                    })
+                    .bindFactory("typeKey", (r) => r.get("typeDep"), {
+                        lifecycle: "lazy",
+                    })
+                    .build();
+
+                // Act ------------
+                var error = catchError(() => container.get("typeKey"));
+
+                // Assert ---------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.DependenciesCycle("typeKey", expectedTypeStack),
+                );
+            });
+
+            test("WHEN has deep dependency cycle", () => {
+                // Arrange --------
+                var expectedTypeStack = [
+                    "typeA",
+                    "typeB",
+                    "typeC",
+                    "typeD",
+                    "typeE",
+                    "typeF",
+                    "typeA",
+                ];
+
+                var container = createContainerBuilder()
+                    .bindFactory("typeA", (r) => r.get("typeB"), {
+                        lifecycle: "lazy",
+                    })
+                    .bindFactory("typeB", (r) => r.get("typeC"), {
+                        lifecycle: "lazy",
+                    })
+                    .bindFactory("typeC", (r) => r.get("typeD"), {
+                        lifecycle: "lazy",
+                    })
+                    .bindFactory("typeD", (r) => r.get("typeE"), {
+                        lifecycle: "lazy",
+                    })
+                    .bindFactory("typeE", (r) => r.get("typeF"), {
+                        lifecycle: "lazy",
+                    })
+                    .bindFactory("typeF", (r) => r.get("typeA"), {
+                        lifecycle: "lazy",
+                    })
+                    .build();
+
+                // Act ------------
+                var error = catchError(() => container.get("typeA"));
+
+                // Assert ---------
+                expect(error).toBeDefined();
+                expect(error.message).to.equal(
+                    DIErrors.DependenciesCycle("typeA", expectedTypeStack),
+                );
             });
         });
     });

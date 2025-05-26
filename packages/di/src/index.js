@@ -1,3 +1,8 @@
+/** A char used to separate the type and name in the unique ID of a binding */
+var ID_SEP = "$";
+
+var CHAIN_SEP = " -> ";
+
 /**
  * A centralized dictionary of all error messages.
  *
@@ -27,10 +32,17 @@ export var DIErrors = Object.freeze({
 
     TypeBindingNotFound: (type, name) =>
         `Type binding ${type}${name ? ` with name "${name}` : ""} not found.`,
-});
 
-/** A char used to separate the type and name in the unique ID of a binding */
-var ID_SEP = "$";
+    DependenciesCycle: (entryType, chain) => {
+        var chainString =
+            chain.length > 2
+                ? chain
+                      .map((it) => (it === entryType ? `[${it}]` : it))
+                      .join(CHAIN_SEP)
+                : entryType + CHAIN_SEP + entryType;
+        return `Activation failed: A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainString})`;
+    },
+});
 
 /**
  * Creates a unique identifier string for a binding entry based on its type and optional name.
@@ -216,13 +228,38 @@ function createContainerBlueprint() {
 }
 
 function createRootContainerScope(blueprint) {
+    var activationStack = [];
+
+    function activateInstance(entry, scope) {
+        if (entry.instance !== undefined) return entry.instance;
+
+        const hasDependencyCycle = activationStack.includes(entry);
+        activationStack.push(entry);
+
+        if (hasDependencyCycle) {
+            var error = new Error(
+                DIErrors.DependenciesCycle(
+                    entry.$id,
+                    activationStack.map((it) => it.$id),
+                ),
+            );
+            activationStack.length = 0;
+            throw error;
+        }
+
+        const instance = entry.factory(scope);
+        activationStack.pop();
+
+        return instance;
+    }
+
     const scopePrototype = {
         get(type, name) {
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
             if (entry.instance) return entry.instance;
-            return entry.factory(this);
+            return activateInstance(entry, this);
         },
     };
 
