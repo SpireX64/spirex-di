@@ -134,6 +134,16 @@ function createContainerBlueprint() {
         return Array.from(typeEntry);
     }
 
+    function forEach(delegate) {
+        entries.forEach((entry) => {
+            if (isTypeEntry(entry)) {
+                delegate(entry);
+            } else {
+                entry.forEach(delegate);
+            }
+        });
+    }
+
     function addAlias(aliasId, originType, originName) {
         resolveEntryId(originType, originName, aliasId);
         aliases.set(aliasId, makeEntryId(originType, originName));
@@ -219,6 +229,7 @@ function createContainerBlueprint() {
         hasEntry,
         findEntry,
         findAllEntries,
+        forEach,
         addMiddleware,
         getAliasOrigin,
         addAlias,
@@ -275,17 +286,33 @@ function createRootContainerScope(blueprint) {
         return instance;
     }
 
-    const scopePrototype = {
+    var scopePrototype = {
         get(type, name) {
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
             if (entry.instance) return entry.instance;
-            return activateInstance(entry, this);
+
+            return this.locals.get(entry) || activateInstance(entry, this);
         },
     };
 
-    return Object.setPrototypeOf({ id: "" }, scopePrototype);
+    var rootScope = Object.setPrototypeOf(
+        { id: "", locals: new Map() },
+        scopePrototype,
+    );
+
+    // Singletons activation
+    blueprint.forEach((typeEntry) => {
+        if (typeEntry.factory && typeEntry.lifecycle === "singleton") {
+            rootScope.locals.set(
+                typeEntry,
+                activateInstance(typeEntry, rootScope),
+            );
+        }
+    });
+
+    return rootScope;
 }
 
 export function createContainerBuilder(builderOptions) {

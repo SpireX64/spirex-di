@@ -1727,4 +1727,81 @@ describe("Container Scope", () => {
             });
         });
     });
+
+    describe("Lifecycles", () => {
+        describe("Singleton", () => {
+            test("WHEN build container", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => 42);
+
+                var builder = createContainerBuilder().bindFactory(
+                    typeKey,
+                    factory,
+                );
+
+                // Act --------------
+                builder.build();
+
+                // Assert -----------
+                // The instance of type was created by calling factory on container build
+                expect(factory).toHaveBeenCalledTimes(1);
+            });
+
+            test("WHEN get value from container", () => {
+                // Arrange -----
+                var expectedValue = 42;
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => ({
+                    value: expectedValue,
+                }));
+
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory)
+                    .build();
+
+                factory.mockClear();
+
+                // Act ---------
+                var result = container.get(typeKey);
+
+                // Assert ------
+                // 1. Expected object was resolved
+                expect(result.value).toBe(expectedValue);
+                // 2. Instance was not re-created on resolve after build container
+                expect(factory).not.toHaveBeenCalled();
+            });
+
+            test("WHEN get more instances from container", () => {
+                // Arrange -----
+                var expectedValue = 42;
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => ({
+                    value: expectedValue,
+                }));
+
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory)
+                    .build();
+
+                factory.mockClear();
+
+                // Act ---------
+                var resultA = container.get(typeKey);
+                var resultB = container.get(typeKey);
+
+                // Assert ------
+                // 1. Expected object was resolved
+                expect(resultA.value).toBe(expectedValue);
+                // 2. Instance was not re-created on resolve after build container
+                expect(factory).not.toHaveBeenCalled();
+                // 3. Returns same instance of type
+                expect(resultB).toBe(resultB);
+            });
+        });
+
+        // describe("Lazy singleton", () => {});
+
+        // describe("Transient", () => {});
+    });
 });
