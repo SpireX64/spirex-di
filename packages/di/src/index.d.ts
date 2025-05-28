@@ -261,6 +261,11 @@ interface ITypesResolver<TypeMap extends TTypeMapBase> {
      * @returns An instance of the requested type, or `undefined` if not found.
      */
     maybe<T extends keyof TypeMap>(type: T, name?: string): T | undefined;
+
+    getAll<T extends keyof TypeMap>(
+        type: T,
+        name?: string,
+    ): ReadonlyArray<TypeMap[T]>;
 }
 
 /**

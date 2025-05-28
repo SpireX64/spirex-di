@@ -1845,6 +1845,121 @@ describe("Container Scope", () => {
                 expect(instance).toBeUndefined();
             });
         });
+
+        describe("Resolve all type instances", () => {
+            test("WHEN type has no bindings", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var container = createContainerBuilder().build();
+
+                // Act -----------
+                var instancies = container.getAll(typeKey);
+
+                // Assert --------
+                // Without bindings, returns empty array
+                expect(instancies).toBeInstanceOf(Array);
+                expect(instancies).is.empty;
+            });
+
+            test("WHEN have one binding", () => {
+                // Arrange --------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var valueFactory = vi.fn(() => expectedValue);
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, valueFactory, {
+                        lifecycle: "lazy",
+                    })
+                    .build();
+
+                // Act ------------
+                var instances = container.getAll(typeKey);
+
+                // Assert ---------
+                expect(instances).toBeInstanceOf(Array);
+                expect(instances).have.length(1);
+                expect(instances[0]).toBe(expectedValue);
+
+                expect(valueFactory).toHaveBeenCalled();
+            });
+
+            test("WHEN have many bindings", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var factoryA = vi.fn(() => 11);
+                var factoryB = vi.fn(() => 22);
+                var factoryC = vi.fn(() => 33);
+
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factoryA, {
+                        ifConflict: "append",
+                        lifecycle: "lazy",
+                        name: typeName,
+                    })
+                    .bindFactory(typeKey, factoryB, {
+                        ifConflict: "append",
+                        lifecycle: "lazy",
+                        name: typeName,
+                    })
+                    .bindFactory(typeKey, factoryC, {
+                        ifConflict: "append",
+                        lifecycle: "lazy",
+                        name: typeName,
+                    })
+                    .build();
+
+                // Act ----------
+                var instances = container.getAll(typeKey, typeName);
+
+                // Assert -------
+                expect(instances).toBeInstanceOf(Array);
+                expect(instances).have.length(3);
+
+                expect(factoryA).toHaveBeenCalled();
+                expect(instances[0]).toBe(11);
+
+                expect(factoryB).toHaveBeenCalled();
+                expect(instances[1]).toBe(22);
+
+                expect(factoryC).toHaveBeenCalled();
+                expect(instances[2]).toBe(33);
+            });
+
+            test("WHEN have bindings through aliases", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var container = createContainerBuilder()
+                    .bindInstance("A", 11)
+                    .bindFactory("B", () => 22, {
+                        lifecycle: "lazy",
+                        name: typeName,
+                    })
+                    .bindFactory("C", () => 33, { lifecycle: "lazy" })
+                    .bindAlias(typeKey, "A", {
+                        name: typeName,
+                        ifConflict: "append",
+                    })
+                    .bindAlias(typeKey, "B", {
+                        name: typeName,
+                        originName: typeName,
+                        ifConflict: "append",
+                    })
+                    .bindAlias(typeKey, "C", {
+                        name: typeName,
+                        ifConflict: "append",
+                    })
+                    .build();
+
+                // Act -----------
+                var instances = container.getAll(typeKey, typeName);
+
+                // Assert --------
+                expect(instances).toBeInstanceOf(Array);
+                expect(instances).have.length(3);
+            });
+        });
     });
 
     describe("Lifecycles", () => {

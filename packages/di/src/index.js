@@ -286,7 +286,7 @@ function createRootContainerScope(blueprint) {
         return instance;
     }
 
-    function getInstance(entry, scope) {
+    function getInstance(scope, entry) {
         // Return the directly bound instance, if any (from bindInstance)
         if (entry.instance) return entry.instance;
 
@@ -305,13 +305,19 @@ function createRootContainerScope(blueprint) {
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
-            return getInstance(entry, this);
+            return getInstance(this, entry);
         },
 
         maybe(type, name) {
             var entry = blueprint.findEntry(type, name);
-            if (entry) return getInstance(entry, this);
+            if (entry) return getInstance(this, entry);
             return undefined;
+        },
+
+        getAll(type, name) {
+            return blueprint
+                .findAllEntries(type, name)
+                .map(getInstance.bind(this, this));
         },
     };
 
@@ -450,8 +456,14 @@ export function createContainerBuilder(builderOptions) {
 
     function bindAlias(type, originType, options) {
         var $aliasId = makeEntryId(type, options && options.name);
-        if (verifyBinding($aliasId, options && options.ifConflict)) return this;
-        blueprint.addAlias($aliasId, originType, options && options.originName);
+        var ifConflict = options && options.ifConflict;
+        if (verifyBinding($aliasId, ifConflict)) return this;
+        blueprint.addAlias(
+            $aliasId,
+            originType,
+            options && options.originName,
+            ifConflict === "append",
+        );
         return this;
     }
 
