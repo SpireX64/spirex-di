@@ -28,6 +28,9 @@ exports.default = [
             file: `${output}.js`,
             format: "umd",
             sourcemap: release ? false : "inline",
+            generatedCode: {
+                constBindings: false,
+            },
         },
         plugins: [terserPlugin],
     },
@@ -36,6 +39,9 @@ exports.default = [
         output: {
             file: `${output}.mjs`,
             format: "es",
+            generatedCode: {
+                constBindings: false,
+            },
         },
         plugins: [terserPlugin],
     },
@@ -44,6 +50,9 @@ exports.default = [
         output: {
             file: `${output}.cjs`,
             format: "cjs",
+            generatedCode: {
+                constBindings: false,
+            },
         },
         plugins: [
             terserPlugin,

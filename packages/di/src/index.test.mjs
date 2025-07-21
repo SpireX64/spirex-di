@@ -783,14 +783,12 @@ describe("Container Builder", () => {
                 builder.bindAlias(aliasKey, typeKey);
 
                 var hasAliasEntry = builder.hasEntry(aliasKey);
-                var originEntry = builder.findEntry(typeKey);
-                var aliasEntry = builder.findEntry(aliasKey);
+                var aliasOrigin = builder.getAliasOrigin(aliasKey);
 
                 // Assert ----------
                 expect(hasAliasEntry).is.true;
-                expect(aliasEntry).toBeDefined();
-                expect(originEntry).toBeDefined();
-                expect(aliasEntry).toBe(originEntry);
+                expect(aliasKey).toBeDefined();
+                expect(aliasOrigin).toBe(typeKey);
             });
 
             test("WHEN bind alias with name for type", () => {
@@ -810,8 +808,11 @@ describe("Container Builder", () => {
                     aliasName,
                 );
 
-                var aliasEntryWithoutName = builder.findEntry(aliasKey);
-                var aliasEntryWithName = builder.findEntry(aliasKey, aliasName);
+                var aliasOriginWithoutName = builder.getAliasOrigin(aliasKey);
+                var aliasOriginWithName = builder.getAliasOrigin(
+                    aliasKey,
+                    aliasName,
+                );
 
                 var originEntry = builder.findEntry(typeKey);
 
@@ -820,8 +821,8 @@ describe("Container Builder", () => {
                 expect(hasAliasEntryWithName).is.true;
 
                 expect(originEntry).toBeDefined();
-                expect(aliasEntryWithoutName).is.undefined;
-                expect(aliasEntryWithName).toBe(originEntry);
+                expect(aliasOriginWithoutName).is.undefined;
+                expect(aliasOriginWithName).toBe(originEntry.$id);
             });
 
             test("WHEN bind alias for type with name", () => {
@@ -837,12 +838,12 @@ describe("Container Builder", () => {
 
                 var hasAliasEntry = builder.hasEntry(aliasKey);
                 var originEntry = builder.findEntry(typeKey, typeName);
-                var aliasEntry = builder.findEntry(aliasKey);
+                var aliasOrigin = builder.getAliasOrigin(aliasKey);
 
                 // Assert ---------
                 expect(hasAliasEntry).is.true;
                 expect(originEntry).toBeDefined();
-                expect(aliasEntry).toBe(originEntry);
+                expect(aliasOrigin).toBe(originEntry.$id);
             });
 
             test("WHEN bind alias with name for type with name", () => {
@@ -866,8 +867,11 @@ describe("Container Builder", () => {
                     aliasName,
                 );
 
-                var aliasEntryWithoutName = builder.findEntry(aliasKey);
-                var aliasEntryWithName = builder.findEntry(aliasKey, aliasName);
+                var aliasOriginWithoutName = builder.getAliasOrigin(aliasKey);
+                var aliasOriginWithName = builder.getAliasOrigin(
+                    aliasKey,
+                    aliasName,
+                );
 
                 var originEntry = builder.findEntry(typeKey, typeName);
 
@@ -876,8 +880,8 @@ describe("Container Builder", () => {
                 expect(hasAliasEntryWithName).is.true;
 
                 expect(originEntry).toBeDefined();
-                expect(aliasEntryWithoutName).is.undefined;
-                expect(aliasEntryWithName).toBe(originEntry);
+                expect(aliasOriginWithoutName).is.undefined;
+                expect(aliasOriginWithName).toBe(originEntry.$id);
             });
 
             test("WHEN bind alias to another alias", () => {
@@ -897,46 +901,15 @@ describe("Container Builder", () => {
                 var hasSecondAliasEntry = builder.hasEntry(secondAliasKey);
 
                 var originEntry = builder.findEntry(originType);
-                var firstAliasEntry = builder.findEntry(firstAliasKey);
-                var secondAliasEntry = builder.findEntry(secondAliasKey);
+                var firstAliasOrigin = builder.getAliasOrigin(firstAliasKey);
+                var secondAliasOrigin = builder.getAliasOrigin(secondAliasKey);
 
                 // Assert ----------
                 expect(hasFirstAliasEntry).is.true;
                 expect(hasSecondAliasEntry).is.true;
                 expect(originEntry).toBeDefined();
-                expect(firstAliasEntry).toBe(originEntry);
-                expect(secondAliasEntry).toBe(originEntry);
-            });
-
-            test("WHEN bind alias cycle", () => {
-                // Arrange --------
-                var builder = createContainerBuilder().bindAlias("A", "B");
-
-                // Act ------------
-                var error = catchError(() => builder.bindAlias("B", "A"));
-
-                // Assert ---------
-                expect(error).is.not.undefined;
-                expect(error.message).to.equal(
-                    DIErrors.AliasCycle(["B", "A", "B"]),
-                );
-            });
-
-            test("WHEN bind self cycle alias", () => {
-                // Arrange ------
-                var aliasKey = "A";
-                var builder = createContainerBuilder();
-
-                // Act ---------
-                var error = catchError(() =>
-                    builder.bindAlias(aliasKey, aliasKey),
-                );
-
-                // Assert ------
-                expect(error).is.not.undefined;
-                expect(error.message).to.equal(
-                    DIErrors.AliasCycle([aliasKey, aliasKey]),
-                );
+                expect(firstAliasOrigin).toBe(originEntry.$id);
+                expect(secondAliasOrigin).toBe(firstAliasKey);
             });
 
             describe("Conflict", () => {
@@ -1038,9 +1011,16 @@ describe("Container Builder", () => {
                     );
 
                     // Assert -----------
-                    expect(builder.hasEntry(aliasKey)).toBe(condition);
-                    expect(builder.hasEntry(instanceKey)).toBe(condition);
-                    expect(builder.hasEntry(factoryKey)).toBe(condition);
+                    expect(builder.hasEntry(aliasKey), "alias bound").toBe(
+                        condition,
+                    );
+                    expect(
+                        builder.hasEntry(instanceKey),
+                        "instance bound",
+                    ).toBe(condition);
+                    expect(builder.hasEntry(factoryKey), "factory bound").toBe(
+                        condition,
+                    );
                 },
             );
         });

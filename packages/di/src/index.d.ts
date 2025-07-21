@@ -324,9 +324,9 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
      *
      * @param type - The type key to check.
      * @param name - Optional name qualifier.
-     * @returns The current builder instance for chaining.
+     * @returns `true` if the type entry is already registered; otherwise, `false`.
      */
-    hasEntry(type: string, name?: string): IContainerBuilder<TypeMap>;
+    hasEntry(type: string, name?: string): boolean;
 
     /**
      * Finds a registered entry (instance or factory) by its type token.
@@ -361,9 +361,12 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
      * @param type - The alias type key.
      * @param name - Optional alias name (for named bindings).
      *
-     * @returns The origin type reference, or undefined if no alias is registered.
+     * @returns The origin type reference(s), or undefined if no alias is registered.
      */
-    getAliasOrigin(type: keyof TypeMap, name?: string): string | undefined;
+    getAliasOrigin(
+        type: keyof TypeMap,
+        name?: string,
+    ): string | readonly string[] | undefined;
 
     /**
      * Registers a middleware instance.

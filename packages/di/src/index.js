@@ -1,7 +1,12 @@
 /** A char used to separate the type and name in the unique ID of a binding */
 var ID_SEP = "$";
 
-var CHAIN_SEP = " -> ";
+function chainToString(chain, key) {
+    var sep = " -> ";
+    return chain.length > 2
+        ? chain.map((it) => (it === key ? `[${it}]` : it)).join(sep)
+        : key + sep + key;
+}
 
 /**
  * A centralized dictionary of all error messages.
@@ -21,8 +26,8 @@ export var DIErrors = Object.freeze({
 
     MissingRequiredTypeError: (type) => `Required type "${type}" is not bound.`,
 
-    AliasCycle: (aliasStack) =>
-        `Alias resolution cycle detected: ${aliasStack.join(" -> ")}`,
+    AliasCycle: (alias, aliasChain) =>
+        `Alias resolution cycle detected: ${chainToString(aliasChain, alias)}`,
 
     AliasMissingRef: (aliasId, originId) =>
         `Alias "${aliasId}" refers to non-existent type binding "${originId}".`,
@@ -33,15 +38,8 @@ export var DIErrors = Object.freeze({
     TypeBindingNotFound: (type, name) =>
         `Type binding ${type}${name ? ` with name "${name}` : ""} not found.`,
 
-    DependenciesCycle: (entryType, chain) => {
-        var chainString =
-            chain.length > 2
-                ? chain
-                      .map((it) => (it === entryType ? `[${it}]` : it))
-                      .join(CHAIN_SEP)
-                : entryType + CHAIN_SEP + entryType;
-        return `Activation failed: A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainString})`;
-    },
+    DependenciesCycle: (entryType, chain) =>
+        `Activation failed: A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainToString(chain, entryType)})`,
 
     MixedLifecycleBindings: (type, lifecycleA, lifecycleB) =>
         `Mixed lifecycle bindings detected for type "${type}": ${lifecycleA}, ${lifecycleB}`,
@@ -79,34 +77,6 @@ function createContainerBlueprint() {
     var middlewares = new Set();
 
     // region: PUBLIC METHODS
-    /**
-     * Resolves the final target entry ID for a given type and optional name,
-     * following any alias chains.
-     *
-     * @param type - The type key to resolve.
-     * @param name - Optional binding name.
-     * @param aliasId - Optional starting alias ID.
-     * @return The resolved binding entry ID, or undefined if not found.
-     *
-     * @throws {DIErrors.AliasCycle} when an alias cycle is detected
-     */
-    function resolveEntryId(type, name, aliasId) {
-        var $id,
-            aliasStack = [];
-        if (aliasId) aliasStack.push(aliasId);
-        for (
-            var $alias = makeEntryId(type, name);
-            $alias;
-            $alias = aliases.get($alias)
-        ) {
-            var isCycle = aliasStack.includes($alias);
-            aliasStack.push($alias);
-            if (isCycle) throw new Error(DIErrors.AliasCycle(aliasStack));
-            $id = $alias;
-        }
-        return $id;
-    }
-
     function hasMiddleware(middleware) {
         return middlewares.has(middleware);
     }
@@ -116,22 +86,38 @@ function createContainerBlueprint() {
     }
 
     function getAliasOrigin(type, name) {
-        return aliases.get(makeEntryId(type, name));
+        var id = makeEntryId(type, name);
+        var ref = aliases.get(id);
+        if (typeof ref === "object") return Array.from(ref.values());
+        if (!ref) {
+            var entry = entries.get(id);
+            if (isTypeEntry(entry)) return entry.$id;
+            else if (entry) return entry.values().next().value.$id;
+        }
+        return ref;
     }
 
     function hasEntry(type, name) {
-        return entries.has(resolveEntryId(type, name));
+        var id = makeEntryId(type, name);
+        return entries.has(id) || aliases.has(id);
     }
 
     function findEntry(type, name) {
-        var $id = resolveEntryId(type, name);
+        var $id = makeEntryId(type, name);
         var binding = entries.get($id);
         if (!binding || isTypeEntry(binding)) return binding;
         return binding.values().next().value;
     }
 
+    function findAlias(type, name) {
+        var $id = makeEntryId(type, name);
+        var alias = aliases.get($id);
+        if (!alias || typeof alias === "string") return alias;
+        return alias.values().next().value;
+    }
+
     function findAllEntries(type, name) {
-        var typeEntry = entries.get(resolveEntryId(type, name));
+        var typeEntry = entries.get(makeEntryId(type, name));
         if (!typeEntry) return [];
         if (isTypeEntry(typeEntry)) return Array.of(typeEntry);
         return Array.from(typeEntry);
@@ -147,9 +133,22 @@ function createContainerBlueprint() {
         });
     }
 
-    function addAlias(aliasId, originType, originName) {
-        resolveEntryId(originType, originName, aliasId);
-        aliases.set(aliasId, makeEntryId(originType, originName));
+    function addAlias(aliasId, originType, originName, multibinding) {
+        var originId = makeEntryId(originType, originName);
+        var existingAlias = aliases.get(aliasId);
+        if (!existingAlias || !multibinding) {
+            // No exist alias, or multibinding not enabled:
+            // simply store the new alias by replacing any existing one
+            aliases.set(aliasId, originId);
+        } else if (typeof existingAlias === "string") {
+            // Existing alias is a single reference
+            // convert it to a Set and put both references into
+            aliases.set(aliasId, new Set().add(existingAlias).add(originId));
+        } else {
+            // Existing alias already targeting to many references
+            // add new entry to the existing Set
+            existingAlias.add(originId);
+        }
     }
 
     /**
@@ -161,12 +160,13 @@ function createContainerBlueprint() {
      * - If the existing entry is a single binding, it will be converted into a `Set` containing both the old and new entries.
      * - If the existing entry is already a `Set` (i.e. multibinding), the new entry is added to the set.
      *
+     * @param id - unique entry identifier
      * @param entry - entry The type binding entry to store.
      * @param multibinding - Allows multiple entries under the same type. Otherwise, the new entry replaces the existing one.
      *
      * @internal
      */
-    function addTypeEntry(entry, multibinding) {
+    function addTypeEntry(id, entry, multibinding) {
         var entryToBind = entry;
         middlewares.forEach((middleware) => {
             if (middleware.onBind) {
@@ -190,18 +190,15 @@ function createContainerBlueprint() {
 
         Object.freeze(entryToBind);
 
-        var existingEntry = entries.get(entryToBind.$id);
+        var existingEntry = entries.get(id);
         if (!existingEntry || !multibinding) {
             // No existing entry, or multibinding not enabled:
             // simply store the new entry (replacing any existing one).
-            entries.set(entryToBind.$id, entryToBind);
+            entries.set(id, entryToBind);
         } else if (isTypeEntry(existingEntry)) {
             // Existing entry is a single binding:
             // convert it to a Set and add both the old and new entries.
-            entries.set(
-                entryToBind.$id,
-                new Set().add(existingEntry).add(entryToBind),
-            );
+            entries.set(id, new Set().add(existingEntry).add(entryToBind));
         } else {
             // Existing entry is already a Set:
             // add the new entry to the existing set.
@@ -209,17 +206,61 @@ function createContainerBlueprint() {
         }
     }
 
-    function verifyAliases() {
-        aliases.forEach(($origin, $alias, map) => {
-            var realOriginId = resolveEntryId($origin);
+    function compileAliasRef(aliasRef, stack) {
+        if (typeof aliasRef === "string") {
+            if (stack.includes(aliasRef)) {
+                stack.push(aliasRef);
+                throw new Error(DIErrors.AliasCycle(aliasRef, stack));
+            }
 
-            // Verify alias origin type binding
-            if (!entries.has(realOriginId))
-                throw new Error(DIErrors.AliasMissingRef($alias, realOriginId));
+            var ref = aliases.get(aliasRef);
+            if (ref !== undefined) {
+                stack.push(aliasRef);
+                compileAliasRef(ref, stack);
+                stack.pop();
+            } else {
+                var typeEntry = entries.get(aliasRef);
+                if (typeEntry !== undefined) {
+                    stack.push(aliasRef);
+                    for (var aliasId of stack) {
+                        if (isTypeEntry(typeEntry)) {
+                            addTypeEntry(aliasId, typeEntry, true);
+                        } else {
+                            for (var entry of typeEntry) {
+                                addTypeEntry(aliasId, entry, true);
+                            }
+                        }
+                    }
 
-            // Optimize alias reference
-            if (realOriginId !== $origin) map.set($alias, realOriginId);
-        });
+                    stack.pop();
+                } else
+                    throw new Error(
+                        DIErrors.AliasMissingRef(
+                            stack[stack.length - 1],
+                            aliasRef,
+                        ),
+                    );
+            }
+        } else if (aliasRef instanceof Set) {
+            for (var ref of aliasRef) compileAliasRef(ref, stack);
+        } else {
+            throw new Error(
+                DIErrors.AliasMissingRef(stack[stack.length - 1], aliasRef),
+            );
+        }
+    }
+
+    function compileAliases() {
+        var stack = [];
+
+        for (var [aliasId, ref] of aliases) {
+            if (entries.has(aliasId)) continue;
+            stack.push(aliasId);
+            compileAliasRef(ref, stack);
+            stack.pop();
+        }
+
+        aliases.clear();
     }
 
     // endregion: PUBLIC METHODS
@@ -231,13 +272,14 @@ function createContainerBlueprint() {
         hasMiddleware,
         hasEntry,
         findEntry,
+        findAlias,
         findAllEntries,
         forEach,
         addMiddleware,
         getAliasOrigin,
         addAlias,
         addTypeEntry,
-        verifyAliases,
+        compileAliases,
     };
 }
 
@@ -258,7 +300,7 @@ function createRootContainerScope(blueprint) {
      */
     function activateInstance(entry, scope) {
         // Check for circular dependency by verifying if the entry is already being activated
-        const hasDependencyCycle = activationStack.includes(entry);
+        var hasDependencyCycle = activationStack.includes(entry);
 
         // Push the current entry to the activation stack
         activationStack.push(entry);
@@ -278,7 +320,7 @@ function createRootContainerScope(blueprint) {
         }
 
         // Call the factory to create the instance, passing the current scope as resolver
-        const instance = entry.factory(scope);
+        var instance = entry.factory(scope);
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -334,7 +376,9 @@ function createRootContainerScope(blueprint) {
             // Has factory function
             typeEntry.factory &&
             // It is singleton binding
-            typeEntry.lifecycle === "singleton"
+            typeEntry.lifecycle === "singleton" &&
+            // Not activated yet
+            !rootScope.locals.has(typeEntry)
         ) {
             rootScope.locals.set(
                 typeEntry,
@@ -378,7 +422,13 @@ export function createContainerBuilder(builderOptions) {
      * @internal
      */
     function verifyBinding(id, strategy, lifecycle) {
+        var isAlias = false;
         var existEntry = blueprint.findEntry(id);
+        if (!existEntry) {
+            existEntry = blueprint.findAlias(id);
+            isAlias = true;
+        }
+
         if (existEntry) {
             strategy ||= defaultConflictResolve;
             if (strategy === "keep") return true;
@@ -389,6 +439,7 @@ export function createContainerBuilder(builderOptions) {
             // Only applies when appending to an existing binding
             // Skip if either binding is an instance (have no lifecycle)
             if (
+                !isAlias &&
                 strategy === "append" &&
                 lifecycle &&
                 existEntry.lifecycle &&
@@ -420,6 +471,7 @@ export function createContainerBuilder(builderOptions) {
         var ifConflict = options && options.ifConflict;
         if (verifyBinding($id, ifConflict)) return this;
         blueprint.addTypeEntry(
+            $id,
             {
                 $id,
                 type,
@@ -437,6 +489,7 @@ export function createContainerBuilder(builderOptions) {
         var lifecycle = (options && options.lifecycle) || defaultLifecycle;
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
         blueprint.addTypeEntry(
+            $id,
             {
                 $id,
                 type,
@@ -473,12 +526,12 @@ export function createContainerBuilder(builderOptions) {
     }
 
     function build() {
-        // Aliases verification
-        blueprint.verifyAliases();
+        // Compile aliases
+        blueprint.compileAliases();
 
         // Required types verification
         requiredTypes.forEach(($id) => {
-            if (!blueprint.entries.has($id) && !blueprint.aliases.has($id))
+            if (!blueprint.entries.has($id))
                 throw new Error(DIErrors.MissingRequiredTypeError($id));
         });
 
