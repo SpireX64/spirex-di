@@ -88,7 +88,7 @@ function createContainerBlueprint() {
     function getAliasOrigin(type, name) {
         var id = makeEntryId(type, name);
         var ref = aliases.get(id);
-        if (typeof ref === "object") return Array.from(ref.values());
+        if (ref instanceof Set) return Array.from(ref.values());
         if (!ref) {
             var entry = entries.get(id);
             if (isTypeEntry(entry)) return entry.$id;
@@ -241,13 +241,8 @@ function createContainerBlueprint() {
                         ),
                     );
             }
-        } else if (aliasRef instanceof Set) {
-            for (var ref of aliasRef) compileAliasRef(ref, stack);
-        } else {
-            throw new Error(
-                DIErrors.AliasMissingRef(stack[stack.length - 1], aliasRef),
-            );
-        }
+        } else for (var ref of aliasRef)
+            compileAliasRef(ref, stack);
     }
 
     function compileAliases() {
