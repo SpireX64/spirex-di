@@ -324,9 +324,9 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
      *
      * @param type - The type key to check.
      * @param name - Optional name qualifier.
-     * @returns `true` if the type entry is already registered; otherwise, `false`.
+     * @returns `true` if the type binding is already registered; otherwise, `false`.
      */
-    hasEntry(type: string, name?: string): boolean;
+    has(type: string, name?: string): boolean;
 
     /**
      * Finds a registered entry (instance or factory) by its type token.

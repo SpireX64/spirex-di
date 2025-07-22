@@ -97,7 +97,7 @@ function createContainerBlueprint() {
         return ref;
     }
 
-    function hasEntry(type, name) {
+    function has(type, name) {
         var id = makeEntryId(type, name);
         return entries.has(id) || aliases.has(id);
     }
