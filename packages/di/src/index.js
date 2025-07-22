@@ -89,11 +89,6 @@ function createContainerBlueprint() {
         var id = makeEntryId(type, name);
         var ref = aliases.get(id);
         if (ref instanceof Set) return Array.from(ref.values());
-        if (!ref) {
-            var entry = entries.get(id);
-            if (isTypeEntry(entry)) return entry.$id;
-            else if (entry) return entry.values().next().value.$id;
-        }
         return ref;
     }
 

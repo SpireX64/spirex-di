@@ -920,6 +920,26 @@ describe("Container Builder", () => {
                 expect(secondAliasOrigin).toBe(firstAliasKey);
             });
 
+            test('WHEN: bind alias to multiple entries', () => {
+                // Arrange ------
+                const typeA = 'typeA'
+                const typeB = 'typeB'
+                const aliasKey = 'aliasKey'
+
+                var builder = createContainerBuilder()
+                    .bindInstance(typeA, 11)
+                    .bindInstance(typeB, 22)
+                    .bindAlias(aliasKey, typeA, { ifConflict: 'append' })
+                    .bindAlias(aliasKey, typeB, { ifConflict: 'append' })
+
+                // Act ----------
+                const aliasOrigin = builder.getAliasOrigin(aliasKey)
+
+                // Assert ------
+                expect(aliasOrigin).toBeInstanceOf(Array)
+                expect(aliasOrigin).toEqual(expect.arrayContaining([typeA, typeB]))
+            })
+
             describe("Conflict", () => {
                 test("WHEN strategy 'throw' (default)", () => {
                     // Arrange -------
