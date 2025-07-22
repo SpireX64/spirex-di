@@ -30,6 +30,34 @@ type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
 ) => TypeMap[T];
 
 /**
+ * Injector function type.
+ * Receives a resolver which can resolve dependencies from the container,
+ * and returns any value representing dependencies to be passed into the factory.
+ * 
+ * This value can be an object, array, primitive, or any custom structure,
+ * depending on what the factory expects.
+ *
+ * @template TypeMap - Map of all types in the container.
+ * @template R - The type of the dependencies returned by the injector.
+ * @param resolver - Resolver instance to retrieve dependencies.
+ * @returns {R} - Dependencies of any type passed to the factory.
+ */
+type TTypeInjector<TypeMap extends TTypeMapBase, R> = (
+    resolver: ITypesResolver<TypeMap>,
+) => R;
+
+/**
+ * Safe factory function type.
+ * Receives a dependencies object and returns a constructed instance.
+ *
+ * @template Deps - Type of the dependencies object.
+ * @template R - The return type, the created instance.
+ * @param {Deps} deps - The dependencies object injected by the injector.
+ * @returns {R} - The created instance.
+ */
+type TTypeSafeFactory<Deps, R> = (deps: Deps) => R;
+
+/**
  * Strategy to apply when a binding for a given type already exists.
  *
  * - `"throw"`: Throws an error.
@@ -124,13 +152,40 @@ type TFactoryTypeEntry<
     /** Always `undefined` to indicate it's not an instance entry. */
     readonly instance: undefined;
 
+    /** Lifecycle of the binding */
     readonly lifecycle: keyof TLifecycle;
+};
+
+/**
+ * Entry type for a safe factory binding
+ *
+ * @template TypeMap - Map of all types in the container.
+ * @template T - Key of the bound type.
+ * @template Deps - Type of the dependencies object injected into the factory.
+ */
+type TSafeFactoryEntry<
+    TypeMap extends TTypeEntryBase,
+    T extends keyof TypeMap,
+    Deps,
+> = TTypeEntryBase<TypeMap, T> & {
+    /** Injector function that defines dependencies. */
+    readonly injector: TTypeInjector<TypeMap, Deps>;
+
+    /** Factory function creating the instance from dependencies. */
+    readonly factory: TTypeSafeFactory<Deps, TypeMap[T]>;
+
+    /** Lifecycle of the binding */
+    readonly lifecycle: keyof TLifecycle;
+
+    /** Always `undefined` to indicate it's not an instance entry. */
+    readonly instance: undefined;
 };
 
 /** A type entry, either an instance entry or a factory entry */
 type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
     | TInstanceTypeEntry<TypeMap, T>
-    | TFactoryTypeEntry<TypeMap, T>;
+    | TFactoryTypeEntry<TypeMap, T>
+    | TSafeFactoryEntry<TypeMap, T, {}>;
 
 /**
  * A generic type map used for middleware to operate independently of specific container type mappings.
@@ -155,18 +210,18 @@ type TContainerBuilderMiddlewareOnBind = (
 
 type TContainerMiddlewareOnRequest = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-    originEntry: TTypeEntry<AnyTypeMap,keyof AnyTypeMap>,
+    originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
 ) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
 
 type TContainerMiddlewareOnActivated = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     instance: {}, // Any value, but not null/undefined
-) => {}
+) => {};
 
 type TContainerMiddlewareOnResolve = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     instance: {}, // Any value, but not null/undefined
-) => {}
+) => {};
 
 /**
  * Container middleware.
@@ -229,6 +284,31 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
         factory: TTypeFactory<TypeMap, T>,
         options?: TFactoryBindingOptions,
     ): this;
+
+    /**
+     * Binds a factory to a type with explicit dependency injection.
+     *
+     * Allows defining an injector function that describes dependencies to resolve,
+     * and a factory function that creates the instance from these dependencies.
+     *
+     * @template T - A key of the type map representing the type token to bind.
+     * @template Deps - The dependencies object type resolved by the injector.
+     * 
+     * @param type - The type key to bind the factory to.
+     * @param injector - Injector function that receives resolver and returns dependencies object.
+     * @param factory - Factory function that creates instance from dependencies.
+     * @param [options] - Optional params that control how the binding behaves.
+     * 
+     * @throws {Error} If a binding already exists and the conflict strategy is set to `"throw"`
+     * 
+     * @returns {this} The current binder instance for chaining.
+     */
+    bindSafeFactory<T extends keyof TypeMap, Deps>(
+        type: T,
+        injector: TTypeInjector<TypeMap, T, Deps>,
+        factory: TTypeSafeFactory<Deps, TypeMap[T]>,
+        options?: TFactoryBindingOptions,
+    );
 
     /**
      * Binds an alias to an existing binding or another alias.

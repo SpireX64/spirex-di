@@ -308,7 +308,10 @@ function createRootContainerScope(blueprint) {
         }
 
         // Call the factory to create the instance, passing the current scope as resolver
-        var instance = entry.factory(scope);
+        var instance =
+            "injector" in entry
+                ? entry.factory(entry.injector(scope))
+                : entry.factory(scope);
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -497,6 +500,26 @@ export function createContainerBuilder(builderOptions) {
         return this;
     }
 
+    function bindSafeFactory(type, injector, factory, options) {
+        var $id = makeEntryId(type, options && options.name);
+        var ifConflict = options && options.ifConflict;
+        var lifecycle = (options && options.lifecycle) || defaultLifecycle;
+        if (verifyBinding($id, ifConflict, lifecycle)) return this;
+        blueprint.addTypeEntry(
+            $id,
+            {
+                $id,
+                type,
+                name: options && options.name,
+                injector,
+                factory,
+                lifecycle,
+            },
+            ifConflict === "append",
+        );
+        return this;
+    }
+
     function when(condition, delegate) {
         if (condition) delegate(this);
         return this;
@@ -544,6 +567,7 @@ export function createContainerBuilder(builderOptions) {
         requireType,
         bindInstance,
         bindFactory,
+        bindSafeFactory,
         bindAlias,
         when,
         use,

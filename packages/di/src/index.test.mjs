@@ -783,6 +783,42 @@ describe("Container Builder", () => {
                     expect(entry.lifecycle).toBe(expectedLifecycle);
                 });
             });
+
+            test("WHEN: bind safe factory to type", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var depKey = "depKey";
+                var builder = createContainerBuilder().bindInstance(depKey, 42);
+
+                var injectorFn = vi.fn((r) => r.get(depKey));
+                var factoryFn = vi.fn((d) => d + 10);
+
+                // Act -----------
+                var chainingBuilderRef = builder.bindSafeFactory(
+                    typeKey,
+                    injectorFn,
+                    factoryFn,
+                );
+
+                var safeFactoryEntry = builder.findEntry(typeKey);
+
+                // Assert --------
+                expect(builder.has(typeKey)).is.true;
+                expect(injectorFn).not.toHaveBeenCalled();
+                expect(factoryFn).not.toHaveBeenCalled();
+                expect(chainingBuilderRef).to.equal(builder);
+
+                expect(safeFactoryEntry).toBeInstanceOf(Object);
+                expect(safeFactoryEntry).is.frozen;
+                expect(safeFactoryEntry.type).to.equal(typeKey);
+                expect(safeFactoryEntry.name).is.undefined;
+                expect("factory" in safeFactoryEntry).is.true;
+                expect(safeFactoryEntry.factory).to.equal(factoryFn);
+                expect("injector" in safeFactoryEntry).is.true;
+                expect(safeFactoryEntry.injector).to.equal(injectorFn);
+                expect("instance" in safeFactoryEntry).is.false;
+                expect(safeFactoryEntry.instance).is.undefined;
+            });
         });
 
         describe("Alias", () => {
@@ -1705,6 +1741,29 @@ describe("Container Scope", () => {
                 expect(resolvedValue).toBe(expectedValue);
                 expect(factoryMock).toHaveBeenCalled();
             });
+
+            test("WHEN: get from safe factory", () => {
+                // Arrange --------
+                var typeKey = "typeKey"
+                var depKey = "depKey"
+                var expectedValue = 420
+                var injectorFn = vi.fn(r => r.get(depKey))
+                var factoryFn = vi.fn(d => d * 10)
+
+                var scope = createContainerBuilder()
+                    .bindInstance(depKey, 42)
+                    .bindSafeFactory(typeKey, injectorFn, factoryFn)
+                    .build()
+
+                // Act ------------
+                var resolvedValue = scope.get(typeKey)
+
+                // Assert ---------
+                expect(injectorFn).toHaveBeenCalled()
+                expect(injectorFn).toHaveReturnedWith(42)
+                expect(factoryFn).toHaveBeenCalledWith(42)
+                expect(resolvedValue).toBe(expectedValue)
+            })
 
             test("WHEN get from alias instance binding", () => {
                 // Arrange --------
