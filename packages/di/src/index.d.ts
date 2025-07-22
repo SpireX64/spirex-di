@@ -153,6 +153,21 @@ type TContainerBuilderMiddlewareOnBind = (
     originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
 ) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
 
+type TContainerMiddlewareOnRequest = (
+    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
+    originEntry: TTypeEntry<AnyTypeMap,keyof AnyTypeMap>,
+) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
+
+type TContainerMiddlewareOnActivated = (
+    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
+    instance: {}, // Any value, but not null/undefined
+) => {}
+
+type TContainerMiddlewareOnResolve = (
+    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
+    instance: {}, // Any value, but not null/undefined
+) => {}
+
 /**
  * Container middleware.
  *
@@ -164,6 +179,12 @@ interface IContainerMiddleware {
 
     /** Called when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind;
+
+    onRequest?: TContainerMiddlewareOnRequest;
+
+    onActivated?: TContainerMiddlewareOnActivated;
+
+    onResolve?: TContainerMiddlewareOnResolve;
 }
 
 /**
