@@ -67,17 +67,17 @@ describe("Container Builder", () => {
 
             test("WHEN: type has an alias binding", () => {
                 // Arrange ------
-                var key = 'aliasKey'
+                var key = "aliasKey";
                 var builder = createContainerBuilder()
-                    .bindInstance('typeKey', 42)
-                    .bindAlias(key, 'typeKey')
+                    .bindInstance("typeKey", 42)
+                    .bindAlias(key, "typeKey");
 
                 // Act ----------
-                var isBindingExist = builder.has(key)
+                var isBindingExist = builder.has(key);
 
                 // Assert -------
-                expect(isBindingExist).is.true
-            })
+                expect(isBindingExist).is.true;
+            });
         });
 
         describe("findEntry", () => {
@@ -817,10 +817,7 @@ describe("Container Builder", () => {
                 builder.bindAlias(aliasKey, typeKey, { name: aliasName });
 
                 var hasAliasEntryWithoutName = builder.has(aliasKey);
-                var hasAliasEntryWithName = builder.has(
-                    aliasKey,
-                    aliasName,
-                );
+                var hasAliasEntryWithName = builder.has(aliasKey, aliasName);
 
                 var aliasOriginWithoutName = builder.getAliasOrigin(aliasKey);
                 var aliasOriginWithName = builder.getAliasOrigin(
@@ -876,10 +873,7 @@ describe("Container Builder", () => {
                 });
 
                 var hasAliasEntryWithoutName = builder.has(aliasKey);
-                var hasAliasEntryWithName = builder.has(
-                    aliasKey,
-                    aliasName,
-                );
+                var hasAliasEntryWithName = builder.has(aliasKey, aliasName);
 
                 var aliasOriginWithoutName = builder.getAliasOrigin(aliasKey);
                 var aliasOriginWithName = builder.getAliasOrigin(
@@ -1028,10 +1022,9 @@ describe("Container Builder", () => {
                     expect(builder.has(aliasKey), "alias bound").toBe(
                         condition,
                     );
-                    expect(
-                        builder.has(instanceKey),
-                        "instance bound",
-                    ).toBe(condition);
+                    expect(builder.has(instanceKey), "instance bound").toBe(
+                        condition,
+                    );
                     expect(builder.has(factoryKey), "factory bound").toBe(
                         condition,
                     );
@@ -1306,10 +1299,12 @@ describe("Container Builder", () => {
                         .bindAlias("aliasKey", "typeKey");
 
                     // Act -----------
-                    var container = builder.build();
+                    var error = catchError(() => {
+                        builder.build();
+                    });
 
                     // Assert --------
-                    expect(container).instanceOf(Object);
+                    expect(error).is.undefined;
                 });
 
                 test("WHEN alias origin type is not exists", () => {
@@ -1335,66 +1330,134 @@ describe("Container Builder", () => {
             });
 
             describe("Alias reference optimization", () => {
-                test("WHEN no optimization required", () => {
-                    // Arrange --------
+                test("WHEN: Alias ref to instance entry", () => {
+                    // Arrange ------
                     var typeKey = "typeKey";
                     var aliasKey = "aliasKey";
+
                     var builder = createContainerBuilder()
-                        .bindInstance(typeKey, 42)
+                        .bindInstance(typeKey, { num: 42 })
                         .bindAlias(aliasKey, typeKey);
 
-                    // Act ------------
-                    var aliasRefBefore = builder.getAliasOrigin(aliasKey);
+                    // Act ----------
+                    var container = builder.build();
 
-                    builder.build();
+                    var valueAlias = container.get(aliasKey);
+                    var valueType = container.get(aliasKey);
 
-                    var aliasRefAfter = builder.getAliasOrigin(aliasKey);
-
-                    // Assert ---------
-                    expect(aliasRefBefore).toBe(typeKey);
-                    expect(aliasRefAfter).toBe(aliasRefBefore);
+                    // Assert -------
+                    // Should be the same object reference
+                    expect(valueAlias).toBe(valueType);
                 });
 
-                test("WHEN optimization performed", () => {
-                    // Arrange ----------
+                test("WHEN: Alias ref to multi instance entry", () => {
+                    // Arrange ------
                     var typeKey = "typeKey";
-                    var aliasA = "aliasA";
-                    var aliasB = "aliasB";
-                    var aliasC = "aliasC";
-                    var aliasD = "aliasD";
+                    var aliasKey = "aliasKey";
 
                     var builder = createContainerBuilder()
-                        .bindInstance(typeKey, 42)
-                        .bindAlias(aliasA, typeKey)
-                        .bindAlias(aliasB, aliasA)
-                        .bindAlias(aliasC, aliasB)
-                        .bindAlias(aliasD, aliasC);
+                        .bindInstance(typeKey, 11, { ifConflict: "append" })
+                        .bindInstance(typeKey, 22, { ifConflict: "append" })
+                        .bindAlias(aliasKey, typeKey);
 
-                    // Act --------------
-                    var aliasABefore = builder.getAliasOrigin(aliasA);
-                    var aliasBBefore = builder.getAliasOrigin(aliasB);
-                    var aliasCBefore = builder.getAliasOrigin(aliasC);
-                    var aliasDBefore = builder.getAliasOrigin(aliasD);
+                    // Act ----------
+                    var container = builder.build();
 
-                    builder.build();
+                    var aliasFirstValue = container.get(aliasKey);
+                    var aliasValues = container.getAll(aliasKey);
+                    var typeFirstValue = container.get(typeKey);
+                    var typeValues = container.getAll(typeKey);
 
-                    var aliasAAfter = builder.getAliasOrigin(aliasA);
-                    var aliasBAfter = builder.getAliasOrigin(aliasB);
-                    var aliasCAfter = builder.getAliasOrigin(aliasC);
-                    var aliasDAfter = builder.getAliasOrigin(aliasD);
+                    // Assert -------
+                    expect(aliasFirstValue).toBe(typeFirstValue);
+                    expect(aliasValues).toEqual(typeValues);
+                });
 
-                    // Assert -----------
-                    expect(aliasABefore).toBe(typeKey);
-                    expect(aliasAAfter).toBe(typeKey);
+                test("WHEN: Alias ref to factory entry", () => {
+                    // Arrange -------
+                    var aliasKey = "aliasKey";
+                    var typeKey = "typeKey";
 
-                    expect(aliasBBefore).toBe(aliasA);
-                    expect(aliasBAfter).toBe(typeKey);
+                    var factory = vi.fn(() => ({ str: "foo" }));
 
-                    expect(aliasCBefore).toBe(aliasB);
-                    expect(aliasCAfter).toBe(typeKey);
+                    var builder = createContainerBuilder()
+                        .bindFactory(typeKey, factory, { lifecycle: "lazy" })
+                        .bindAlias(aliasKey, typeKey);
 
-                    expect(aliasDBefore).toBe(aliasC);
-                    expect(aliasDAfter).toBe(typeKey);
+                    // Act -----------
+                    var container = builder.build();
+
+                    var aliasValue = container.get(aliasKey);
+                    var typeValue = container.get(typeKey);
+
+                    // Assert --------
+                    // 1. Should resolve the same value
+                    expect(aliasValue).toBe(typeValue);
+
+                    // 2. Should call factory only once
+                    expect(factory).toHaveBeenCalledOnce();
+                });
+
+                test("WHEN: Alias reference to it self", () => {
+                    // Arrange ------
+                    var aliasKey = "aliasKey";
+                    var builder = createContainerBuilder().bindAlias(
+                        aliasKey,
+                        aliasKey,
+                    );
+
+                    // Act ----------
+                    var error = catchError(() => {
+                        builder.build();
+                    });
+
+                    // Assert -------
+                    // 1. Should throw error
+                    expect(error).toBeDefined();
+
+                    // 2.Error message should contain alias cycle error
+                    //   with reference chain
+                    expect(error.message).to.eq(
+                        DIErrors.AliasCycle(aliasKey, [aliasKey, aliasKey]),
+                    );
+                });
+
+                test("WHEN: Alias binding has cycle", () => {
+                    // Arrange ------
+                    const builder = createContainerBuilder()
+                        .bindAlias("A", "B")
+                        .bindAlias("B", "C")
+                        .bindAlias("C", "D")
+                        .bindAlias("D", "A");
+
+                    // Act ----------
+                    var error = catchError(() => {
+                        builder.build();
+                    });
+
+                    // Assert -------
+                    expect(error).toBeDefined();
+                    expect(error.message).toEqual(
+                        DIErrors.AliasCycle("A", ["A", "B", "C", "D", "A"]),
+                    );
+                });
+
+                test("WHEN: Alias reference non-exist binding", () => {
+                    // Arrange -------
+                    var builder = createContainerBuilder()
+                        .bindAlias("aliasA", "aliasB")
+                        .bindAlias("aliasB", "nonExist");
+
+                    // Act -----------
+                    var error = catchError(() => {
+                        builder.build();
+                    });
+
+                    // Assert --------
+                    expect(error).toBeDefined();
+                    expect(error.message).toEqual(
+                        DIErrors.AliasMissingRef("aliasB", "nonExist"),
+                    );
                 });
             });
         });
