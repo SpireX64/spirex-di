@@ -920,25 +920,27 @@ describe("Container Builder", () => {
                 expect(secondAliasOrigin).toBe(firstAliasKey);
             });
 
-            test('WHEN: bind alias to multiple entries', () => {
+            test("WHEN: bind alias to multiple entries", () => {
                 // Arrange ------
-                const typeA = 'typeA'
-                const typeB = 'typeB'
-                const aliasKey = 'aliasKey'
+                const typeA = "typeA";
+                const typeB = "typeB";
+                const aliasKey = "aliasKey";
 
                 var builder = createContainerBuilder()
                     .bindInstance(typeA, 11)
                     .bindInstance(typeB, 22)
-                    .bindAlias(aliasKey, typeA, { ifConflict: 'append' })
-                    .bindAlias(aliasKey, typeB, { ifConflict: 'append' })
+                    .bindAlias(aliasKey, typeA, { ifConflict: "append" })
+                    .bindAlias(aliasKey, typeB, { ifConflict: "append" });
 
                 // Act ----------
-                const aliasOrigin = builder.getAliasOrigin(aliasKey)
+                const aliasOrigin = builder.getAliasOrigin(aliasKey);
 
                 // Assert ------
-                expect(aliasOrigin).toBeInstanceOf(Array)
-                expect(aliasOrigin).toEqual(expect.arrayContaining([typeA, typeB]))
-            })
+                expect(aliasOrigin).toBeInstanceOf(Array);
+                expect(aliasOrigin).toEqual(
+                    expect.arrayContaining([typeA, typeB]),
+                );
+            });
 
             describe("Conflict", () => {
                 test("WHEN strategy 'throw' (default)", () => {
@@ -1482,30 +1484,30 @@ describe("Container Builder", () => {
 
                 test("WHEN: Alias reference through another alias", () => {
                     // Arrange -------
-                    var typeKey = 'typeKey'
-                    var aliasKeyA = 'aliasKeyA'
-                    var aliasKeyB = 'aliasKeyB'
-                    var aliasKeyC = 'aliasKeyC'
+                    var typeKey = "typeKey";
+                    var aliasKeyA = "aliasKeyA";
+                    var aliasKeyB = "aliasKeyB";
+                    var aliasKeyC = "aliasKeyC";
 
                     var builder = createContainerBuilder()
                         .bindAlias(aliasKeyA, aliasKeyB)
                         .bindAlias(aliasKeyB, aliasKeyC)
                         .bindAlias(aliasKeyC, typeKey)
-                        .bindInstance(typeKey, 42)
+                        .bindInstance(typeKey, 42);
 
                     // Act -----------
-                    var container = builder.build()
+                    var container = builder.build();
 
-                    var aliasValueA = container.get(aliasKeyA)
-                    var aliasValueB = container.get(aliasKeyB)
-                    var aliasValueC = container.get(aliasKeyC)
-                    var value = container.get(typeKey)
+                    var aliasValueA = container.get(aliasKeyA);
+                    var aliasValueB = container.get(aliasKeyB);
+                    var aliasValueC = container.get(aliasKeyC);
+                    var value = container.get(typeKey);
 
                     // Assert --------
-                    expect(aliasValueA).toBe(value)
-                    expect(aliasValueB).toBe(value)
-                    expect(aliasValueC).toBe(value)
-                })
+                    expect(aliasValueA).toBe(value);
+                    expect(aliasValueB).toBe(value);
+                    expect(aliasValueC).toBe(value);
+                });
             });
         });
 
@@ -2274,6 +2276,103 @@ describe("Container Scope", () => {
 
                 // 3. Resolved instances not a same
                 expect(instanceB).not.toBe(instanceA);
+            });
+        });
+    });
+
+    describe("Middlewares", () => {
+        describe("onResolve", () => {
+            test("WHEN: listen instance resolve events", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var typeValue = 42;
+
+                var onResolveHandler = vi.fn((_, instance) => instance);
+
+                var builder = createContainerBuilder()
+                    .use({ onResolve: onResolveHandler })
+                    .bindInstance(typeKey, typeValue);
+
+                var typeEntry = builder.findEntry(typeKey);
+
+                var container = builder.build();
+
+                // Act -------------
+                container.get(typeKey);
+
+                // Assert ----------
+                expect(onResolveHandler).toHaveBeenCalledWith(
+                    typeEntry,
+                    typeValue,
+                );
+            });
+
+            test("WHEN: override resolved instance", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var typeValue = 42;
+                var expectedValue = 123;
+
+                var onResolveHandler = vi.fn(() => expectedValue);
+
+                var builder = createContainerBuilder()
+                    .bindInstance(typeKey, typeValue)
+                    .use({ onResolve: onResolveHandler });
+
+                var typeEntry = builder.findEntry(typeKey);
+
+                var container = builder.build();
+
+                // Act -------------
+                var value = container.get(typeKey);
+
+                // Assert ----------
+                expect(value).toBe(expectedValue);
+                expect(onResolveHandler).toHaveBeenCalledWith(
+                    typeEntry,
+                    typeValue,
+                );
+                expect(onResolveHandler).toHaveReturnedWith(value);
+            });
+
+            test("WHEN: override instance with many hooks", () => {
+                // Arrange -------
+                var aliasKey = "aliasKey";
+                var typeKey = "typeKey";
+                var typeValue = 42;
+
+                var expectedResult = (typeValue + 1) * 10;
+
+                var firstOnResolveHandler = vi.fn((_, value) => value + 1);
+                var secondOnResolveHandler = vi.fn((_, value) => value * 10);
+
+                var builder = createContainerBuilder()
+                    .bindAlias(aliasKey, typeKey)
+                    .use({ onResolve: firstOnResolveHandler })
+                    .use({ onResolve: secondOnResolveHandler })
+                    .bindInstance(typeKey, typeValue);
+
+                var entry = builder.findEntry(typeKey);
+
+                var container = builder.build();
+
+                // Act -----------
+                var value = container.get(aliasKey);
+
+                // Assert --------
+                expect(value).toBe(expectedResult);
+
+                expect(firstOnResolveHandler).toHaveBeenCalledWith(
+                    entry,
+                    typeValue,
+                );
+                expect(firstOnResolveHandler).toHaveReturnedWith(typeValue + 1);
+
+                expect(secondOnResolveHandler).toHaveBeenCalledWith(
+                    entry,
+                    typeValue + 1,
+                );
+                expect(secondOnResolveHandler).toHaveReturnedWith(value);
             });
         });
     });

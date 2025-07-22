@@ -236,8 +236,7 @@ function createContainerBlueprint() {
                         ),
                     );
             }
-        } else for (var ref of aliasRef)
-            compileAliasRef(ref, stack);
+        } else for (var ref of aliasRef) compileAliasRef(ref, stack);
     }
 
     function compileAliases() {
@@ -318,16 +317,23 @@ function createRootContainerScope(blueprint) {
     }
 
     function getInstance(scope, entry) {
+        var instance;
+
         // Return the directly bound instance, if any (from bindInstance)
-        if (entry.instance) return entry.instance;
+        if (entry.instance) instance = entry.instance;
+        else {
+            // Attempt to get cached instance from current scope
+            instance =
+                scope.locals.get(entry) || activateInstance(entry, scope);
 
-        // Attempt to get cached instance from current scope
-        var instance =
-            scope.locals.get(entry) || activateInstance(entry, scope);
-
-        // Cache the instance in scope locals if lifecycle is not transient
-        if (entry.lifecycle !== "transient") scope.locals.set(entry, instance);
-
+            // Cache the instance in scope locals if lifecycle is not transient
+            if (entry.lifecycle !== "transient")
+                scope.locals.set(entry, instance);
+        }
+        blueprint.middlewares.forEach((middleware) => {
+            if (middleware.onResolve)
+                instance = middleware.onResolve(entry, instance);
+        });
         return instance;
     }
 
