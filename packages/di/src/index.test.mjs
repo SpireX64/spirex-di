@@ -1479,6 +1479,33 @@ describe("Container Builder", () => {
                         DIErrors.AliasMissingRef("aliasB", "nonExist"),
                     );
                 });
+
+                test("WHEN: Alias reference through another alias", () => {
+                    // Arrange -------
+                    var typeKey = 'typeKey'
+                    var aliasKeyA = 'aliasKeyA'
+                    var aliasKeyB = 'aliasKeyB'
+                    var aliasKeyC = 'aliasKeyC'
+
+                    var builder = createContainerBuilder()
+                        .bindAlias(aliasKeyA, aliasKeyB)
+                        .bindAlias(aliasKeyB, aliasKeyC)
+                        .bindAlias(aliasKeyC, typeKey)
+                        .bindInstance(typeKey, 42)
+
+                    // Act -----------
+                    var container = builder.build()
+
+                    var aliasValueA = container.get(aliasKeyA)
+                    var aliasValueB = container.get(aliasKeyB)
+                    var aliasValueC = container.get(aliasKeyC)
+                    var value = container.get(typeKey)
+
+                    // Assert --------
+                    expect(aliasValueA).toBe(value)
+                    expect(aliasValueB).toBe(value)
+                    expect(aliasValueC).toBe(value)
+                })
             });
         });
 
