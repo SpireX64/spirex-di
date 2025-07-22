@@ -20,6 +20,12 @@ const sourceFile = `${sourceDir}/index.js`;
 const outDir = "./build";
 const output = `${outDir}/index`;
 
+const generatedCode = {
+    constBindings: false,
+    objectShorthand: true,
+    moduleSideEffects: false,
+}
+
 exports.default = [
     {
         input: sourceFile,
@@ -28,9 +34,7 @@ exports.default = [
             file: `${output}.js`,
             format: "umd",
             sourcemap: release ? false : "inline",
-            generatedCode: {
-                constBindings: false,
-            },
+            generatedCode,
         },
         plugins: [terserPlugin],
     },
@@ -39,9 +43,7 @@ exports.default = [
         output: {
             file: `${output}.mjs`,
             format: "es",
-            generatedCode: {
-                constBindings: false,
-            },
+            generatedCode,
         },
         plugins: [terserPlugin],
     },
@@ -50,9 +52,7 @@ exports.default = [
         output: {
             file: `${output}.cjs`,
             format: "cjs",
-            generatedCode: {
-                constBindings: false,
-            },
+            generatedCode,
         },
         plugins: [
             terserPlugin,
