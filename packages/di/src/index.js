@@ -469,7 +469,7 @@ export function createContainerBuilder(builderOptions) {
     function bindInstance(type, instance, options) {
         var $id = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
-        if (verifyBinding($id, ifConflict)) return this;
+        if (verifyBinding($id, ifConflict, 'singleton')) return this;
         blueprint.addTypeEntry(
             $id,
             {
