@@ -254,7 +254,6 @@ function createContainerBlueprint() {
         var stack = [];
 
         for (var [aliasId, ref] of aliases) {
-            if (entries.has(aliasId)) continue;
             stack.push(aliasId);
             compileAliasRef(ref, stack);
             stack.pop();
