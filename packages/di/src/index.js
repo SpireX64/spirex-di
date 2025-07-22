@@ -269,8 +269,8 @@ function createContainerBlueprint() {
         entries,
         aliases,
         middlewares,
+        has,
         hasMiddleware,
-        hasEntry,
         findEntry,
         findAlias,
         findAllEntries,
@@ -469,7 +469,7 @@ export function createContainerBuilder(builderOptions) {
     function bindInstance(type, instance, options) {
         var $id = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
-        if (verifyBinding($id, ifConflict, 'singleton')) return this;
+        if (verifyBinding($id, ifConflict)) return this;
         blueprint.addTypeEntry(
             $id,
             {
@@ -541,8 +541,8 @@ export function createContainerBuilder(builderOptions) {
     // endregion PUBLIC METHODS
 
     return {
+        has: blueprint.has,
         hasMiddleware: blueprint.hasMiddleware,
-        hasEntry: blueprint.hasEntry,
         findEntry: blueprint.findEntry,
         findAllEntries: blueprint.findAllEntries,
         getAliasOrigin: blueprint.getAliasOrigin,
