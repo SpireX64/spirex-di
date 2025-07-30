@@ -88,8 +88,9 @@ function createContainerBlueprint() {
     function getAliasOrigin(type, name) {
         var id = makeEntryId(type, name);
         var ref = aliases.get(id);
-        if (ref instanceof Set) return Array.from(ref.values());
-        return ref;
+        return ref instanceof Set
+            ? Array.from(ref.values())
+            : ref;
     }
 
     function has(type, name) {
@@ -100,31 +101,32 @@ function createContainerBlueprint() {
     function findEntry(type, name) {
         var $id = makeEntryId(type, name);
         var binding = entries.get($id);
-        if (!binding || isTypeEntry(binding)) return binding;
-        return binding.values().next().value;
+        return !binding || isTypeEntry(binding)
+            ? binding
+            : binding.values().next().value;
     }
 
     function findAlias(type, name) {
         var $id = makeEntryId(type, name);
         var alias = aliases.get($id);
-        if (!alias || typeof alias === "string") return alias;
-        return alias.values().next().value;
+        return !alias || typeof alias === "string"
+            ? alias
+            : alias.values().next().value;
     }
 
     function findAllEntries(type, name) {
         var typeEntry = entries.get(makeEntryId(type, name));
         if (!typeEntry) return [];
-        if (isTypeEntry(typeEntry)) return Array.of(typeEntry);
-        return Array.from(typeEntry);
+
+        return isTypeEntry(typeEntry)
+            ? Array.of(typeEntry)
+            : Array.from(typeEntry);
     }
 
     function forEach(delegate) {
         entries.forEach((entry) => {
-            if (isTypeEntry(entry)) {
-                delegate(entry);
-            } else {
-                entry.forEach(delegate);
-            }
+            if (isTypeEntry(entry)) delegate(entry);
+            else entry.forEach(delegate);
         });
     }
 
@@ -164,23 +166,22 @@ function createContainerBlueprint() {
     function addTypeEntry(id, entry, multibinding) {
         var entryToBind = entry;
         middlewares.forEach((middleware) => {
-            if (middleware.onBind) {
-                entryToBind = middleware.onBind(entryToBind, entry);
-                if (
-                    !entryToBind ||
-                    !isTypeEntry(entryToBind) ||
-                    entryToBind.$id !== entry.$id ||
-                    entryToBind.type !== entry.type
-                ) {
-                    throw new Error(
-                        DIErrors.MiddlewareEntryTypeMismatch(
-                            middleware.name,
-                            entryToBind && entryToBind.$id,
-                            entry.$id,
-                        ),
-                    );
-                }
-            }
+            if (!middleware.onBind) return
+
+            entryToBind = middleware.onBind(entryToBind, entry);
+            if (
+                !entryToBind ||
+                !isTypeEntry(entryToBind) ||
+                entryToBind.$id !== entry.$id ||
+                entryToBind.type !== entry.type
+            )
+                throw new Error(
+                    DIErrors.MiddlewareEntryTypeMismatch(
+                        middleware.name,
+                        entryToBind && entryToBind.$id,
+                        entry.$id,
+                    ),
+                );
         });
 
         Object.freeze(entryToBind);
@@ -202,46 +203,51 @@ function createContainerBlueprint() {
     }
 
     function compileAliasRef(aliasRef, stack) {
-        if (typeof aliasRef === "string") {
-            if (stack.includes(aliasRef)) {
-                stack.push(aliasRef);
-                throw new Error(DIErrors.AliasCycle(aliasRef, stack));
-            }
+        if (typeof aliasRef !== "string") {
+            for (var ref of aliasRef) compileAliasRef(ref, stack);
+            return
+        }
 
-            var ref = aliases.get(aliasRef);
-            if (ref !== undefined) {
-                stack.push(aliasRef);
-                compileAliasRef(ref, stack);
-                stack.pop();
+        if (stack.includes(aliasRef)) {
+            stack.push(aliasRef);
+            throw new Error(DIErrors.AliasCycle(aliasRef, stack));
+        }
+
+        var ref = aliases.get(aliasRef);
+        if (ref !== undefined) {
+            stack.push(aliasRef);
+            compileAliasRef(ref, stack);
+            stack.pop();
+            return
+        }
+
+        var typeEntry = entries.get(aliasRef);
+        if (typeEntry === undefined)
+            throw new Error(
+                DIErrors.AliasMissingRef(
+                    stack[stack.length - 1],
+                    aliasRef,
+                ),
+            );
+
+        stack.push(aliasRef);
+        for (var aliasId of stack) {
+            if (isTypeEntry(typeEntry)) {
+                addTypeEntry(aliasId, typeEntry, true);
             } else {
-                var typeEntry = entries.get(aliasRef);
-                if (typeEntry !== undefined) {
-                    stack.push(aliasRef);
-                    for (var aliasId of stack) {
-                        if (isTypeEntry(typeEntry)) {
-                            addTypeEntry(aliasId, typeEntry, true);
-                        } else {
-                            for (var entry of typeEntry) {
-                                addTypeEntry(aliasId, entry, true);
-                            }
-                        }
-                    }
-
-                    stack.pop();
-                } else
-                    throw new Error(
-                        DIErrors.AliasMissingRef(
-                            stack[stack.length - 1],
-                            aliasRef,
-                        ),
-                    );
+                for (var entry of typeEntry) {
+                    addTypeEntry(aliasId, entry, true);
+                }
             }
-        } else for (var ref of aliasRef) compileAliasRef(ref, stack);
+        }
+        stack.pop();
+
     }
 
     function compileAliases() {
-        var stack = [];
+        if (!aliases.size) return;
 
+        var stack = [];
         for (var [aliasId, ref] of aliases) {
             stack.push(aliasId);
             compileAliasRef(ref, stack);
@@ -468,7 +474,9 @@ export function createContainerBuilder(builderOptions) {
     function bindInstance(type, instance, options) {
         var $id = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
+
         if (verifyBinding($id, ifConflict)) return this;
+
         blueprint.addTypeEntry(
             $id,
             {
@@ -486,7 +494,9 @@ export function createContainerBuilder(builderOptions) {
         var $id = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
         var lifecycle = (options && options.lifecycle) || defaultLifecycle;
+
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
+
         blueprint.addTypeEntry(
             $id,
             {
@@ -505,7 +515,9 @@ export function createContainerBuilder(builderOptions) {
         var $id = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
         var lifecycle = (options && options.lifecycle) || defaultLifecycle;
+
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
+
         blueprint.addTypeEntry(
             $id,
             {
@@ -530,7 +542,9 @@ export function createContainerBuilder(builderOptions) {
     function bindAlias(type, originType, options) {
         var $aliasId = makeEntryId(type, options && options.name);
         var ifConflict = options && options.ifConflict;
+
         if (verifyBinding($aliasId, ifConflict)) return this;
+
         blueprint.addAlias(
             $aliasId,
             originType,
