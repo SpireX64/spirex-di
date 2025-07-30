@@ -803,19 +803,28 @@ describe("Container Builder", () => {
                 var safeFactoryEntry = builder.findEntry(typeKey);
 
                 // Assert --------
+                // 1. The type should be registered
                 expect(builder.has(typeKey)).is.true;
+
+                // 2. Neither injector nor factory should be called during binding
                 expect(injectorFn).not.toHaveBeenCalled();
                 expect(factoryFn).not.toHaveBeenCalled();
+
+                // 3. The chaining reference should return the same builder
                 expect(chainingBuilderRef).to.equal(builder);
 
+                // Entry should be a frozen object with correct structure
                 expect(safeFactoryEntry).toBeInstanceOf(Object);
                 expect(safeFactoryEntry).is.frozen;
                 expect(safeFactoryEntry.type).to.equal(typeKey);
                 expect(safeFactoryEntry.name).is.undefined;
+
                 expect("factory" in safeFactoryEntry).is.true;
                 expect(safeFactoryEntry.factory).to.equal(factoryFn);
+
                 expect("injector" in safeFactoryEntry).is.true;
                 expect(safeFactoryEntry.injector).to.equal(injectorFn);
+
                 expect("instance" in safeFactoryEntry).is.false;
                 expect(safeFactoryEntry.instance).is.undefined;
             });
@@ -1633,6 +1642,109 @@ describe("Container Builder", () => {
 
                 // Assert --------
                 expect(entry).toBeDefined();
+            });
+        });
+
+        describe("Safe factories check", () => {
+            test("WHEN: Safe factory meets requirements", () => {
+                // Arrange ------
+                const typeKey = 'typeKey'
+                const depKey = 'depKey'
+
+                const resolverMock = vi.fn(r => { 
+                    return { dep: r.get(depKey) }
+                });
+                const factoryMock = vi.fn()
+
+                const builder = createContainerBuilder()
+                    .bindSafeFactory(
+                        typeKey,
+                        resolverMock,
+                        factoryMock,
+                    )
+                    .bindInstance(depKey, 42)
+
+                // Act ----------
+                const error = catchError(() => {
+                    builder.build();
+                })
+
+                // Assert -------
+                // 1. Should not throw, since all required dependencies are present
+                expect(error).is.undefined
+
+                // 2. Resolver should be called twice:
+                //    - First: dependencies check
+                //    - Second: resolve dependencies for singleton 
+                expect(resolverMock).toHaveBeenCalledTimes(2)
+
+                // 3. Factory should be called immediately during build
+                expect(factoryMock).toHaveBeenCalledTimes(1)
+            });
+
+            test("WHEN: Safe factory can't get required dependency", () => {
+                // Arrange ------
+                const typeKey = 'typeKey'
+                const depKey = 'depKey'
+
+                const resolverMock = vi.fn(r => ({ dep: r.get(depKey) }));
+                const factoryMock = vi.fn()
+
+                const builder = createContainerBuilder()
+                    .bindSafeFactory(
+                        typeKey,
+                        resolverMock,
+                        factoryMock,
+                    )
+
+                // Act ----------
+                const error = catchError(() => {
+                    builder.build();
+                })
+
+                // Assert -------
+                // 1. Should throw a MissingRequiredTypeError for the missing dependency
+                expect(error).toBeDefined()
+                expect(error.message).toEqual(DIErrors.MissingRequiredTypeError(depKey))
+
+                // 2. Resolver should be called during build
+                expect(resolverMock).toHaveBeenCalledTimes(1)
+
+                // 3. Factory should not be called since resolution failed (singleton)
+                expect(factoryMock).not.toHaveBeenCalled()
+            });
+
+            test("WHEN: Safe factory with unresolved optional dependency", () => {
+                // Arrange ------
+                const typeKey = 'typeKey'
+                const depKey = 'depKey'
+
+                const resolverMock = vi.fn(r => ({ dep: r.maybe(depKey) }));
+                const factoryMock = vi.fn()
+
+                const builder = createContainerBuilder()
+                    .bindSafeFactory(
+                        typeKey,
+                        resolverMock,
+                        factoryMock,
+                    )
+
+                // Act ----------
+                const error = catchError(() => {
+                    builder.build();
+                })
+
+                // Assert -------
+                // 1. Should not throw, since optional dependency not required
+                expect(error).is.undefined
+
+                // 2. Resolver should be called twice:
+                //    - First: dependencies check
+                //    - Second: resolve dependencies for singleton 
+                expect(resolverMock).toHaveBeenCalledTimes(2)
+
+                // 3. Factory should be called immediately during build
+                expect(factoryMock).toHaveBeenCalledTimes(1)
             });
         });
     });

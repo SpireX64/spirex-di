@@ -399,6 +399,7 @@ export function createContainerBuilder(builderOptions) {
 
     var blueprint = createContainerBlueprint();
 
+    var hasSomeSafeFactory = false;
     var requiredTypes = new Set();
 
     // region INTERNAL METHODS
@@ -517,6 +518,7 @@ export function createContainerBuilder(builderOptions) {
             },
             ifConflict === "append",
         );
+        hasSomeSafeFactory = true;
         return this;
     }
 
@@ -543,9 +545,34 @@ export function createContainerBuilder(builderOptions) {
         return this;
     }
 
+    function requireTypesFromSafeFactories() {
+        if (!hasSomeSafeFactory) return;
+
+        var dryRunScope = {
+            get: (type, name) => (requireType(type, name), {}),
+            maybe: () => undefined,
+            getAll: () => [],
+        };
+
+        blueprint.entries.forEach((entry) => {
+            if ("injector" in entry)
+                try {
+                    // Dry-run call to collect required types from safe factories.
+                    // We only care about which types are accessed via `get(...)`.
+                    // Any errors are ignored, as actual resolution is not performed here.
+                    entry.injector(dryRunScope);
+                } catch {
+                    // Intentionally ignored — we're only interested in tracking type accesses.
+                }
+        });
+    }
+
     function build() {
         // Compile aliases
         blueprint.compileAliases();
+
+        // Collect required types from safe factories
+        requireTypesFromSafeFactories();
 
         // Required types verification
         requiredTypes.forEach(($id) => {
