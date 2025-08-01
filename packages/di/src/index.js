@@ -388,23 +388,36 @@ function createRootContainerScope(blueprint) {
         return instance;
     }
 
+    function onRequestMiddleware(scope, entry, type, name) {
+        blueprint.middlewares.forEach((middleware) => {
+            if (middleware.onRequest)
+                middleware.onRequest(entry, scope, type, name);
+        });
+        return entry;
+    }
+
     var scopePrototype = Object.freeze({
         get(type, name) {
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            
+            onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
         },
 
         maybe(type, name) {
             var entry = blueprint.findEntry(type, name);
-            if (entry) return getInstance(this, entry);
-            return undefined;
+            if (!entry) return undefined
+
+            onRequestMiddleware(this, entry, type, name);
+            return getInstance(this, entry);
         },
 
         getAll(type, name) {
             return blueprint
                 .findAllEntries(type, name)
+                .map(onRequestMiddleware)
                 .map(getInstance.bind(this, this));
         },
 

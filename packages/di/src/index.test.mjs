@@ -2640,6 +2640,87 @@ describe("Container Scope", () => {
             expect(inst).toBe(expectedInst);
         });
 
+        describe("onRequest", () => {
+            test("WHEN: Listen instance requests", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var expectedInst = 42;
+                var factory = vi.fn(() => expectedInst);
+                var onRequestHandler = vi.fn();
+                var builder = createContainerBuilder()
+                    .use({ onRequest: onRequestHandler })
+                    .bindFactory(typeKey, factory, { lifecycle: "lazy" });
+
+                var entry = builder.findEntry(typeKey);
+
+                var container = builder.build();
+
+                // Act -----------
+                var inst1 = container.get(typeKey);
+                var inst2 = container.get(typeKey);
+
+                // Assert --------
+                expect(inst1).toBe(expectedInst);
+                expect(inst2).toBe(expectedInst);
+
+                expect(factory).toHaveBeenCalledOnce();
+
+                expect(onRequestHandler).toHaveBeenNthCalledWith(
+                    1,
+                    entry,
+                    container,
+                    typeKey,
+                    undefined,
+                );
+                expect(onRequestHandler).toHaveBeenNthCalledWith(
+                    2,
+                    entry,
+                    container,
+                    typeKey,
+                    undefined,
+                );
+            });
+
+            test("WHEN: Reject instance request", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var expectedErrorMessage = "Type Request Rejected";
+
+                var factory = vi.fn();
+                var onRequestHandler = vi.fn(() => {
+                    throw new Error(expectedErrorMessage);
+                });
+                var builder = createContainerBuilder()
+                    .use({ onRequest: onRequestHandler })
+                    .bindFactory(typeKey, factory, {
+                        lifecycle: "lazy",
+                        name: typeName,
+                    });
+
+                var entry = builder.findEntry(typeKey, typeName);
+                var container = builder.build();
+
+                // Act -----------
+                var error = catchError(() => {
+                    container.get(typeKey, typeName);
+                });
+
+                // Assert --------
+                expect(error).toBeDefined();
+                expect(error.message).toEqual(expectedErrorMessage);
+
+                expect(factory).not.toHaveBeenCalled();
+
+                expect(onRequestHandler).toHaveBeenCalledExactlyOnceWith(
+                    entry,
+                    container,
+                    typeKey,
+                    typeName,
+                );
+            });
+        });
+
         describe("onResolve", () => {
             test("WHEN: listen instance resolve events", () => {
                 // Arrange ---------

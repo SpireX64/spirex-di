@@ -224,10 +224,27 @@ type TContainerBuilderMiddlewareOnBind = (
     originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
 ) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
 
+/**
+ * A middleware function that triggered whenever a instance is requested from the container.
+ * 
+ * This allows intercepting or rejecting requests before instance resolution begins.
+ * Can be useful for access control, logging, instrumentation, or short-circuiting logic.
+ * 
+ * @param entry - The resolved binding entry for the requested type.
+ * @param scope - The current scope from which the request originated.
+ * @param type - The originally requested type key (may differ from `entry.key` if aliases are used).
+ * @param name - Optional name if the request was made using a named binding.
+ * 
+ * @throws { Error } Can throw error to reject request. 
+ * 
+ * @returns If the hook throws, the request will be aborted.
+ */
 type TContainerMiddlewareOnRequest = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-    originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
+    scope: IContainerScope<AnyTypeMap>,
+    type: keyof AnyTypeMap,
+    name: string | undefined,
+) => void | never;
 
 type TContainerMiddlewareOnActivated = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
@@ -248,9 +265,10 @@ interface IContainerMiddleware {
     /** Optional name used to identify the middleware in code or error messages. */
     name?: string;
 
-    /** Called when a new type entry is being bound */
+    /** Triggered when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind;
 
+    /** Triggered whenever a instance is requested from the container. */
     onRequest?: TContainerMiddlewareOnRequest;
 
     onActivated?: TContainerMiddlewareOnActivated;
