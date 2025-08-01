@@ -9,9 +9,10 @@ type TTypeMapBase = object;
  *
  * - `"singleton"` — The instance is created eagerly with the container and exists as a single shared instance.
  * - `"lazy"` — The instance is created on first resolution and cached; only one instance exists.
+ * - `"scope"` — The instance is unique per scope and is disposed with it.
  * - `"transient"` — A new instance is created on each resolution.
  */
-type TLifecycle = "singleton" | "lazy" | "transient";
+type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
 
 /**
  * A factory function that produces an instance of a type from the container.
@@ -33,7 +34,7 @@ type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
  * Injector function type.
  * Receives a resolver which can resolve dependencies from the container,
  * and returns any value representing dependencies to be passed into the factory.
- * 
+ *
  * This value can be an object, array, primitive, or any custom structure,
  * depending on what the factory expects.
  *
@@ -66,6 +67,21 @@ type TTypeSafeFactory<Deps, R> = (deps: Deps) => R;
  * - `"append"`: Adds the new binding alongside the existing one(s)
  */
 type TTypesBindingResolveStrategy = "throw" | "keep" | "replace" | "append";
+
+/** Configuration options for creating a new scope. */
+type TScopeOptions = {
+    /** 
+     * Prevents this scope from creating any child scopes.
+     * Attempting to create a child scope will throw an error.
+     */
+    sealed?: boolean;
+
+    /**
+     * Detaches this scope from its parent chain.
+     * Instances will not be shared or inherited from parent scopes.
+     */
+    isolated?: boolean;
+};
 
 /**
  * Options to control how the binding should behave during registration.
@@ -164,7 +180,7 @@ type TFactoryTypeEntry<
  * @template Deps - Type of the dependencies object injected into the factory.
  */
 type TSafeFactoryEntry<
-    TypeMap extends TTypeEntryBase,
+    TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
     Deps,
 > = TTypeEntryBase<TypeMap, T> & {
@@ -293,19 +309,19 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
      *
      * @template T - A key of the type map representing the type token to bind.
      * @template Deps - The dependencies object type resolved by the injector.
-     * 
+     *
      * @param type - The type key to bind the factory to.
      * @param injector - Injector function that receives resolver and returns dependencies object.
      * @param factory - Factory function that creates instance from dependencies.
      * @param [options] - Optional params that control how the binding behaves.
-     * 
+     *
      * @throws {Error} If a binding already exists and the conflict strategy is set to `"throw"`
-     * 
+     *
      * @returns {this} The current binder instance for chaining.
      */
     bindSafeFactory<T extends keyof TypeMap, Deps>(
         type: T,
-        injector: TTypeInjector<TypeMap, T, Deps>,
+        injector: TTypeInjector<TypeMap, Deps>,
         factory: TTypeSafeFactory<Deps, TypeMap[T]>,
         options?: TFactoryBindingOptions,
     );
@@ -383,6 +399,21 @@ type TBinderDelegate<TypeMap extends TTypeMapBase> = (
 interface IContainerScope<TypeMap extends TTypeMapBase>
     extends ITypesResolver<TypeMap> {
     readonly id: string;
+
+    /**
+     * Creates (or retrieves) a child scope by its unique identifier.
+     *
+     * If a scope with the same `id` already exists in the parent hierarchy, it will be returned.
+     * Otherwise, a new scope is created and registered as a child of the current one.
+     * 
+     * @param id - Unique identifier for the scope.
+     * @param options - Optional scope configuration.
+     * 
+     * @returns The newly created or existing scope instance.
+     * 
+     * @throws {Error} If the current scope is sealed and an attempt is made to create a new child scope.
+     */
+    scope(id: string, options?: TScopeOptions): IContainerScope<TypeMap>;
 }
 
 interface IContainerBuilder<TypeMap extends TTypeMapBase>

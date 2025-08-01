@@ -967,9 +967,9 @@ describe("Container Builder", () => {
 
             test("WHEN: bind alias to multiple entries", () => {
                 // Arrange ------
-                const typeA = "typeA";
-                const typeB = "typeB";
-                const aliasKey = "aliasKey";
+                var typeA = "typeA";
+                var typeB = "typeB";
+                var aliasKey = "aliasKey";
 
                 var builder = createContainerBuilder()
                     .bindInstance(typeA, 11)
@@ -978,7 +978,7 @@ describe("Container Builder", () => {
                     .bindAlias(aliasKey, typeB, { ifConflict: "append" });
 
                 // Act ----------
-                const aliasOrigin = builder.getAliasOrigin(aliasKey);
+                var aliasOrigin = builder.getAliasOrigin(aliasKey);
 
                 // Assert ------
                 expect(aliasOrigin).toBeInstanceOf(Array);
@@ -1491,7 +1491,7 @@ describe("Container Builder", () => {
 
                 test("WHEN: Alias binding has cycle", () => {
                     // Arrange ------
-                    const builder = createContainerBuilder()
+                    var builder = createContainerBuilder()
                         .bindAlias("A", "B")
                         .bindAlias("B", "C")
                         .bindAlias("C", "D")
@@ -1648,103 +1648,99 @@ describe("Container Builder", () => {
         describe("Safe factories check", () => {
             test("WHEN: Safe factory meets requirements", () => {
                 // Arrange ------
-                const typeKey = 'typeKey'
-                const depKey = 'depKey'
+                var typeKey = "typeKey";
+                var depKey = "depKey";
 
-                const resolverMock = vi.fn(r => { 
-                    return { dep: r.get(depKey) }
+                var resolverMock = vi.fn((r) => {
+                    return { dep: r.get(depKey) };
                 });
-                const factoryMock = vi.fn()
+                var factoryMock = vi.fn();
 
-                const builder = createContainerBuilder()
-                    .bindSafeFactory(
-                        typeKey,
-                        resolverMock,
-                        factoryMock,
-                    )
-                    .bindInstance(depKey, 42)
+                var builder = createContainerBuilder()
+                    .bindSafeFactory(typeKey, resolverMock, factoryMock)
+                    .bindInstance(depKey, 42);
 
                 // Act ----------
-                const error = catchError(() => {
+                var error = catchError(() => {
                     builder.build();
-                })
+                });
 
                 // Assert -------
                 // 1. Should not throw, since all required dependencies are present
-                expect(error).is.undefined
+                expect(error).is.undefined;
 
                 // 2. Resolver should be called twice:
                 //    - First: dependencies check
-                //    - Second: resolve dependencies for singleton 
-                expect(resolverMock).toHaveBeenCalledTimes(2)
+                //    - Second: resolve dependencies for singleton
+                expect(resolverMock).toHaveBeenCalledTimes(2);
 
                 // 3. Factory should be called immediately during build
-                expect(factoryMock).toHaveBeenCalledTimes(1)
+                expect(factoryMock).toHaveBeenCalledTimes(1);
             });
 
             test("WHEN: Safe factory can't get required dependency", () => {
                 // Arrange ------
-                const typeKey = 'typeKey'
-                const depKey = 'depKey'
+                var typeKey = "typeKey";
+                var depKey = "depKey";
 
-                const resolverMock = vi.fn(r => ({ dep: r.get(depKey) }));
-                const factoryMock = vi.fn()
+                var resolverMock = vi.fn((r) => ({ dep: r.get(depKey) }));
+                var factoryMock = vi.fn();
 
-                const builder = createContainerBuilder()
-                    .bindSafeFactory(
-                        typeKey,
-                        resolverMock,
-                        factoryMock,
-                    )
+                var builder = createContainerBuilder().bindSafeFactory(
+                    typeKey,
+                    resolverMock,
+                    factoryMock,
+                );
 
                 // Act ----------
-                const error = catchError(() => {
+                var error = catchError(() => {
                     builder.build();
-                })
+                });
 
                 // Assert -------
                 // 1. Should throw a MissingRequiredTypeError for the missing dependency
-                expect(error).toBeDefined()
-                expect(error.message).toEqual(DIErrors.MissingRequiredTypeError(depKey))
+                expect(error).toBeDefined();
+                expect(error.message).toEqual(
+                    DIErrors.MissingRequiredTypeError(depKey),
+                );
 
                 // 2. Resolver should be called during build
-                expect(resolverMock).toHaveBeenCalledTimes(1)
+                expect(resolverMock).toHaveBeenCalledTimes(1);
 
                 // 3. Factory should not be called since resolution failed (singleton)
-                expect(factoryMock).not.toHaveBeenCalled()
+                expect(factoryMock).not.toHaveBeenCalled();
             });
 
             test("WHEN: Safe factory with unresolved optional dependency", () => {
                 // Arrange ------
-                const typeKey = 'typeKey'
-                const depKey = 'depKey'
+                var typeKey = "typeKey";
+                var depKey = "depKey";
 
-                const resolverMock = vi.fn(r => ({ dep: r.maybe(depKey) }));
-                const factoryMock = vi.fn()
+                var resolverMock = vi.fn((r) => ({ dep: r.maybe(depKey) }));
+                var factoryMock = vi.fn();
 
-                const builder = createContainerBuilder()
-                    .bindSafeFactory(
-                        typeKey,
-                        resolverMock,
-                        factoryMock,
-                    )
+                var builder = createContainerBuilder().bindSafeFactory(
+                    typeKey,
+                    resolverMock,
+                    factoryMock,
+                );
 
                 // Act ----------
-                const error = catchError(() => {
+                var error = catchError(() => {
                     builder.build();
-                })
+                });
 
                 // Assert -------
                 // 1. Should not throw, since optional dependency not required
-                expect(error).is.undefined
+                expect(error).is.undefined;
 
                 // 2. Resolver should be called twice:
                 //    - First: dependencies check
-                //    - Second: resolve dependencies for singleton 
-                expect(resolverMock).toHaveBeenCalledTimes(2)
+                //    - Second: resolve dependencies for singleton
+                expect(resolverMock).toHaveBeenCalledTimes(2);
 
                 // 3. Factory should be called immediately during build
-                expect(factoryMock).toHaveBeenCalledTimes(1)
+                expect(factoryMock).toHaveBeenCalledTimes(1);
             });
         });
     });
@@ -1856,26 +1852,26 @@ describe("Container Scope", () => {
 
             test("WHEN: get from safe factory", () => {
                 // Arrange --------
-                var typeKey = "typeKey"
-                var depKey = "depKey"
-                var expectedValue = 420
-                var injectorFn = vi.fn(r => r.get(depKey))
-                var factoryFn = vi.fn(d => d * 10)
+                var typeKey = "typeKey";
+                var depKey = "depKey";
+                var expectedValue = 420;
+                var injectorFn = vi.fn((r) => r.get(depKey));
+                var factoryFn = vi.fn((d) => d * 10);
 
                 var scope = createContainerBuilder()
                     .bindInstance(depKey, 42)
                     .bindSafeFactory(typeKey, injectorFn, factoryFn)
-                    .build()
+                    .build();
 
                 // Act ------------
-                var resolvedValue = scope.get(typeKey)
+                var resolvedValue = scope.get(typeKey);
 
                 // Assert ---------
-                expect(injectorFn).toHaveBeenCalled()
-                expect(injectorFn).toHaveReturnedWith(42)
-                expect(factoryFn).toHaveBeenCalledWith(42)
-                expect(resolvedValue).toBe(expectedValue)
-            })
+                expect(injectorFn).toHaveBeenCalled();
+                expect(injectorFn).toHaveReturnedWith(42);
+                expect(factoryFn).toHaveBeenCalledWith(42);
+                expect(resolvedValue).toBe(expectedValue);
+            });
 
             test("WHEN get from alias instance binding", () => {
                 // Arrange --------
@@ -2544,6 +2540,246 @@ describe("Container Scope", () => {
                     typeValue + 1,
                 );
                 expect(secondOnResolveHandler).toHaveReturnedWith(value);
+            });
+        });
+    });
+
+    describe("Child scopes", () => {
+        describe("Get child scope", () => {
+            test("WHEN: Create child scope", () => {
+                // Arrange -----------
+                var scopeId = "myScope";
+                var container = createContainerBuilder().build();
+
+                // Act ---------------
+                var childScope = container.scope(scopeId);
+
+                // Assert ------------
+                expect(childScope.id).toBe(scopeId);
+                expect(childScope).not.toBe(container);
+                expect(Object.getPrototypeOf(childScope)).toBe(
+                    Object.getPrototypeOf(container),
+                );
+                expect(childScope.sealed).is.false;
+                expect(childScope.isolated).is.false;
+            });
+
+            test("WHEN: Create sealed scope", () => {
+                // Arrange -----------
+                var scopeId = "myScope";
+                var container = createContainerBuilder().build();
+
+                // Act ---------------
+                var childScope = container.scope(scopeId, { sealed: true });
+
+                // Assert ------------
+                expect(childScope.id).toBe(scopeId);
+                expect(childScope).not.toBe(container);
+                expect(Object.getPrototypeOf(childScope)).toBe(
+                    Object.getPrototypeOf(container),
+                );
+                expect(childScope.sealed).is.true;
+                expect(childScope.isolated).is.false;
+            });
+
+            test("WHEN: Get scope with same name as parent", () => {
+                // Arrange -------
+                var container = createContainerBuilder().build();
+
+                var scopeA = container.scope("A");
+                var scopeB = scopeA.scope("B");
+
+                // Act -----------
+                var scopeA2 = scopeB.scope("A");
+
+                // Assert --------
+                expect(scopeA2).toBe(scopeA);
+            });
+
+            test("WHEN: Trying open new scope from sealed scope", () => {
+                // Arrange ---------
+                var sealedScopeName = "sealed";
+                var childScopeName = "child";
+                var container = createContainerBuilder().build();
+                var sealedScope = container.scope(sealedScopeName, {
+                    sealed: true,
+                });
+
+                // Act -------------
+                var error = catchError(() => {
+                    sealedScope.scope(childScopeName);
+                });
+
+                // Assert ----------
+                expect(error).toBeDefined();
+                expect(error.message).toEqual(
+                    DIErrors.SealedScope(sealedScopeName, childScopeName),
+                );
+            });
+
+            test("WHEN: Trying to get parent scope from sealed scope", () => {
+                // Arrange -------
+                var parentName = "parent";
+                var childName = "child";
+                var container = createContainerBuilder().build();
+
+                var parentScope = container.scope(parentName);
+                var childScope = parentScope.scope(childName, { sealed: true });
+
+                // Act -----------
+                var scope = childScope.scope(parentName);
+
+                // Assert --------
+                expect(scope).toBe(parentScope);
+            });
+
+            test("WHEN: Create isolated scope", () => {
+                // Arrange -----------
+                var scopeId = "myScope";
+                var container = createContainerBuilder().build();
+
+                // Act ---------------
+                var childScope = container.scope(scopeId, { isolated: true });
+
+                // Assert ------------
+                expect(childScope.id).toBe(scopeId);
+                expect(childScope).not.toBe(container);
+                expect(Object.getPrototypeOf(childScope)).toBe(
+                    Object.getPrototypeOf(container),
+                );
+                expect(childScope.sealed).is.false;
+                expect(childScope.isolated).is.true;
+            });
+        });
+
+        describe("Scoped instances", () => {
+            test("WHEN: Get singleton from child scope", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => ({ value: 42 }));
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory)
+                    .build();
+
+                var scopeA = container.scope("A");
+                var scopeB = scopeA.scope("B");
+
+                // Act -----------
+                var instRoot = container.get(typeKey);
+                var instA = scopeA.get(typeKey);
+                var instB = scopeB.get(typeKey);
+
+                // Assert --------
+                expect(factory).toHaveBeenCalledOnce();
+
+                expect(instA).toBe(instRoot);
+                expect(instB).toBe(instRoot);
+            });
+
+            test("WHEN: Get instance from same scope", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, () => ({ value: "foo" }), {
+                        lifecycle: "scope",
+                    })
+                    .build();
+
+                var childScope = container.scope("child");
+
+                // Act -----------
+                var inst1 = childScope.get(typeKey);
+                var inst2 = childScope.get(typeKey);
+
+                // Assert --------
+                expect(inst1).toBe(inst2);
+            });
+
+            test("WHEN: Get instance of same type from different scopes", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, () => ({ value: 42 }), {
+                        lifecycle: "scope",
+                    })
+                    .build();
+
+                var scopeA = container.scope("A");
+                var scopeB = container.scope("B");
+
+                // Act -----------
+                var instA = scopeA.get(typeKey);
+                var instB = scopeB.get(typeKey);
+
+                // Assert --------
+                expect(instA).not.toBe(instB);
+            });
+
+            test("WHEN: Get instance from parent and child scopes", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, () => ({ goTo: "bar" }))
+                    .build();
+
+                var parent = container.scope("parent");
+                var child = container.scope("child");
+
+                // Act -----------
+                var instParent = parent.get(typeKey);
+                var instChild = child.get(typeKey);
+
+                // Assert --------
+                expect(instChild).toBe(instParent);
+            });
+
+            test("WHEN: Get instance from parent and isolated child scopes", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, () => ({ goTo: "bar" }), {
+                        lifecycle: "scope",
+                    })
+                    .build();
+
+                var parent = container.scope("parent");
+                var child = container.scope("child", { isolated: true });
+
+                // Act -----------
+                var instParent = parent.get(typeKey);
+                var instChild = child.get(typeKey);
+
+                // Assert --------
+                expect(instChild).not.toBe(instParent);
+            });
+
+            test("WHEN: Getting instance from scope inside isolated scope", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var factory = vi.fn(() => ({ value: "nya" }));
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, { lifecycle: "scope" })
+                    .build();
+
+                var scopeA = container.scope("A");
+                var scopeB = scopeA.scope("B", { isolated: true });
+                var scopeC = scopeB.scope("C");
+
+                // Act ----------
+                var instA = scopeA.get(typeKey);
+                var instB = scopeB.get(typeKey);
+                var instC = scopeC.get(typeKey);
+
+                // Assert -------
+                // 1. Instances from scopes B & C should be the same
+                expect(instC).toBe(instB);
+
+                // 2. Instance from scopes A & C should be different,
+                //    because parent B is isolated from A
+                expect(instC).not.toBe(instA);
+
+                // 3. Factory should be called twice: once for A, once for B (shared with C)
+                expect(factory).toHaveBeenCalledTimes(2);
             });
         });
     });

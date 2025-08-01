@@ -43,6 +43,9 @@ export var DIErrors = Object.freeze({
 
     MixedLifecycleBindings: (type, lifecycleA, lifecycleB) =>
         `Mixed lifecycle bindings detected for type "${type}": ${lifecycleA}, ${lifecycleB}`,
+
+    SealedScope: (sealedScope, childScope) =>
+        `Cannot create child scope "${childScope}" from sealed scope "${sealedScope}"`,
 });
 
 /**
@@ -88,9 +91,7 @@ function createContainerBlueprint() {
     function getAliasOrigin(type, name) {
         var id = makeEntryId(type, name);
         var ref = aliases.get(id);
-        return ref instanceof Set
-            ? Array.from(ref.values())
-            : ref;
+        return ref instanceof Set ? Array.from(ref.values()) : ref;
     }
 
     function has(type, name) {
@@ -166,7 +167,7 @@ function createContainerBlueprint() {
     function addTypeEntry(id, entry, multibinding) {
         var entryToBind = entry;
         middlewares.forEach((middleware) => {
-            if (!middleware.onBind) return
+            if (!middleware.onBind) return;
 
             entryToBind = middleware.onBind(entryToBind, entry);
             if (
@@ -205,7 +206,7 @@ function createContainerBlueprint() {
     function compileAliasRef(aliasRef, stack) {
         if (typeof aliasRef !== "string") {
             for (var ref of aliasRef) compileAliasRef(ref, stack);
-            return
+            return;
         }
 
         if (stack.includes(aliasRef)) {
@@ -218,16 +219,13 @@ function createContainerBlueprint() {
             stack.push(aliasRef);
             compileAliasRef(ref, stack);
             stack.pop();
-            return
+            return;
         }
 
         var typeEntry = entries.get(aliasRef);
         if (typeEntry === undefined)
             throw new Error(
-                DIErrors.AliasMissingRef(
-                    stack[stack.length - 1],
-                    aliasRef,
-                ),
+                DIErrors.AliasMissingRef(stack[stack.length - 1], aliasRef),
             );
 
         stack.push(aliasRef);
@@ -241,7 +239,6 @@ function createContainerBlueprint() {
             }
         }
         stack.pop();
-
     }
 
     function compileAliases() {
@@ -278,6 +275,23 @@ function createContainerBlueprint() {
 }
 
 function createRootContainerScope(blueprint) {
+    var $root = Symbol("root");
+    var $parent = Symbol("parent");
+    var $scopes = Symbol("scopes");
+    var $locals = Symbol("locals");
+
+    function createScopeObject(id, parent, options) {
+        return {
+            id,
+            sealed: (options && options.sealed) || false,
+            isolated: (options && options.isolated) || false,
+            [$root]: parent && (parent[$root] || parent),
+            [$parent]: parent,
+            [$locals]: new Map(),
+            [$scopes]: new Map(),
+        };
+    }
+
     // The activation stack is used to track the chain of type activations
     // to detect circular dependencies during instance creation
     var activationStack = [];
@@ -330,14 +344,36 @@ function createRootContainerScope(blueprint) {
 
         // Return the directly bound instance, if any (from bindInstance)
         if (entry.instance) instance = entry.instance;
+        else if (
+            scope[$parent] &&
+            (entry.lifecycle === "singleton" || entry.lifecycle === "lazy")
+        )
+            // Direct singleton access from the root
+            instance = getInstance(scope[$root], entry);
         else {
-            // Attempt to get cached instance from current scope
-            instance =
-                scope.locals.get(entry) || activateInstance(entry, scope);
+            if (!scope.isolated) {
+                // If scope is not isolated, search up the parent chain
+                // to find an already created instance of this entry (no new instantiation)
+                for (
+                    var parent = scope[$parent];
+                    parent && !instance;
+                    parent = parent[$parent]
+                ) {
+                    instance = parent[$locals].get(entry);
+                    // If parent is isolated, we can't go any higher.
+                    if (parent.isolated) break;
+                }
+            }
 
-            // Cache the instance in scope locals if lifecycle is not transient
-            if (entry.lifecycle !== "transient")
-                scope.locals.set(entry, instance);
+            if (!instance) {
+                // Attempt to get cached instance from current scope
+                instance =
+                    scope[$locals].get(entry) || activateInstance(entry, scope);
+
+                // Cache the instance in scope locals if lifecycle is not transient
+                if (entry.lifecycle !== "transient")
+                    scope[$locals].set(entry, instance);
+            }
         }
         blueprint.middlewares.forEach((middleware) => {
             if (middleware.onResolve)
@@ -346,7 +382,7 @@ function createRootContainerScope(blueprint) {
         return instance;
     }
 
-    var scopePrototype = {
+    var scopePrototype = Object.freeze({
         get(type, name) {
             var entry = blueprint.findEntry(type, name);
             if (!entry)
@@ -365,11 +401,27 @@ function createRootContainerScope(blueprint) {
                 .findAllEntries(type, name)
                 .map(getInstance.bind(this, this));
         },
-    };
 
-    var rootScope = Object.setPrototypeOf(
-        { id: "", locals: new Map() },
-        scopePrototype,
+        scope(id, options) {
+            // Walk up the scope hierarchy to find a scope with the matching ID.
+            // Used to return an already existing parent scope instead of creating a duplicate.
+            for (var scope = this; scope; scope = scope[$parent])
+                if (scope.id === id) return scope;
+
+            // Disallow creating child scopes from sealed scope
+            if (this.sealed) throw new Error(DIErrors.SealedScope(this.id, id));
+
+            return Object.freeze(
+                Object.setPrototypeOf(
+                    createScopeObject(id, this, options),
+                    Object.getPrototypeOf(this),
+                ),
+            );
+        },
+    });
+
+    var rootScope = Object.freeze(
+        Object.setPrototypeOf(createScopeObject(""), scopePrototype),
     );
 
     // Singletons activation
@@ -382,9 +434,9 @@ function createRootContainerScope(blueprint) {
             // It is singleton binding
             typeEntry.lifecycle === "singleton" &&
             // Not activated yet
-            !rootScope.locals.has(typeEntry)
+            !rootScope[$locals].has(typeEntry)
         ) {
-            rootScope.locals.set(
+            rootScope[$locals].set(
                 typeEntry,
                 activateInstance(typeEntry, rootScope),
             );
