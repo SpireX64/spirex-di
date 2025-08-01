@@ -212,6 +212,18 @@ type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
 type AnyTypeMap = Record<string, any>;
 
 /**
+ * A middleware function that called when the middleware
+ * is added into the container builder.
+ * 
+ * This is executed immediately and only once per `.use()` call.
+ * 
+ * @param builder The container builder where the middleware is being registered.
+ */
+type TContainerBuilderMiddlewareOnUse = (
+    builder: IContainerBuilder<AnyTypeMap>,
+) => void
+
+/**
  * A middleware function that intercepts type binding during container building.
  * Can be used to transform or validate the entry.
  *
@@ -281,6 +293,8 @@ type TContainerMiddlewareOnResolve = (
 interface IContainerMiddleware {
     /** Optional name used to identify the middleware in code or error messages. */
     name?: string;
+
+    onUse?: TContainerBuilderMiddlewareOnUse;
 
     /** Triggered when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind;

@@ -1297,6 +1297,22 @@ describe("Container Builder", () => {
                 // Assert ----------
                 expect(middlewareWasAdded).is.false;
             });
+
+            test("WHEN: add and has onUse hook", () => {
+                // Arrange ---------
+                var builder = createContainerBuilder();
+
+                var onUseHandler = vi.fn();
+                var middleware = { onUse: onUseHandler };
+
+                // Act -------------
+                builder.use(middleware);
+                var wasAdded = builder.hasMiddleware(middleware);
+
+                // Assert ----------
+                expect(wasAdded).is.true;
+                expect(onUseHandler).toHaveBeenCalledExactlyOnceWith(builder);
+            });
         });
 
         describe("onBind hook", () => {

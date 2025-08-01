@@ -328,10 +328,9 @@ function createRootContainerScope(blueprint) {
         }
 
         // Call the factory to create the instance, passing the current scope as resolver
-        var instance =
-            entry.injector
-                ? entry.factory(entry.injector(scope))
-                : entry.factory(scope);
+        var instance = entry.injector
+            ? entry.factory(entry.injector(scope))
+            : entry.factory(scope);
 
         // Call 'OnActivated' middleware
         blueprint.middlewares.forEach((middleware) => {
@@ -401,14 +400,14 @@ function createRootContainerScope(blueprint) {
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
-            
+
             onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
         },
 
         maybe(type, name) {
             var entry = blueprint.findEntry(type, name);
-            if (!entry) return undefined
+            if (!entry) return undefined;
 
             onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
@@ -417,7 +416,7 @@ function createRootContainerScope(blueprint) {
         getAll(type, name) {
             return blueprint
                 .findAllEntries(type, name)
-                .map(entry => onRequestMiddleware(this, entry, type, name))
+                .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map(getInstance.bind(this, this));
         },
 
@@ -627,6 +626,7 @@ export function createContainerBuilder(builderOptions) {
 
     function use(middleware) {
         blueprint.addMiddleware(middleware);
+        if (middleware.onUse) middleware.onUse(this);
         return this;
     }
 
