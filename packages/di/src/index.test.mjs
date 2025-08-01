@@ -783,8 +783,10 @@ describe("Container Builder", () => {
                     expect(entry.lifecycle).toBe(expectedLifecycle);
                 });
             });
+        });
 
-            test("WHEN: bind safe factory to type", () => {
+        describe("Safe factory", () => {
+            test("WHEN: bind simple safe factory to the type", () => {
                 // Arrange -------
                 var typeKey = "typeKey";
                 var depKey = "depKey";
@@ -827,6 +829,175 @@ describe("Container Builder", () => {
 
                 expect("instance" in safeFactoryEntry).is.false;
                 expect(safeFactoryEntry.instance).is.undefined;
+            });
+
+            test("WHEN binding simple safe factory to the type with name", () => {
+                // Arrange -----
+                var typeKey = "typeKey";
+                var name = "typeName";
+                var injectorMockFn = vi.fn();
+                var factoryMockFn = vi.fn();
+                var builder = createContainerBuilder();
+
+                // Act ---------
+                var chainingBuilderRef = builder.bindSafeFactory(
+                    typeKey,
+                    injectorMockFn,
+                    factoryMockFn,
+                    { name },
+                );
+                var factoryEntryWithoutName = builder.findEntry(typeKey);
+                var factoryEntry = builder.findEntry(typeKey, name);
+
+                // Assert ------
+                expect(builder.has(typeKey)).is.false;
+                expect(factoryEntryWithoutName).is.undefined;
+
+                expect(builder.has(typeKey, name)).to.be.true;
+                expect(injectorMockFn).not.toHaveBeenCalled();
+                expect(factoryMockFn).not.toHaveBeenCalled();
+                expect(chainingBuilderRef).to.equal(builder);
+
+                expect(factoryEntry).instanceOf(Object);
+                expect(factoryEntry).to.be.frozen;
+                expect(factoryEntry.type).to.equal(typeKey);
+                expect(factoryEntry.name).to.equal(name);
+                expect("factory" in factoryEntry).to.be.true;
+                expect(factoryEntry.factory).to.equal(factoryMockFn);
+                expect("instance" in factoryEntry).to.be.false;
+                expect(factoryEntry.instance).to.be.undefined;
+            });
+
+            describe("Conflict", () => {
+                test("WHEN strategy 'throw' (default)", () => {
+                    // Arrange -------
+                    var typeKey = "typeKey";
+                    var expectedInjector = vi.fn();
+                    var expectedFactory = vi.fn();
+                    var builder = createContainerBuilder();
+                    builder.bindSafeFactory(
+                        typeKey,
+                        expectedInjector,
+                        expectedFactory,
+                    );
+
+                    // Act -----------
+                    var err = catchError(() =>
+                        builder.bindSafeFactory(
+                            typeKey,
+                            () => {},
+                            () => {},
+                        ),
+                    );
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert --------
+                    expect(err).to.not.be.undefined;
+                    expect(err.message).to.contains("Binding conflict");
+                    expect(err.message).to.contains(typeKey);
+
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(entry.injector).to.equal(expectedInjector);
+                    expect(expectedInjector).not.toHaveBeenCalled();
+                    expect(expectedFactory).not.toHaveBeenCalled();
+                });
+
+                test("WHEN strategy 'keep'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var expectedFactory = vi.fn();
+                    var expectedInjector = vi.fn();
+                    var builder = createContainerBuilder();
+                    builder.bindSafeFactory(
+                        typeKey,
+                        expectedInjector,
+                        expectedFactory,
+                    );
+
+                    // Act ---------
+                    builder.bindSafeFactory(
+                        typeKey,
+                        () => {},
+                        () => {},
+                        {
+                            ifConflict: "keep",
+                        },
+                    );
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(entry.injector).to.equal(expectedInjector);
+                    expect(expectedInjector).not.toHaveBeenCalled();
+                    expect(expectedFactory).not.toHaveBeenCalled();
+                });
+
+                test("WHEN strategy 'replace'", () => {
+                    // Arrange -----
+                    var typeKey = "typeKey";
+                    var expectedFactory = vi.fn();
+                    var expectedInjector = vi.fn();
+                    var builder = createContainerBuilder();
+                    builder.bindSafeFactory(
+                        typeKey,
+                        () => {},
+                        () => {},
+                    );
+
+                    // Act ---------
+                    builder.bindSafeFactory(
+                        typeKey,
+                        expectedInjector,
+                        expectedFactory,
+                        {
+                            ifConflict: "replace",
+                        },
+                    );
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(expectedInjector).not.toHaveBeenCalled();
+                    expect(expectedFactory).not.toHaveBeenCalled();
+                });
+
+                test("WHEN set default strategy via builder options", () => {
+                    // Arrange -------
+                    var typeKey = "typeKey";
+                    var expectedStrategy = "replace";
+                    var expectedInjector = vi.fn();
+                    var expectedFactory = vi.fn();
+                    var builder = createContainerBuilder({
+                        ifConflict: expectedStrategy,
+                    });
+                    builder.bindSafeFactory(
+                        typeKey,
+                        () => {},
+                        () => {},
+                    );
+
+                    // Act -----------
+                    builder.bindSafeFactory(
+                        typeKey,
+                        expectedInjector,
+                        expectedFactory,
+                    );
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert --------
+                    expect(entry).not.to.be.undefined;
+                    expect(entry.type).to.equal(typeKey);
+                    expect(entry.factory).to.equal(expectedFactory);
+                    expect(entry.injector).to.equal(expectedInjector);
+                    expect(expectedFactory).not.toHaveBeenCalled();
+                    expect(expectedInjector).not.toHaveBeenCalled();
+                });
             });
         });
 
@@ -1716,7 +1887,10 @@ describe("Container Builder", () => {
                 var typeKey = "typeKey";
                 var depKey = "depKey";
 
-                var resolverMock = vi.fn((r) => ({ dep: r.maybe(depKey) }));
+                var resolverMock = vi.fn((r) => ({
+                    dep: r.maybe(depKey),
+                    arr: r.getAll(),
+                }));
                 var factoryMock = vi.fn();
 
                 var builder = createContainerBuilder().bindSafeFactory(
