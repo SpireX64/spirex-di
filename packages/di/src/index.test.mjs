@@ -2787,12 +2787,16 @@ describe("Container Scope", () => {
                 var inst2 = container.get(typeKey);
 
                 // Assert --------
+                // 1. onActivated should define the final instance
                 expect(inst1).toBe(expectedInst);
                 expect(inst1).toBe(inst2);
 
+                // 2. Factory should be called once and return original value
                 expect(factory).toHaveBeenCalledOnce();
                 expect(factory).toHaveReturnedWith(factoryInst);
 
+                // 3. Hook receives raw instance and returns modified
+                expect(onActivatedHandler).toHaveBeenCalledAfter(factory);
                 expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
                     entry,
                     factoryInst,
@@ -2824,12 +2828,15 @@ describe("Container Scope", () => {
                 var inst2 = container.get(typeKey);
 
                 // Assert -------
+                // 1. Last onActivated should define the final instance
                 expect(inst1).toBe(valueTwo);
                 expect(inst2).toBe(inst1);
 
+                // 2. Factory should be called once and return original value
                 expect(factory).toHaveBeenCalledOnce();
                 expect(factory).toHaveReturnedWith(originValue);
 
+                // 3. First hook receives raw instance, returns modified
                 expect(onActivatedOne).toHaveBeenCalledAfter(factory);
                 expect(onActivatedOne).toHaveBeenCalledExactlyOnceWith(
                     entry,
@@ -2837,6 +2844,7 @@ describe("Container Scope", () => {
                 );
                 expect(onActivatedOne).toHaveReturnedWith(valueOne);
 
+                // 4. Second hook receives result of first hook
                 expect(onActivatedTwo).toHaveBeenCalledAfter(onActivatedOne);
                 expect(onActivatedTwo).toHaveBeenCalledExactlyOnceWith(
                     entry,
