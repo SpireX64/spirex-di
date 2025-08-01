@@ -329,7 +329,7 @@ function createRootContainerScope(blueprint) {
 
         // Call the factory to create the instance, passing the current scope as resolver
         var instance =
-            "injector" in entry
+            entry.injector
                 ? entry.factory(entry.injector(scope))
                 : entry.factory(scope);
 
@@ -417,7 +417,7 @@ function createRootContainerScope(blueprint) {
         getAll(type, name) {
             return blueprint
                 .findAllEntries(type, name)
-                .map(onRequestMiddleware)
+                .map(entry => onRequestMiddleware(this, entry, type, name))
                 .map(getInstance.bind(this, this));
         },
 
