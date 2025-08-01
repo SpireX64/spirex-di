@@ -336,7 +336,7 @@ function createRootContainerScope(blueprint) {
         // Call 'OnActivated' middleware
         blueprint.middlewares.forEach((middleware) => {
             if (middleware.onActivated)
-                instance = middleware.onActivated(entry, instance);
+                instance = middleware.onActivated(entry, instance, scope);
         });
 
         // Remove the entry from the activation stack after successful creation

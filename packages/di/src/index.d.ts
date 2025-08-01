@@ -246,9 +246,26 @@ type TContainerMiddlewareOnRequest = (
     name: string | undefined,
 ) => void | never;
 
+/**
+ * A middleware function that triggered after an instance is created,
+ * but before it is returned to the requester.
+ * 
+ * @note
+ * - This hook is **not** called if the instance is reused.
+ * - Returning `null` or `undefined` is discouraged — always return a valid object
+ * 
+ * @param entry    - The original type entry (binding) used to create the instance.
+ * @param instance - The freshly created instance before returning to the requester.
+ *                   It is guaranteed to be a non-null object/value.
+ * @param scope    - The current container scope in which the instance was created.
+ *                   Can be used to resolve other services or inspect the context.
+ *
+ * @returns The instance to be returned. Can be the original or a modified one.
+ */
 type TContainerMiddlewareOnActivated = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     instance: {}, // Any value, but not null/undefined
+    scope: IContainerScope<AnyTypeMap>,
 ) => {};
 
 type TContainerMiddlewareOnResolve = (

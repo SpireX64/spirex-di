@@ -2845,6 +2845,7 @@ describe("Container Scope", () => {
                 expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
                     entry,
                     expectedInst,
+                    container,
                 );
                 expect(onActivatedHandler).toHaveReturnedWith(expectedInst);
             });
@@ -2881,6 +2882,7 @@ describe("Container Scope", () => {
                 expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
                     entry,
                     factoryInst,
+                    container,
                 );
                 expect(onActivatedHandler).toHaveReturnedWith(expectedInst);
             });
@@ -2922,6 +2924,7 @@ describe("Container Scope", () => {
                 expect(onActivatedOne).toHaveBeenCalledExactlyOnceWith(
                     entry,
                     originValue,
+                    container,
                 );
                 expect(onActivatedOne).toHaveReturnedWith(valueOne);
 
@@ -2930,6 +2933,7 @@ describe("Container Scope", () => {
                 expect(onActivatedTwo).toHaveBeenCalledExactlyOnceWith(
                     entry,
                     valueOne,
+                    container,
                 );
                 expect(onActivatedTwo).toHaveReturnedWith(valueTwo);
             });
