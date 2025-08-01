@@ -393,7 +393,6 @@ function createRootContainerScope(blueprint) {
             if (middleware.onRequest)
                 middleware.onRequest(entry, scope, type, name);
         });
-        return entry;
     }
 
     var scopePrototype = Object.freeze({
