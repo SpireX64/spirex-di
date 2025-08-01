@@ -333,6 +333,12 @@ function createRootContainerScope(blueprint) {
                 ? entry.factory(entry.injector(scope))
                 : entry.factory(scope);
 
+        // Call 'OnActivated' middleware
+        blueprint.middlewares.forEach((middleware) => {
+            if (middleware.onActivated)
+                instance = middleware.onActivated(entry, instance);
+        });
+
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
 

@@ -2624,21 +2624,21 @@ describe("Container Scope", () => {
     describe("Middleware", () => {
         test("WHEN: empty middleware", () => {
             // Arrange ------
-            var typeKey = 'typeKey'
-            var expectedInst = {value: 42}
-            var middleware = {}
+            var typeKey = "typeKey";
+            var expectedInst = { value: 42 };
+            var middleware = {};
             var container = createContainerBuilder()
                 .use(middleware)
                 .bindFactory(typeKey, () => expectedInst)
-                .build()
+                .build();
 
             // Act -----------
-            var inst = container.get(typeKey)
+            var inst = container.get(typeKey);
 
             // Assert --------
             // Nothing special... just checking
             expect(inst).toBe(expectedInst);
-        })
+        });
 
         describe("onResolve", () => {
             test("WHEN: listen instance resolve events", () => {
@@ -2732,6 +2732,117 @@ describe("Container Scope", () => {
                     typeValue + 1,
                 );
                 expect(secondOnResolveHandler).toHaveReturnedWith(value);
+            });
+        });
+
+        describe("onActivated", () => {
+            test("WHEN: Listen activation events", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var expectedInst = { value: 42 };
+                var onActivatedHandler = vi.fn((_, inst) => inst);
+                var builder = createContainerBuilder()
+                    .use({
+                        onActivated: onActivatedHandler,
+                    })
+                    .bindFactory(typeKey, () => expectedInst, {
+                        lifecycle: "lazy",
+                    });
+
+                var entry = builder.findEntry(typeKey);
+                var container = builder.build();
+
+                // Act -------------
+
+                var inst1 = container.get(typeKey);
+                var inst2 = container.get(typeKey);
+
+                // Assert ---------
+                expect(inst1).toBe(expectedInst);
+                expect(inst1).toBe(inst2);
+
+                expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
+                    entry,
+                    expectedInst,
+                );
+                expect(onActivatedHandler).toHaveReturnedWith(expectedInst);
+            });
+
+            test("WHEN: Override activated instance", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var factoryInst = 11;
+                var expectedInst = 22;
+                var factory = vi.fn(() => factoryInst);
+                var onActivatedHandler = vi.fn(() => expectedInst);
+                var builder = createContainerBuilder()
+                    .use({ onActivated: onActivatedHandler })
+                    .bindFactory(typeKey, factory, { lifecycle: "lazy" });
+
+                var entry = builder.findEntry(typeKey);
+                var container = builder.build();
+
+                // Act -----------
+                var inst1 = container.get(typeKey);
+                var inst2 = container.get(typeKey);
+
+                // Assert --------
+                expect(inst1).toBe(expectedInst);
+                expect(inst1).toBe(inst2);
+
+                expect(factory).toHaveBeenCalledOnce();
+                expect(factory).toHaveReturnedWith(factoryInst);
+
+                expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
+                    entry,
+                    factoryInst,
+                );
+                expect(onActivatedHandler).toHaveReturnedWith(expectedInst);
+            });
+
+            test("WHEN: Override activated instance with many hooks", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var originValue = 0;
+                var valueOne = 1;
+                var valueTwo = 2;
+
+                var factory = vi.fn(() => originValue);
+                var onActivatedOne = vi.fn(() => valueOne);
+                var onActivatedTwo = vi.fn(() => valueTwo);
+
+                var builder = createContainerBuilder()
+                    .use({ onActivated: onActivatedOne })
+                    .use({ onActivated: onActivatedTwo })
+                    .bindFactory(typeKey, factory, { lifecycle: "lazy" });
+
+                var entry = builder.findEntry(typeKey);
+                var container = builder.build();
+
+                // Act ----------
+                var inst1 = container.get(typeKey);
+                var inst2 = container.get(typeKey);
+
+                // Assert -------
+                expect(inst1).toBe(valueTwo);
+                expect(inst2).toBe(inst1);
+
+                expect(factory).toHaveBeenCalledOnce();
+                expect(factory).toHaveReturnedWith(originValue);
+
+                expect(onActivatedOne).toHaveBeenCalledAfter(factory);
+                expect(onActivatedOne).toHaveBeenCalledExactlyOnceWith(
+                    entry,
+                    originValue,
+                );
+                expect(onActivatedOne).toHaveReturnedWith(valueOne);
+
+                expect(onActivatedTwo).toHaveBeenCalledAfter(onActivatedOne);
+                expect(onActivatedTwo).toHaveBeenCalledExactlyOnceWith(
+                    entry,
+                    valueOne,
+                );
+                expect(onActivatedTwo).toHaveReturnedWith(valueTwo);
             });
         });
     });
