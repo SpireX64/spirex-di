@@ -2621,7 +2621,25 @@ describe("Container Scope", () => {
         });
     });
 
-    describe("Middlewares", () => {
+    describe("Middleware", () => {
+        test("WHEN: empty middleware", () => {
+            // Arrange ------
+            var typeKey = 'typeKey'
+            var expectedInst = {value: 42}
+            var middleware = {}
+            var container = createContainerBuilder()
+                .use(middleware)
+                .bindFactory(typeKey, () => expectedInst)
+                .build()
+
+            // Act -----------
+            var inst = container.get(typeKey)
+
+            // Assert --------
+            // Nothing special... just checking
+            expect(inst).toBe(expectedInst);
+        })
+
         describe("onResolve", () => {
             test("WHEN: listen instance resolve events", () => {
                 // Arrange ---------
