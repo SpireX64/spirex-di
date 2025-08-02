@@ -24,6 +24,8 @@ type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
  */
 type TTypeEntryMetaData = Record<string, unknown>;
 
+type TProvider<T> = () => T
+
 /**
  * A factory function that produces an instance of a type from the container.
  *
@@ -479,12 +481,28 @@ interface ITypesResolver<TypeMap extends TTypeMapBase> {
      * @param name -  (Optional) The name of the specific binding to retrieve.
      * @returns An instance of the requested type, or `undefined` if not found.
      */
-    maybe<T extends keyof TypeMap>(type: T, name?: string): T | undefined;
+    maybe<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T] | undefined;
 
     getAll<T extends keyof TypeMap>(
         type: T,
         name?: string,
     ): ReadonlyArray<TypeMap[T]>;
+
+    /**
+     * Creates a provider function that returns the resolved instance of the given type.
+     * 
+     * This allows deferred/lazy resolution of a dependency, preserving the correct scope context.
+     * If no binding is found for the provided type and name, an error is thrown.
+     * 
+     * @param type - The token representing the type to resolve.
+     * @param name - (Optional) The name of the specific binding to retrieve.
+     * 
+     * @returns A function that resolves the instance when called.
+     * 
+     * @throws {Error} If no binding is found for the given type and name.
+     * @throws {Error} If a circular dependency is detected while resolving the instance.
+     */
+    providerOf<T extends keyof TypeMap>(type: T, name?: string): TProvider<TypeMap[T]>
 }
 
 /**

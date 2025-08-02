@@ -269,18 +269,18 @@ describe("Container Builder", () => {
 
             test("WHEN: binding instance with meta data", () => {
                 // Arrange -------
-                var typeKey = 'typeKey';
+                var typeKey = "typeKey";
                 var typeMeta = { value: 42 };
                 var builder = createContainerBuilder();
 
                 // Act -----------
-                builder.bindInstance(typeKey, 'foo', { meta: typeMeta });
+                builder.bindInstance(typeKey, "foo", { meta: typeMeta });
 
                 var entry = builder.findEntry(typeKey);
 
                 // Assert --------
-                expect(entry.meta).toBe(typeMeta)
-            })
+                expect(entry.meta).toBe(typeMeta);
+            });
 
             describe("Conflict", () => {
                 test("WHEN strategy 'throw' (default)", () => {
@@ -517,9 +517,9 @@ describe("Container Builder", () => {
 
             test("WHEN: binding type factory with meta data", () => {
                 // Arrange --------
-                var typeKey = 'typeKey';
-                var typeMeta = { value: 'foo' };
-                var builder = createContainerBuilder()
+                var typeKey = "typeKey";
+                var typeMeta = { value: "foo" };
+                var builder = createContainerBuilder();
 
                 // Act ------------
                 builder.bindFactory(typeKey, () => 42, { meta: typeMeta });
@@ -527,7 +527,7 @@ describe("Container Builder", () => {
 
                 // Assert ---------
                 expect(entry.meta).toBe(typeMeta);
-            })
+            });
 
             test("WHEN binding type factory to the type with name THAT already bound but without name", () => {
                 // Arrange -------
@@ -903,24 +903,26 @@ describe("Container Builder", () => {
                 expect(safeFactoryEntry.meta).is.undefined;
             });
 
-            test("WHEN: binding safe factory with meta data", () => {{
-                // Arrange ---------
-                var typeKey = 'typeKey';
-                var typeMeta = { foo: 11 };
-                var builder = createContainerBuilder()
-    
-                // Act -------------
-                builder.bindSafeFactory(
-                    typeKey,
-                    () => {},
-                    () => 42,
-                    { meta: typeMeta },
-                )
-                var entry = builder.findEntry(typeKey);
+            test("WHEN: binding safe factory with meta data", () => {
+                {
+                    // Arrange ---------
+                    var typeKey = "typeKey";
+                    var typeMeta = { foo: 11 };
+                    var builder = createContainerBuilder();
 
-                // Assert ----------
-                expect(entry.meta).toBe(typeMeta);
-            }});
+                    // Act -------------
+                    builder.bindSafeFactory(
+                        typeKey,
+                        () => {},
+                        () => 42,
+                        { meta: typeMeta },
+                    );
+                    var entry = builder.findEntry(typeKey);
+
+                    // Assert ----------
+                    expect(entry.meta).toBe(typeMeta);
+                }
+            });
 
             describe("Conflict", () => {
                 test("WHEN strategy 'throw' (default)", () => {
@@ -2475,6 +2477,83 @@ describe("Container Scope", () => {
                 // Assert --------
                 expect(instances).toBeInstanceOf(Array);
                 expect(instances).have.length(3);
+            });
+        });
+
+        describe("Get type instance provider", () => {
+            test("WHEN: Get provider", () => {
+                // Arrange ---------
+                var typeKey = "typeKey";
+                var factory = vi.fn();
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, { lifecycle: "lazy" })
+                    .build();
+
+                // Act -------------
+                var provider = container.providerOf(typeKey);
+
+                // Assert ----------
+                expect(provider).instanceOf(Function);
+                expect(factory).not.toHaveBeenCalled();
+            });
+
+            test("WHEN: get provider of unbound type", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var container = createContainerBuilder().build();
+
+                // Act ----------
+                var error = catchError(() => {
+                    container.providerOf(typeKey);
+                });
+
+                // Assert -------
+                expect(error).toBeDefined();
+                expect(error.message).toEqual(
+                    DIErrors.TypeBindingNotFound(typeKey),
+                );
+            });
+
+            test("WHEN: Get provider and call it", () => {
+                // Arrange -------
+                var typeKey = "typeKey";
+                var expectedValue = 42;
+                var factory = vi.fn(() => expectedValue);
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, { lifecycle: "lazy" })
+                    .build();
+
+                // Act -----------
+                var provider = container.providerOf(typeKey);
+                var value = provider();
+
+                // Assert --------
+                expect(provider).instanceOf(Function);
+                expect(value).toBe(expectedValue);
+                expect(factory).toHaveBeenCalledOnce();
+                expect(factory).toHaveReturnedWith(value);
+            });
+
+            test("WHEN: get type provider with specified name", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var expectedValue = 42;
+                var factory = vi.fn(() => expectedValue);
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, factory, {
+                        name: typeName,
+                        lifecycle: "lazy",
+                    })
+                    .build();
+
+                // Act ----------
+                var provider = container.providerOf(typeKey, typeName);
+                var value = provider();
+
+                // Assert -------
+                expect(factory).toHaveBeenCalled();
+                expect(value).toBe(expectedValue);
             });
         });
     });

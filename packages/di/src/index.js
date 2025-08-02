@@ -278,7 +278,7 @@ function createFactoryScopeContext(scope) {
     return {
         current: scope.id,
         path: scope.path,
-    }
+    };
 }
 
 function createRootContainerScope(blueprint) {
@@ -287,7 +287,7 @@ function createRootContainerScope(blueprint) {
     var $scopes = Symbol("scopes");
     var $locals = Symbol("locals");
 
-    /** 
+    /**
      * Builds a scope path array from root (excluded) to current scope.
      * @param scopeId - Current scope ID
      * @param parent - Parent scope if exist
@@ -297,10 +297,10 @@ function createRootContainerScope(blueprint) {
         var path = [];
         // Root scope has empty ID and is ignored.
         if (parent) {
-            path.push(scopeId)
+            path.push(scopeId);
             while (parent && parent.id.length > 0) {
-                path.push(parent.id)
-                parent = parent[$parent]
+                path.push(parent.id);
+                parent = parent[$parent];
             }
         }
         return Object.freeze(path.reverse());
@@ -355,7 +355,7 @@ function createRootContainerScope(blueprint) {
         }
 
         // Call the factory to create the instance, passing the current scope as resolver
-        var ctx = createFactoryScopeContext(scope)
+        var ctx = createFactoryScopeContext(scope);
         var instance = entry.injector
             ? entry.factory(entry.injector(scope, ctx), ctx)
             : entry.factory(scope, ctx);
@@ -446,6 +446,24 @@ function createRootContainerScope(blueprint) {
                 .findAllEntries(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map(getInstance.bind(this, this));
+        },
+
+        providerOf(type, name) {
+            var entry = blueprint.findEntry(type, name);
+            if (!entry)
+                throw new Error(DIErrors.TypeBindingNotFound(type, name));
+
+            var scope = this;
+
+            // Use a custom function name to help with debugging and stack traces
+            var providerFuncName = "provider<" + entry.$id + ">";
+            return {
+                // Deanonymize the function by giving it a specific name
+                [providerFuncName]: function () {
+                    onRequestMiddleware(scope, entry, type, name);
+                    return getInstance.call(scope, scope, entry);
+                },
+            }[providerFuncName];
         },
 
         scope(id, options) {
@@ -628,7 +646,6 @@ export function createContainerBuilder(builderOptions) {
                 lifecycle,
                 name: options && options.name,
                 meta: options && options.meta,
-
             },
             ifConflict === "append",
         );
