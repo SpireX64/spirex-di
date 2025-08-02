@@ -274,17 +274,44 @@ function createContainerBlueprint() {
     };
 }
 
+function createFactoryScopeContext(scope) {
+    return {
+        current: scope.id,
+        path: scope.path,
+    }
+}
+
 function createRootContainerScope(blueprint) {
     var $root = Symbol("root");
     var $parent = Symbol("parent");
     var $scopes = Symbol("scopes");
     var $locals = Symbol("locals");
 
+    /** 
+     * Builds a scope path array from root (excluded) to current scope.
+     * @param scopeId - Current scope ID
+     * @param parent - Parent scope if exist
+     * @returns Frozen array of scope IDs from root to current
+     */
+    function makeScopePath(scopeId, parent) {
+        var path = [];
+        // Root scope has empty ID and is ignored.
+        if (parent) {
+            path.push(scopeId)
+            while (parent && parent.id.length > 0) {
+                path.push(parent.id)
+                parent = parent[$parent]
+            }
+        }
+        return Object.freeze(path.reverse());
+    }
+
     function createScopeObject(id, parent, options) {
         return {
             id,
             sealed: (options && options.sealed) || false,
             isolated: (options && options.isolated) || false,
+            path: makeScopePath(id, parent),
             [$root]: parent && (parent[$root] || parent),
             [$parent]: parent,
             [$locals]: new Map(),
@@ -328,9 +355,10 @@ function createRootContainerScope(blueprint) {
         }
 
         // Call the factory to create the instance, passing the current scope as resolver
+        var ctx = createFactoryScopeContext(scope)
         var instance = entry.injector
-            ? entry.factory(entry.injector(scope))
-            : entry.factory(scope);
+            ? entry.factory(entry.injector(scope, ctx), ctx)
+            : entry.factory(scope, ctx);
 
         // Call 'OnActivated' middleware
         blueprint.middlewares.forEach((middleware) => {

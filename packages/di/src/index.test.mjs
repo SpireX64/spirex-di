@@ -2059,7 +2059,7 @@ describe("Container Scope", () => {
                 // Assert ---------
                 expect(injectorFn).toHaveBeenCalled();
                 expect(injectorFn).toHaveReturnedWith(42);
-                expect(factoryFn).toHaveBeenCalledWith(42);
+                expect(factoryFn).toHaveBeenCalledWith(42, expect.any(Object));
                 expect(resolvedValue).toBe(expectedValue);
             });
 

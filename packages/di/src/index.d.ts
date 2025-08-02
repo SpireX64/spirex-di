@@ -23,11 +23,13 @@ type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
  * @param resolver - A helper object used to resolve other dependencies from the container.
  *                   It provides access to the container's entries, allowing factories to
  *                   request other services when constructing a new instance.
+ * @param context  - The context representing the current scope and resolution path.
  *
  * @returns An instance of the type associated with the token `T`.
  */
 type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
     resolver: ITypesResolver<TypeMap>,
+    context: IFactoryScopeContext,
 ) => TypeMap[T];
 
 /**
@@ -39,24 +41,32 @@ type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
  * depending on what the factory expects.
  *
  * @template TypeMap - Map of all types in the container.
- * @template R - The type of the dependencies returned by the injector.
- * @param resolver - Resolver instance to retrieve dependencies.
+ * @template R       - The type of the dependencies returned by the injector.
+ * @param resolver   - Resolver instance to retrieve dependencies.
+ * @param context    - The context representing the current scope and resolution path.
+ *
  * @returns {R} - Dependencies of any type passed to the factory.
  */
 type TTypeInjector<TypeMap extends TTypeMapBase, R> = (
     resolver: ITypesResolver<TypeMap>,
+    context: IFactoryScopeContext,
 ) => R;
 
 /**
  * Safe factory function type.
  * Receives a dependencies object and returns a constructed instance.
  *
- * @template Deps - Type of the dependencies object.
- * @template R - The return type, the created instance.
+ * @template Deps     - Type of the dependencies object.
+ * @template R        - The return type, the created instance.
  * @param {Deps} deps - The dependencies object injected by the injector.
+ * @param context     - The context representing the current scope and resolution path.
+ *
  * @returns {R} - The created instance.
  */
-type TTypeSafeFactory<Deps, R> = (deps: Deps) => R;
+type TTypeSafeFactory<Deps, R> = (
+    deps: Deps,
+    context: IFactoryScopeContext,
+) => R;
 
 /**
  * Strategy to apply when a binding for a given type already exists.
@@ -70,7 +80,7 @@ type TTypesBindingResolveStrategy = "throw" | "keep" | "replace" | "append";
 
 /** Configuration options for creating a new scope. */
 type TScopeOptions = {
-    /** 
+    /**
      * Prevents this scope from creating any child scopes.
      * Attempting to create a child scope will throw an error.
      */
@@ -214,14 +224,14 @@ type AnyTypeMap = Record<string, any>;
 /**
  * A middleware function that called when the middleware
  * is added into the container builder.
- * 
+ *
  * This is executed immediately and only once per `.use()` call.
- * 
+ *
  * @param builder The container builder where the middleware is being registered.
  */
 type TContainerBuilderMiddlewareOnUse = (
     builder: IContainerBuilder<AnyTypeMap>,
-) => void
+) => void;
 
 /**
  * A middleware function that intercepts type binding during container building.
@@ -238,17 +248,17 @@ type TContainerBuilderMiddlewareOnBind = (
 
 /**
  * A middleware function that triggered whenever a instance is requested from the container.
- * 
+ *
  * This allows intercepting or rejecting requests before instance resolution begins.
  * Can be useful for access control, logging, instrumentation, or short-circuiting logic.
- * 
+ *
  * @param entry - The resolved binding entry for the requested type.
  * @param scope - The current scope from which the request originated.
  * @param type - The originally requested type key (may differ from `entry.key` if aliases are used).
  * @param name - Optional name if the request was made using a named binding.
- * 
- * @throws { Error } Can throw error to reject request. 
- * 
+ *
+ * @throws { Error } Can throw error to reject request.
+ *
  * @returns If the hook throws, the request will be aborted.
  */
 type TContainerMiddlewareOnRequest = (
@@ -261,11 +271,11 @@ type TContainerMiddlewareOnRequest = (
 /**
  * A middleware function that triggered after an instance is created,
  * but before it is returned to the requester.
- * 
+ *
  * @note
  * - This hook is **not** called if the instance is reused.
  * - Returning `null` or `undefined` is discouraged — always return a valid object
- * 
+ *
  * @param entry    - The original type entry (binding) used to create the instance.
  * @param instance - The freshly created instance before returning to the requester.
  *                   It is guaranteed to be a non-null object/value.
@@ -282,9 +292,9 @@ type TContainerMiddlewareOnActivated = (
 
 /**
  * A middleware function that triggered **after** the instance has been fully resolved.
- * 
+ *
  * This is the final stage before the instance is returned to the caller.
- * 
+ *
  * @param entry    - The entry that was used to resolve the instance.
  *                   Contains metadata about the factory or value binding.
  * @param instance - The resolved instance after activation.
@@ -460,21 +470,39 @@ type TBinderDelegate<TypeMap extends TTypeMapBase> = (
     binder: ITypeEntryBinder<TypeMap>,
 ) => void;
 
+/**
+ * The context representing the current scope and resolution path.
+ * Provides information about the current scope and its hierarchy.
+ * Its useful for conditional instance creation or resolving dependencies differently
+ * depending on where in the scope tree the resolution occurs.
+ */
+interface IFactoryScopeContext {
+    /** Current scope ID */
+    readonly current: string;
+
+    /** Scope hierarchy */
+    readonly path: readonly string[];
+}
+
 interface IContainerScope<TypeMap extends TTypeMapBase>
     extends ITypesResolver<TypeMap> {
+    /** Scope unique ID */
     readonly id: string;
+
+    /** Scope hierarchy */
+    readonly path: readonly string[];
 
     /**
      * Creates (or retrieves) a child scope by its unique identifier.
      *
      * If a scope with the same `id` already exists in the parent hierarchy, it will be returned.
      * Otherwise, a new scope is created and registered as a child of the current one.
-     * 
+     *
      * @param id - Unique identifier for the scope.
      * @param options - Optional scope configuration.
-     * 
+     *
      * @returns The newly created or existing scope instance.
-     * 
+     *
      * @throws {Error} If the current scope is sealed and an attempt is made to create a new child scope.
      */
     scope(id: string, options?: TScopeOptions): IContainerScope<TypeMap>;
