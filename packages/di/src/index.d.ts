@@ -276,13 +276,28 @@ type TContainerMiddlewareOnRequest = (
  */
 type TContainerMiddlewareOnActivated = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-    instance: {}, // Any value, but not null/undefined
+    instance: {},
     scope: IContainerScope<AnyTypeMap>,
 ) => {};
 
+/**
+ * A middleware function that triggered **after** the instance has been fully resolved.
+ * 
+ * This is the final stage before the instance is returned to the caller.
+ * 
+ * @param entry    - The entry that was used to resolve the instance.
+ *                   Contains metadata about the factory or value binding.
+ * @param instance - The resolved instance after activation.
+ *                   Guaranteed to be a non-null, non-undefined value.
+ * @param scope    - The scope in which the resolution took place.
+ *                   Can be used to resolve other dependencies if needed.
+ *
+ * @returns The final instance to be returned to the user.
+ */
 type TContainerMiddlewareOnResolve = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-    instance: {}, // Any value, but not null/undefined
+    instance: {},
+    scope: IContainerScope<AnyTypeMap>,
 ) => {};
 
 /**

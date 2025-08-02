@@ -382,7 +382,7 @@ function createRootContainerScope(blueprint) {
         }
         blueprint.middlewares.forEach((middleware) => {
             if (middleware.onResolve)
-                instance = middleware.onResolve(entry, instance);
+                instance = middleware.onResolve(entry, instance, scope);
         });
         return instance;
     }

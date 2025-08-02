@@ -2760,6 +2760,7 @@ describe("Container Scope", () => {
                 expect(onResolveHandler).toHaveBeenCalledWith(
                     typeEntry,
                     typeValue,
+                    container,
                 );
             });
 
@@ -2787,6 +2788,7 @@ describe("Container Scope", () => {
                 expect(onResolveHandler).toHaveBeenCalledWith(
                     typeEntry,
                     typeValue,
+                    container,
                 );
                 expect(onResolveHandler).toHaveReturnedWith(value);
             });
@@ -2821,12 +2823,14 @@ describe("Container Scope", () => {
                 expect(firstOnResolveHandler).toHaveBeenCalledWith(
                     entry,
                     typeValue,
+                    container,
                 );
                 expect(firstOnResolveHandler).toHaveReturnedWith(typeValue + 1);
 
                 expect(secondOnResolveHandler).toHaveBeenCalledWith(
                     entry,
                     typeValue + 1,
+                    container,
                 );
                 expect(secondOnResolveHandler).toHaveReturnedWith(value);
             });
