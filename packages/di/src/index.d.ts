@@ -15,6 +15,16 @@ type TTypeMapBase = object;
 type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
 
 /**
+ * Metadata object for a binding entry.
+ * Can contain arbitrary key-value pairs to provide additional information
+ * about the binding, such as platform targeting, environment, tags, etc.
+ * 
+ * This metadata is not used by the DI itself,
+ * but can be leveraged by middleware or user code.
+ */
+type TTypeEntryMetaData = Record<string, unknown>;
+
+/**
  * A factory function that produces an instance of a type from the container.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
@@ -104,8 +114,20 @@ type TBindingOptions = {
     name?: string | undefined;
 };
 
+/**
+ * Extended binding options including optional metadata.
+ */
+type TBindingOptionsWithMeta = TBindingOptions & {
+    /**
+     * Optional metadata for the binding.
+     * Can be used to store custom data
+     * such as platform targeting, environment, tags, etc.
+     */
+    meta?: TTypeEntryMetaData;
+}
+
 /** Options for configuring a factory-based binding. */
-type TFactoryBindingOptions = TBindingOptions & {
+type TFactoryBindingOptions = TBindingOptionsWithMeta & {
     /** Determines how and when the instance is created and cached. */
     lifecycle?: TLifecycle;
 };
@@ -143,6 +165,12 @@ type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
      * If the binding does not have a name, this field will be `undefined`.
      */
     readonly name: string | undefined;
+
+    /**
+     * Optional metadata associated with this entry.
+     * Useful for middleware or runtime inspection.
+     */
+    readonly meta?: TTypeEntryMetaData;
 };
 
 /**
@@ -353,7 +381,7 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     bindInstance<T extends keyof TypeMap>(
         type: T,
         instance: TypeMap[T],
-        options?: TBindingOptions,
+        options?: TBindingOptionsWithMeta,
     ): this;
 
     /**

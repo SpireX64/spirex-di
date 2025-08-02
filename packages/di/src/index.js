@@ -580,8 +580,9 @@ export function createContainerBuilder(builderOptions) {
             {
                 $id,
                 type,
-                name: options && options.name,
                 instance,
+                name: options && options.name,
+                meta: options && options.meta,
             },
             ifConflict === "append",
         );
@@ -600,9 +601,10 @@ export function createContainerBuilder(builderOptions) {
             {
                 $id,
                 type,
-                name: options && options.name,
                 factory,
                 lifecycle,
+                name: options && options.name,
+                meta: options && options.meta,
             },
             ifConflict === "append",
         );
@@ -621,10 +623,12 @@ export function createContainerBuilder(builderOptions) {
             {
                 $id,
                 type,
-                name: options && options.name,
                 injector,
                 factory,
                 lifecycle,
+                name: options && options.name,
+                meta: options && options.meta,
+
             },
             ifConflict === "append",
         );

@@ -211,6 +211,7 @@ describe("Container Builder", () => {
                 expect(instanceEntry.instance).to.equal(expectedValue);
                 expect("factory" in instanceEntry).to.be.false;
                 expect(instanceEntry.factory).to.be.undefined;
+                expect(instanceEntry.meta).to.be.undefined;
             });
 
             test("WHEN binding instance to the type with name", () => {
@@ -238,6 +239,7 @@ describe("Container Builder", () => {
                 expect(instanceEntry.instance).to.equal(expectedValue);
                 expect("factory" in instanceEntry).to.be.false;
                 expect(instanceEntry.factory).to.be.undefined;
+                expect(instanceEntry.meta).to.be.undefined;
             });
 
             test("WHEN binding instance to the type with name THAT already bound but without name", () => {
@@ -264,6 +266,21 @@ describe("Container Builder", () => {
 
                 expect(entryWithoutName).not.equal(entryWithName);
             });
+
+            test("WHEN: binding instance with meta data", () => {
+                // Arrange -------
+                var typeKey = 'typeKey';
+                var typeMeta = { value: 42 };
+                var builder = createContainerBuilder();
+
+                // Act -----------
+                builder.bindInstance(typeKey, 'foo', { meta: typeMeta });
+
+                var entry = builder.findEntry(typeKey);
+
+                // Assert --------
+                expect(entry.meta).toBe(typeMeta)
+            })
 
             describe("Conflict", () => {
                 test("WHEN strategy 'throw' (default)", () => {
@@ -460,6 +477,7 @@ describe("Container Builder", () => {
                 expect(factoryEntry.factory).to.equal(factoryMockFn);
                 expect("instance" in factoryEntry).to.be.false;
                 expect(factoryEntry.instance).to.be.undefined;
+                expect(factoryEntry.meta).to.be.undefined;
             });
 
             test("WHEN binding simple factory function to the type with name", () => {
@@ -494,7 +512,22 @@ describe("Container Builder", () => {
                 expect(factoryEntry.factory).to.equal(factoryMockFn);
                 expect("instance" in factoryEntry).to.be.false;
                 expect(factoryEntry.instance).to.be.undefined;
+                expect(factoryEntry.meta).to.be.undefined;
             });
+
+            test("WHEN: binding type factory with meta data", () => {
+                // Arrange --------
+                var typeKey = 'typeKey';
+                var typeMeta = { value: 'foo' };
+                var builder = createContainerBuilder()
+
+                // Act ------------
+                builder.bindFactory(typeKey, () => 42, { meta: typeMeta });
+                var entry = builder.findEntry(typeKey);
+
+                // Assert ---------
+                expect(entry.meta).toBe(typeMeta);
+            })
 
             test("WHEN binding type factory to the type with name THAT already bound but without name", () => {
                 // Arrange -------
@@ -829,6 +862,7 @@ describe("Container Builder", () => {
 
                 expect("instance" in safeFactoryEntry).is.false;
                 expect(safeFactoryEntry.instance).is.undefined;
+                expect(safeFactoryEntry.meta).is.undefined;
             });
 
             test("WHEN binding simple safe factory to the type with name", () => {
@@ -847,7 +881,7 @@ describe("Container Builder", () => {
                     { name },
                 );
                 var factoryEntryWithoutName = builder.findEntry(typeKey);
-                var factoryEntry = builder.findEntry(typeKey, name);
+                var safeFactoryEntry = builder.findEntry(typeKey, name);
 
                 // Assert ------
                 expect(builder.has(typeKey)).is.false;
@@ -858,15 +892,35 @@ describe("Container Builder", () => {
                 expect(factoryMockFn).not.toHaveBeenCalled();
                 expect(chainingBuilderRef).to.equal(builder);
 
-                expect(factoryEntry).instanceOf(Object);
-                expect(factoryEntry).to.be.frozen;
-                expect(factoryEntry.type).to.equal(typeKey);
-                expect(factoryEntry.name).to.equal(name);
-                expect("factory" in factoryEntry).to.be.true;
-                expect(factoryEntry.factory).to.equal(factoryMockFn);
-                expect("instance" in factoryEntry).to.be.false;
-                expect(factoryEntry.instance).to.be.undefined;
+                expect(safeFactoryEntry).instanceOf(Object);
+                expect(safeFactoryEntry).to.be.frozen;
+                expect(safeFactoryEntry.type).to.equal(typeKey);
+                expect(safeFactoryEntry.name).to.equal(name);
+                expect("factory" in safeFactoryEntry).to.be.true;
+                expect(safeFactoryEntry.factory).to.equal(factoryMockFn);
+                expect("instance" in safeFactoryEntry).to.be.false;
+                expect(safeFactoryEntry.instance).to.be.undefined;
+                expect(safeFactoryEntry.meta).is.undefined;
             });
+
+            test("WHEN: binding safe factory with meta data", () => {{
+                // Arrange ---------
+                var typeKey = 'typeKey';
+                var typeMeta = { foo: 11 };
+                var builder = createContainerBuilder()
+    
+                // Act -------------
+                builder.bindSafeFactory(
+                    typeKey,
+                    () => {},
+                    () => 42,
+                    { meta: typeMeta },
+                )
+                var entry = builder.findEntry(typeKey);
+
+                // Assert ----------
+                expect(entry.meta).toBe(typeMeta);
+            }});
 
             describe("Conflict", () => {
                 test("WHEN strategy 'throw' (default)", () => {
