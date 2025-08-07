@@ -262,6 +262,21 @@ type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
 type AnyTypeMap = Record<string, any>;
 
 /**
+ * Interface for disposable resources that require explicit cleanup.
+ * 
+ * Implement this interface to allow objects to release resources such as
+ * file handles, database connections, or internal state when they are no longer needed.
+ */
+interface IDisposable {
+    /**
+     * Releases any held resources and performs necessary cleanup.
+     * After calling `dispose()`, the object is considered inactive
+     * and should not be used again.
+     */
+    dispose(): void
+}
+
+/**
  * A middleware function that called when the middleware
  * is added into the container builder.
  *
