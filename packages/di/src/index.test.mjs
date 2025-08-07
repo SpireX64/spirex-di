@@ -3332,4 +3332,134 @@ describe("Container Scope", () => {
             });
         });
     });
+
+    describe("Allowed scopes", () => {
+        test("WHEN: Get instance from allowed scope", () => {
+            // Arrange ----------
+            var typeKey = "typeKey";
+            var expectedValue = 42;
+            var allowedScope = "scope";
+            var factory = vi.fn(() => expectedValue);
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    allowedScopes: [allowedScope],
+                })
+                .build();
+
+            var scope = container.scope(allowedScope);
+
+            // Act --------------
+            var value = scope.get(typeKey);
+
+            // Assert -----------
+            expect(value).toBe(expectedValue);
+            expect(factory).toHaveBeenCalledOnce();
+        });
+
+        test("WHEN: get instance from not allowed scope", () => {
+            // Arrange ------------
+            var typeKey = "typeKey";
+            var currentScope = "current";
+            var factory = vi.fn(() => 42);
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    allowedScopes: ["allowed"],
+                })
+                .build();
+
+            var scope = container.scope(currentScope);
+
+            // Act ----------------
+            var error = catchError(() => {
+                scope.get(typeKey);
+            });
+
+            // Assert -------------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toEqual(
+                DIErrors.ScopeViolation(currentScope, typeKey),
+            );
+            expect(factory).not.toHaveBeenCalled();
+        });
+
+        test("WHEN: Get optional type from not allowed scope", () => {
+            // Arrange ------------
+            var typeKey = "typeKey";
+            var currentScope = "current";
+            var factory = vi.fn(() => 42);
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    allowedScopes: ["allowed"],
+                })
+                .build();
+
+            var scope = container.scope(currentScope);
+
+            // Act ----------
+            var value = scope.maybe(typeKey);
+
+            // Assert -------
+            expect(value).is.undefined;
+            expect(factory).not.toHaveBeenCalled();
+        });
+
+        test("WHEN: Get instance from child of allowed scope", () => {
+            // Arrange --------
+            var typeKey = "typeKey";
+            var factory = vi.fn(() => ({ value: 42 }));
+            var parentScopeName = "parent";
+            var childScopeName = "child";
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    allowedScopes: [parentScopeName],
+                })
+                .build();
+
+            var parentScope = container.scope(parentScopeName);
+            var childScope = parentScope.scope(childScopeName);
+
+            // Act ------------
+            var childInst = childScope.get(typeKey);
+            var parentInst = parentScope.get(typeKey);
+
+            // Assert ---------
+            expect(childInst).toBe(parentInst);
+            expect(factory).toHaveBeenCalledOnce();
+        });
+
+        test("WHEN: Get instance from isolated child of allowed scope", () => {
+            // Arrange --------
+            var typeKey = "typeKey";
+            var factory = vi.fn(() => ({ value: 42 }));
+            var parentScopeName = "parent";
+            var childScopeName = "child";
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    allowedScopes: [parentScopeName],
+                })
+                .build();
+
+            var parentScope = container.scope(parentScopeName);
+            var childScope = parentScope.scope(childScopeName, {
+                isolated: true,
+            });
+
+            // Act ------------
+            var error = catchError(() => {
+                childScope.get(typeKey);
+            });
+
+            // Assert ---------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toEqual(
+                DIErrors.ScopeViolation(childScopeName, typeKey),
+            );
+            expect(factory).not.toHaveBeenCalled();
+        });
+    });
 });

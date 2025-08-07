@@ -18,13 +18,13 @@ type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
  * Metadata object for a binding entry.
  * Can contain arbitrary key-value pairs to provide additional information
  * about the binding, such as platform targeting, environment, tags, etc.
- * 
+ *
  * This metadata is not used by the DI itself,
  * but can be leveraged by middleware or user code.
  */
 type TTypeEntryMetaData = Record<string, unknown>;
 
-type TProvider<T> = () => T
+type TProvider<T> = () => T;
 
 /**
  * A factory function that produces an instance of a type from the container.
@@ -116,20 +116,24 @@ type TBindingOptions = {
     name?: string | undefined;
 };
 
-/**
- * Extended binding options including optional metadata.
- */
-type TBindingOptionsWithMeta = TBindingOptions & {
+/** Binding options specific to a type implementation. */
+type TTypeBindingOptions = TBindingOptions & {
     /**
      * Optional metadata for the binding.
      * Can be used to store custom data
      * such as platform targeting, environment, tags, etc.
      */
-    meta?: TTypeEntryMetaData;
-}
+    meta?: TTypeEntryMetaData | undefined;
+
+    /**
+     * List of scope IDs where this type is allowed to be resolved or instantiated.
+     * If defined, the instance will only be created or accessed within the specified scopes.
+     */
+    allowedScopes?: string[] | undefined;
+};
 
 /** Options for configuring a factory-based binding. */
-type TFactoryBindingOptions = TBindingOptionsWithMeta & {
+type TFactoryBindingOptions = TTypeBindingOptions & {
     /** Determines how and when the instance is created and cached. */
     lifecycle?: TLifecycle;
 };
@@ -173,6 +177,12 @@ type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
      * Useful for middleware or runtime inspection.
      */
     readonly meta?: TTypeEntryMetaData;
+
+    /**
+     * List of scope IDs where this type is allowed to be resolved or instantiated.
+     * If defined, the instance will only be created or accessed within the specified scopes.
+     */
+    readonly allowedScopes: string[] | undefined;
 };
 
 /**
@@ -383,7 +393,7 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     bindInstance<T extends keyof TypeMap>(
         type: T,
         instance: TypeMap[T],
-        options?: TBindingOptionsWithMeta,
+        options?: TTypeBindingOptions,
     ): this;
 
     /**
@@ -481,7 +491,10 @@ interface ITypesResolver<TypeMap extends TTypeMapBase> {
      * @param name -  (Optional) The name of the specific binding to retrieve.
      * @returns An instance of the requested type, or `undefined` if not found.
      */
-    maybe<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T] | undefined;
+    maybe<T extends keyof TypeMap>(
+        type: T,
+        name?: string,
+    ): TypeMap[T] | undefined;
 
     getAll<T extends keyof TypeMap>(
         type: T,
@@ -490,19 +503,22 @@ interface ITypesResolver<TypeMap extends TTypeMapBase> {
 
     /**
      * Creates a provider function that returns the resolved instance of the given type.
-     * 
+     *
      * This allows deferred/lazy resolution of a dependency, preserving the correct scope context.
      * If no binding is found for the provided type and name, an error is thrown.
-     * 
+     *
      * @param type - The token representing the type to resolve.
      * @param name - (Optional) The name of the specific binding to retrieve.
-     * 
+     *
      * @returns A function that resolves the instance when called.
-     * 
+     *
      * @throws {Error} If no binding is found for the given type and name.
      * @throws {Error} If a circular dependency is detected while resolving the instance.
      */
-    providerOf<T extends keyof TypeMap>(type: T, name?: string): TProvider<TypeMap[T]>
+    providerOf<T extends keyof TypeMap>(
+        type: T,
+        name?: string,
+    ): TProvider<TypeMap[T]>;
 }
 
 /**

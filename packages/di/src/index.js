@@ -46,6 +46,9 @@ export var DIErrors = Object.freeze({
 
     SealedScope: (sealedScope, childScope) =>
         `Cannot create child scope "${childScope}" from sealed scope "${sealedScope}"`,
+
+    ScopeViolation: (scope, type) =>
+        `Access to type "${type}" is not allowed in scope "${scope}".`,
 });
 
 /**
@@ -372,7 +375,7 @@ function createRootContainerScope(blueprint) {
         return instance;
     }
 
-    function getInstance(scope, entry) {
+    function getInstance(scope, entry, noThrow) {
         var instance;
 
         // Return the directly bound instance, if any (from bindInstance)
@@ -382,36 +385,55 @@ function createRootContainerScope(blueprint) {
             (entry.lifecycle === "singleton" || entry.lifecycle === "lazy")
         )
             // Direct singleton access from the root
-            instance = getInstance(scope[$root], entry);
-        else {
-            if (!scope.isolated) {
-                // If scope is not isolated, search up the parent chain
-                // to find an already created instance of this entry (no new instantiation)
-                for (
-                    var parent = scope[$parent];
-                    parent && !instance;
-                    parent = parent[$parent]
-                ) {
+            instance = getInstance(scope[$root], entry, noThrow);
+        else if (entry.lifecycle === "scope") {
+            var allowedScopes = entry.allowedScopes;
+
+            // If scope is not isolated, search up the parent chain
+            // to find an already created instance of this entry (no new instantiation)
+            var nearestAllowedParent = undefined;
+            for (
+                var parent = scope;
+                parent && !instance;
+                parent = parent[$parent]
+            ) {
+                if (!allowedScopes || allowedScopes.includes(parent.id)) {
+                    // Save nearest allowed scope
+                    nearestAllowedParent ||= parent;
                     instance = parent[$locals].get(entry);
-                    // If parent is isolated, we can't go any higher.
-                    if (parent.isolated) break;
                 }
+                if (parent.isolated) break;
             }
 
-            if (!instance) {
-                // Attempt to get cached instance from current scope
-                instance =
-                    scope[$locals].get(entry) || activateInstance(entry, scope);
+            if (allowedScopes) {
+                if (!nearestAllowedParent) {
+                    if (noThrow) return instance;
+                    else
+                        throw new Error(
+                            DIErrors.ScopeViolation(scope.id, entry.$id),
+                        );
+                }
 
-                // Cache the instance in scope locals if lifecycle is not transient
-                if (entry.lifecycle !== "transient")
-                    scope[$locals].set(entry, instance);
+                // Redirect activation request to nearest allowed parent
+                scope = nearestAllowedParent;
             }
         }
+
+        if (!instance) {
+            // Attempt to get cached instance from current scope
+            instance =
+                scope[$locals].get(entry) || activateInstance(entry, scope);
+
+            // Cache the instance in scope locals if lifecycle is not transient
+            if (entry.lifecycle !== "transient")
+                scope[$locals].set(entry, instance);
+        }
+
         blueprint.middlewares.forEach((middleware) => {
             if (middleware.onResolve)
                 instance = middleware.onResolve(entry, instance, scope);
         });
+
         return instance;
     }
 
@@ -438,14 +460,14 @@ function createRootContainerScope(blueprint) {
             if (!entry) return undefined;
 
             onRequestMiddleware(this, entry, type, name);
-            return getInstance(this, entry);
+            return getInstance(this, entry, true);
         },
 
         getAll(type, name) {
             return blueprint
                 .findAllEntries(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
-                .map(getInstance.bind(this, this));
+                .map((entry) => getInstance(this, entry, true));
         },
 
         providerOf(type, name) {
@@ -600,6 +622,7 @@ export function createContainerBuilder(builderOptions) {
                 type,
                 instance,
                 name: options && options.name,
+                allowedScopes: options && options.allowedScopes,
                 meta: options && options.meta,
             },
             ifConflict === "append",
@@ -622,6 +645,7 @@ export function createContainerBuilder(builderOptions) {
                 factory,
                 lifecycle,
                 name: options && options.name,
+                allowedScopes: options && options.allowedScopes,
                 meta: options && options.meta,
             },
             ifConflict === "append",
@@ -645,6 +669,7 @@ export function createContainerBuilder(builderOptions) {
                 factory,
                 lifecycle,
                 name: options && options.name,
+                allowedScopes: options && options.allowedScopes,
                 meta: options && options.meta,
             },
             ifConflict === "append",
