@@ -263,7 +263,7 @@ type AnyTypeMap = Record<string, any>;
 
 /**
  * Interface for disposable resources that require explicit cleanup.
- * 
+ *
  * Implement this interface to allow objects to release resources such as
  * file handles, database connections, or internal state when they are no longer needed.
  */
@@ -273,7 +273,7 @@ interface IDisposable {
      * After calling `dispose()`, the object is considered inactive
      * and should not be used again.
      */
-    dispose(): void
+    dispose(): void;
 }
 
 /**
@@ -562,12 +562,29 @@ interface IFactoryScopeContext {
 }
 
 interface IContainerScope<TypeMap extends TTypeMapBase>
-    extends ITypesResolver<TypeMap> {
+    extends ITypesResolver<TypeMap>,
+        IDisposable {
     /** Scope unique ID */
     readonly id: string;
 
     /** Scope hierarchy */
     readonly path: readonly string[];
+
+    /**
+     * Indicates whether the scope has been disposed.
+     *
+     * Once a scope is disposed, it is considered closed and can no longer be used
+     * to resolve instances or create child scopes.
+     */
+    readonly isDisposed: boolean;
+
+    /**
+     * Checks if the current scope has a direct child scope with the specified ID.
+     *
+     * @param id - The ID of the child scope to check for.
+     * @returns `true` if a child scope with the given ID exists
+     */
+    hasChildScope(id: string): boolean;
 
     /**
      * Creates (or retrieves) a child scope by its unique identifier.
@@ -583,6 +600,14 @@ interface IContainerScope<TypeMap extends TTypeMapBase>
      * @throws {Error} If the current scope is sealed and an attempt is made to create a new child scope.
      */
     scope(id: string, options?: TScopeOptions): IContainerScope<TypeMap>;
+
+    /**
+     * Alias for the {@link dispose} method to support the `using` statement.
+     *
+     * This method is called automatically when the scope is used with the
+     * `using` statement for deterministic disposal of resources.
+     */
+    [Symbol.dispose](): void;
 }
 
 interface IContainerBuilder<TypeMap extends TTypeMapBase>

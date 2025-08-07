@@ -1,11 +1,19 @@
 /** A char used to separate the type and name in the unique ID of a binding */
 var ID_SEP = "$";
 
+var hasSymbolDispose = typeof Symbol.dispose === "symbol";
+
 function chainToString(chain, key) {
     var sep = " -> ";
-    return chain.length > 2
-        ? chain.map((it) => (it === key ? `[${it}]` : it)).join(sep)
-        : key + sep + key;
+    switch (chain.length) {
+        case 0:
+            return key;
+        case 1:
+        case 2:
+            return key + sep + key;
+        default:
+            return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
+    }
 }
 
 /**
@@ -49,6 +57,12 @@ export var DIErrors = Object.freeze({
 
     ScopeViolation: (scope, type) =>
         `Access to type "${type}" is not allowed in scope "${scope}".`,
+
+    InstanceAccessAfterDispose: (type, scopeId, scopeHierarchy) =>
+        `Cannot resolve type '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`,
+
+    ChildScopeCreationAfterDispose: (childScopeId, scopeId, scopeHierarchy) =>
+        `Cannot create a child scope "${childScopeId}" from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`,
 });
 
 /**
@@ -289,6 +303,7 @@ function createRootContainerScope(blueprint) {
     var $parent = Symbol("parent");
     var $scopes = Symbol("scopes");
     var $locals = Symbol("locals");
+    var $state = Symbol("state");
 
     /**
      * Builds a scope path array from root (excluded) to current scope.
@@ -319,6 +334,9 @@ function createRootContainerScope(blueprint) {
             [$parent]: parent,
             [$locals]: new Map(),
             [$scopes]: new Map(),
+            [$state]: {
+                disposed: false,
+            },
         };
     }
 
@@ -445,8 +463,24 @@ function createRootContainerScope(blueprint) {
         return entry;
     }
 
-    var scopePrototype = Object.freeze({
+    function assertScopeNotDisposedToResolve(type, name) {
+        if (this[$state].disposed)
+            throw new Error(
+                DIErrors.InstanceAccessAfterDispose(
+                    makeEntryId(type, name),
+                    this.id,
+                    this.path,
+                ),
+            );
+    }
+
+    var scopePrototype = {
+        get isDisposed() {
+            return this[$state].disposed;
+        },
+
         get(type, name) {
+            assertScopeNotDisposedToResolve.call(this, type, name);
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
@@ -456,6 +490,7 @@ function createRootContainerScope(blueprint) {
         },
 
         maybe(type, name) {
+            assertScopeNotDisposedToResolve.call(this, type, name);
             var entry = blueprint.findEntry(type, name);
             if (!entry) return undefined;
 
@@ -464,6 +499,7 @@ function createRootContainerScope(blueprint) {
         },
 
         getAll(type, name) {
+            assertScopeNotDisposedToResolve.call(this, type, name);
             return blueprint
                 .findAllEntries(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
@@ -471,6 +507,7 @@ function createRootContainerScope(blueprint) {
         },
 
         providerOf(type, name) {
+            assertScopeNotDisposedToResolve.call(this, type, name);
             var entry = blueprint.findEntry(type, name);
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
@@ -488,7 +525,20 @@ function createRootContainerScope(blueprint) {
             }[providerFuncName];
         },
 
+        hasChildScope(id) {
+            return this[$scopes].has(id);
+        },
+
         scope(id, options) {
+            if (this[$state].disposed)
+                throw new Error(
+                    DIErrors.ChildScopeCreationAfterDispose(
+                        id,
+                        this.id,
+                        this.path,
+                    ),
+                );
+
             // Walk up the scope hierarchy to find a scope with the matching ID.
             // Used to return an already existing parent scope instead of creating a duplicate.
             for (var scope = this; scope; scope = scope[$parent])
@@ -497,17 +547,52 @@ function createRootContainerScope(blueprint) {
             // Disallow creating child scopes from sealed scope
             if (this.sealed) throw new Error(DIErrors.SealedScope(this.id, id));
 
-            return Object.freeze(
+            var scopesMap = this[$scopes];
+
+            var scope = scopesMap.get(id);
+            if (scope) return scope;
+
+            scope = Object.freeze(
                 Object.setPrototypeOf(
                     createScopeObject(id, this, options),
                     Object.getPrototypeOf(this),
                 ),
             );
+            scopesMap.set(id, scope);
+            return scope;
         },
-    });
+
+        dispose() {
+            if (this[$state].disposed) return;
+            this[$state].disposed = true;
+
+            // Dispose children
+            this[$scopes].forEach((scope) => scope.dispose());
+            this[$scopes].clear();
+
+            // Dispose local instances
+            this[$locals].forEach((inst) => {
+                if (
+                    hasSymbolDispose &&
+                    typeof inst[Symbol.dispose] === "function"
+                )
+                    inst[Symbol.dispose]();
+                else if (typeof inst.dispose === "function") inst.dispose();
+            });
+            this[$locals].clear();
+        },
+    };
+
+    // istanbul ignore next
+    if (hasSymbolDispose)
+        scopePrototype[Symbol.dispose] = scopePrototype.dispose;
 
     var rootScope = Object.freeze(
-        Object.setPrototypeOf(createScopeObject(""), scopePrototype),
+        Object.setPrototypeOf(
+            createScopeObject(""),
+            // Preventing illegal mutations of the scope prototype
+            Object.freeze(scopePrototype),
+        ),
     );
 
     // Singletons activation

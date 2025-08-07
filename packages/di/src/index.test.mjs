@@ -1597,7 +1597,11 @@ describe("Container Builder", () => {
             var container = builder.build();
 
             // Assert -----
-            expect(container).to.be.an.instanceOf(Object);
+            expect(container).toBeInstanceOf(Object);
+            expect(container).is.frozen;
+            expect(container.id).toEqual("");
+            expect(container.path).is.empty;
+            expect(container.isDisposed).is.false;
         });
 
         describe("Aliases building", () => {
@@ -3104,6 +3108,8 @@ describe("Container Scope", () => {
                 var childScope = container.scope(scopeId);
 
                 // Assert ------------
+                expect(container.hasChildScope(scopeId)).is.true;
+
                 expect(childScope.id).toBe(scopeId);
                 expect(childScope).not.toBe(container);
                 expect(Object.getPrototypeOf(childScope)).toBe(
@@ -3111,6 +3117,20 @@ describe("Container Scope", () => {
                 );
                 expect(childScope.sealed).is.false;
                 expect(childScope.isolated).is.false;
+                expect(childScope.isDisposed).is.false;
+            });
+
+            test("WHEN: Get child scope twice with same id", () => {
+                // Arrange ------------
+                var scopeId = "child";
+                var container = createContainerBuilder().build();
+                var scopeA = container.scope(scopeId);
+
+                // Act ----------------
+                var scopeB = container.scope(scopeId);
+
+                // Assert -------------
+                expect(scopeB).toBe(scopeA);
             });
 
             test("WHEN: Create sealed scope", () => {
@@ -3122,6 +3142,8 @@ describe("Container Scope", () => {
                 var childScope = container.scope(scopeId, { sealed: true });
 
                 // Assert ------------
+                expect(container.hasChildScope(scopeId)).is.true;
+
                 expect(childScope.id).toBe(scopeId);
                 expect(childScope).not.toBe(container);
                 expect(Object.getPrototypeOf(childScope)).toBe(
@@ -3129,6 +3151,7 @@ describe("Container Scope", () => {
                 );
                 expect(childScope.sealed).is.true;
                 expect(childScope.isolated).is.false;
+                expect(childScope.isDisposed).is.false;
             });
 
             test("WHEN: Get scope with same name as parent", () => {
@@ -3179,6 +3202,7 @@ describe("Container Scope", () => {
                 var scope = childScope.scope(parentName);
 
                 // Assert --------
+                expect(childScope.hasChildScope(parentName)).is.false;
                 expect(scope).toBe(parentScope);
             });
 
@@ -3460,6 +3484,294 @@ describe("Container Scope", () => {
                 DIErrors.ScopeViolation(childScopeName, typeKey),
             );
             expect(factory).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Disposable scope", () => {
+        test("WHEN: Dispose scope", () => {
+            // Arrange -------
+            var scope = createContainerBuilder().build();
+
+            // Act -----------
+            scope.dispose();
+
+            // Assert --------
+            expect(scope.isDisposed).is.true;
+        });
+
+        test("WHEN: Dispose scope with child scope", () => {
+            // Arrange -------
+            var rootScope = createContainerBuilder().build();
+            var childScope = rootScope.scope("child");
+
+            // Act -----------
+            rootScope.dispose();
+
+            // Assert --------
+            expect(rootScope.isDisposed).is.true;
+            expect(childScope.isDisposed).is.true;
+            expect(rootScope.hasChildScope(childScope.id)).is.false;
+        });
+
+        test("WHEN: Dispose scope with deep child tree", () => {
+            // Arrange ------
+            var rootScope = createContainerBuilder().build();
+
+            var childA = rootScope.scope("A");
+            var childA1 = childA.scope("A1");
+            var childA2 = childA.scope("A2");
+
+            var childB = rootScope.scope("B");
+            var childB1 = childB.scope("B1");
+            var childB2 = childB.scope("B2");
+
+            // Act ----------
+            rootScope.dispose();
+
+            // Assert -------
+            expect(childA1.isDisposed).is.true;
+            expect(childA.hasChildScope(childA1.id)).is.false;
+            expect(childA2.isDisposed).is.true;
+            expect(childA.hasChildScope(childA2.id)).is.false;
+            expect(childA.isDisposed).is.true;
+
+            expect(childB1.isDisposed).is.true;
+            expect(childB.hasChildScope(childB1.id)).is.false;
+            expect(childB2.isDisposed).is.true;
+            expect(childB.hasChildScope(childB2.id)).is.false;
+            expect(childB.isDisposed).is.true;
+
+            expect(rootScope.isDisposed).is.true;
+            expect(rootScope.hasChildScope(childA.id)).is.false;
+            expect(rootScope.hasChildScope(childB.id)).is.false;
+        });
+
+        test("WHEN: Dispose already disposed scope", () => {
+            // Arrange -------
+            var rootScope = createContainerBuilder().build();
+            rootScope.dispose();
+
+            // Act -----------
+            rootScope.dispose();
+
+            // Assert --------
+            expect(rootScope.isDisposed).is.true;
+        });
+
+        test("WHEN: Auto-dispose local instances", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+
+            var disposeFunc = vi.fn();
+            var factory = (_, ctx) => ({
+                scopeId: ctx.current,
+                dispose() {
+                    disposeFunc(this.scopeId);
+                },
+            });
+
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, { lifecycle: "scope" })
+                .build();
+
+            container.scope("A").get(typeKey);
+            container.scope("B").get(typeKey);
+            container.scope("C").get(typeKey);
+            container.get(typeKey);
+
+            // Act ---------
+            container.dispose();
+
+            // Arrange -----
+            expect(disposeFunc).toHaveBeenCalledTimes(4);
+            expect(disposeFunc).toHaveBeenCalledWith("A");
+            expect(disposeFunc).toHaveBeenCalledWith("B");
+            expect(disposeFunc).toHaveBeenCalledWith("C");
+            expect(container.isDisposed).is.true;
+        });
+
+        test("WHEN: Auto-dispose local instances with 'Symbol.dispose'", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+
+            var disposeFunc = vi.fn();
+            var factory = (_, ctx) => ({
+                scopeId: ctx.current,
+                [Symbol.dispose]() {
+                    disposeFunc(this.scopeId);
+                },
+            });
+
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, { lifecycle: "scope" })
+                .build();
+
+            container.scope("A").get(typeKey);
+            container.scope("B").get(typeKey);
+            container.scope("C").get(typeKey);
+            container.get(typeKey);
+
+            // Act ---------
+            container.dispose();
+
+            // Arrange -----
+            expect(disposeFunc).toHaveBeenCalledTimes(4);
+            expect(disposeFunc).toHaveBeenCalledWith("A");
+            expect(disposeFunc).toHaveBeenCalledWith("B");
+            expect(disposeFunc).toHaveBeenCalledWith("C");
+            expect(container.isDisposed).is.true;
+        });
+
+        test("WHEN: Auto-dispose local instance with both Symbol.dispose and dispose methods", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var disposeMethodMock = vi.fn();
+            var disposeSymbolMock = vi.fn();
+            var factory = () => ({
+                dispose: disposeMethodMock,
+                [Symbol.dispose]: disposeSymbolMock,
+            });
+
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, { lifecycle: "scope" })
+                .build();
+
+            container.get(typeKey);
+
+            // Act -----------
+            container.dispose();
+
+            // Assert --------
+            // 1. 'Symbol.dispose' method should be called (has higher priority)
+            expect(disposeSymbolMock).toHaveBeenCalledOnce();
+
+            // 2. 'dispose' method should NOT be called to avoid double disposal
+            expect(disposeMethodMock).not.toHaveBeenCalled();
+        });
+
+        test("WHEN: Auto-dispose local instance with callable dispose property", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var factory = () => ({ dispose: 42 });
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, { lifecycle: "scope" })
+                .build();
+
+            container.get(typeKey);
+
+            // Act -----------
+            container.dispose();
+
+            // Assert --------
+            // Should not to call 'dispose' value as function
+            expect(container.isDisposed).is.true;
+        });
+
+        test("WHEN: Dispose scope with local instances twice", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+
+            var disposeFunc = vi.fn();
+            var factory = (_, ctx) => ({
+                scopeId: ctx.current,
+                dispose() {
+                    disposeFunc(this.scopeId);
+                },
+            });
+
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, factory, { lifecycle: "scope" })
+                .build();
+
+            container.scope("A").get(typeKey);
+            container.scope("B").get(typeKey);
+            container.scope("C").get(typeKey);
+            container.get(typeKey);
+            container.dispose();
+
+            // Act ---------
+            container.dispose();
+
+            // Arrange -----
+            expect(disposeFunc).toHaveBeenCalledTimes(4);
+            expect(disposeFunc).toHaveBeenCalledWith("A");
+            expect(disposeFunc).toHaveBeenCalledWith("B");
+            expect(disposeFunc).toHaveBeenCalledWith("C");
+            expect(container.isDisposed).is.true;
+        });
+
+        test("WHEN: Trying to get instance from disposed root scope", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var container = createContainerBuilder()
+                .bindInstance(typeKey, 42)
+                .build();
+
+            container.dispose();
+
+            // Act -----------
+            var error = catchError(() => {
+                container.get(typeKey);
+            });
+
+            // Assert --------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toEqual(
+                DIErrors.InstanceAccessAfterDispose(
+                    typeKey,
+                    container.id,
+                    container.path,
+                ),
+            );
+        });
+
+        test("WHEN: Trying to get instance from disposed scope", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var container = createContainerBuilder()
+                .bindInstance(typeKey, 42)
+                .build();
+
+            var scope = container.scope("A").scope("B").scope("C");
+            scope.dispose();
+
+            // Act -----------
+            var error = catchError(() => {
+                scope.get(typeKey);
+            });
+
+            // Assert --------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toEqual(
+                DIErrors.InstanceAccessAfterDispose(
+                    typeKey,
+                    scope.id,
+                    scope.path,
+                ),
+            );
+        });
+
+        test("WHEN: Trying to open child scope from disposed scope", () => {
+            // Arrange -----
+            var childScopeId = "child";
+            var container = createContainerBuilder().build();
+            var scope = container.scope("A").scope("B").scope("C");
+            scope.dispose();
+
+            // Act ---------
+            var error = catchError(() => {
+                scope.scope(childScopeId);
+            });
+
+            // Assert ------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toEqual(
+                DIErrors.ChildScopeCreationAfterDispose(
+                    childScopeId,
+                    scope.id,
+                    scope.path,
+                ),
+            );
         });
     });
 });
