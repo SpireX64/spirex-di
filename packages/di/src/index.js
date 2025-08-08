@@ -97,12 +97,25 @@ function createContainerBlueprint() {
     var middlewares = new Set();
 
     // region: PUBLIC METHODS
-    function hasMiddleware(middleware) {
+    function hasMw(middleware) {
         return middlewares.has(middleware);
     }
 
-    function addMiddleware(middleware) {
+    function addMw(middleware) {
         middlewares.add(middleware);
+    }
+
+    function callMw(hookName, resultArgIndex, ...args) {
+        var result = args[resultArgIndex];
+        for (var mv of middlewares) {
+            var hook = mv[hookName];
+            if (typeof hook === 'function') {
+                result = hook(...args);
+                if (resultArgIndex >= 0)
+                    args[resultArgIndex] = result;
+            }
+        }
+        return result;
     }
 
     function getAliasOrigin(type, name) {
@@ -278,12 +291,13 @@ function createContainerBlueprint() {
         aliases,
         middlewares,
         has,
-        hasMiddleware,
+        hasMw,
+        addMw,
+        callMw,
         findEntry,
         findAlias,
         findAllEntries,
         forEach,
-        addMiddleware,
         getAliasOrigin,
         addAlias,
         addTypeEntry,
@@ -382,10 +396,7 @@ function createRootContainerScope(blueprint) {
             : entry.factory(scope, ctx);
 
         // Call 'OnActivated' middleware
-        blueprint.middlewares.forEach((middleware) => {
-            if (middleware.onActivated)
-                instance = middleware.onActivated(entry, instance, scope);
-        });
+        instance = blueprint.callMw('onActivated', 1, entry, instance, scope)
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -447,19 +458,11 @@ function createRootContainerScope(blueprint) {
                 scope[$locals].set(entry, instance);
         }
 
-        blueprint.middlewares.forEach((middleware) => {
-            if (middleware.onResolve)
-                instance = middleware.onResolve(entry, instance, scope);
-        });
-
-        return instance;
+        return blueprint.callMw('onResolve', 1, entry, instance, scope);
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
-        blueprint.middlewares.forEach((middleware) => {
-            if (middleware.onRequest)
-                middleware.onRequest(entry, scope, type, name);
-        });
+        blueprint.callMw('onRequest', -1, entry, scope, type, name);
         return entry;
     }
 
@@ -559,11 +562,7 @@ function createRootContainerScope(blueprint) {
                 ),
             );
 
-            blueprint.middlewares.forEach((middleware) => {
-                if (middleware.onScopeOpen)
-                    middleware.onScopeOpen(scope);
-            });
-
+            blueprint.callMw('onScopeOpen', -1, scope);
             scopesMap.set(id, scope);
             return scope;
         },
@@ -575,11 +574,7 @@ function createRootContainerScope(blueprint) {
             this[$scopes].forEach((scope) => scope.dispose());
             this[$scopes].clear();
 
-            blueprint.middlewares.forEach((middleware) => {
-                if (middleware.onScopeDispose)
-                    middleware.onScopeDispose(this);
-            });
-
+            blueprint.callMw('onScopeDispose', -1, this);
             this[$state].disposed = true;
 
             // Dispose local instances
@@ -796,7 +791,7 @@ export function createContainerBuilder(builderOptions) {
     }
 
     function use(middleware) {
-        blueprint.addMiddleware(middleware);
+        blueprint.addMw(middleware);
         if (middleware.onUse) middleware.onUse(this);
         return this;
     }
@@ -843,7 +838,7 @@ export function createContainerBuilder(builderOptions) {
 
     return {
         has: blueprint.has,
-        hasMiddleware: blueprint.hasMiddleware,
+        hasMiddleware: blueprint.hasMw,
         findEntry: blueprint.findEntry,
         findAllEntries: blueprint.findAllEntries,
         getAliasOrigin: blueprint.getAliasOrigin,
