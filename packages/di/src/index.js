@@ -558,17 +558,29 @@ function createRootContainerScope(blueprint) {
                     Object.getPrototypeOf(this),
                 ),
             );
+
+            blueprint.middlewares.forEach((middleware) => {
+                if (middleware.onScopeOpen)
+                    middleware.onScopeOpen(scope);
+            });
+
             scopesMap.set(id, scope);
             return scope;
         },
 
         dispose() {
             if (this[$state].disposed) return;
-            this[$state].disposed = true;
 
             // Dispose children
             this[$scopes].forEach((scope) => scope.dispose());
             this[$scopes].clear();
+
+            blueprint.middlewares.forEach((middleware) => {
+                if (middleware.onScopeDispose)
+                    middleware.onScopeDispose(this);
+            });
+
+            this[$state].disposed = true;
 
             // Dispose local instances
             this[$locals].forEach((inst) => {

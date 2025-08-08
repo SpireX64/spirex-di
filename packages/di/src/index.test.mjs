@@ -3102,7 +3102,10 @@ describe("Container Scope", () => {
             test("WHEN: Create child scope", () => {
                 // Arrange -----------
                 var scopeId = "myScope";
-                var container = createContainerBuilder().build();
+                var onScopeOpen = vi.fn();
+                var container = createContainerBuilder()
+                    .use({ onScopeOpen })
+                    .build();
 
                 // Act ---------------
                 var childScope = container.scope(scopeId);
@@ -3118,12 +3121,17 @@ describe("Container Scope", () => {
                 expect(childScope.sealed).is.false;
                 expect(childScope.isolated).is.false;
                 expect(childScope.isDisposed).is.false;
+
+                expect(onScopeOpen).toHaveBeenCalledExactlyOnceWith(childScope);
             });
 
             test("WHEN: Get child scope twice with same id", () => {
                 // Arrange ------------
                 var scopeId = "child";
-                var container = createContainerBuilder().build();
+                var onScopeOpen = vi.fn();
+                var container = createContainerBuilder()
+                    .use({ onScopeOpen })
+                    .build();
                 var scopeA = container.scope(scopeId);
 
                 // Act ----------------
@@ -3131,6 +3139,7 @@ describe("Container Scope", () => {
 
                 // Assert -------------
                 expect(scopeB).toBe(scopeA);
+                expect(onScopeOpen).toHaveBeenCalledExactlyOnceWith(scopeA);
             });
 
             test("WHEN: Create sealed scope", () => {
@@ -3490,18 +3499,25 @@ describe("Container Scope", () => {
     describe("Disposable scope", () => {
         test("WHEN: Dispose scope", () => {
             // Arrange -------
-            var scope = createContainerBuilder().build();
+            var onScopeDispose = vi.fn()
+            var scope = createContainerBuilder()
+                .use({ onScopeDispose })
+                .build();
 
             // Act -----------
             scope.dispose();
 
             // Assert --------
             expect(scope.isDisposed).is.true;
+            expect(onScopeDispose).toHaveBeenCalledExactlyOnceWith(scope);
         });
 
         test("WHEN: Dispose scope with child scope", () => {
             // Arrange -------
-            var rootScope = createContainerBuilder().build();
+            var onScopeDispose = vi.fn()
+            var rootScope = createContainerBuilder()
+                .use({ onScopeDispose })
+                .build();
             var childScope = rootScope.scope("child");
 
             // Act -----------
@@ -3511,6 +3527,8 @@ describe("Container Scope", () => {
             expect(rootScope.isDisposed).is.true;
             expect(childScope.isDisposed).is.true;
             expect(rootScope.hasChildScope(childScope.id)).is.false;
+            expect(onScopeDispose).toHaveBeenNthCalledWith(1, childScope);
+            expect(onScopeDispose).toHaveBeenNthCalledWith(2, rootScope);
         });
 
         test("WHEN: Dispose scope with deep child tree", () => {
@@ -3548,14 +3566,19 @@ describe("Container Scope", () => {
 
         test("WHEN: Dispose already disposed scope", () => {
             // Arrange -------
-            var rootScope = createContainerBuilder().build();
+            var onScopeDispose = vi.fn();
+            var rootScope = createContainerBuilder()
+                .use({ onScopeDispose })
+                .build();
             rootScope.dispose();
+            onScopeDispose.mockClear();
 
             // Act -----------
             rootScope.dispose();
 
             // Assert --------
             expect(rootScope.isDisposed).is.true;
+            expect(onScopeDispose).not.toHaveBeenCalled();
         });
 
         test("WHEN: Auto-dispose local instances", () => {

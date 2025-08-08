@@ -366,6 +366,18 @@ type TContainerMiddlewareOnResolve = (
 ) => {};
 
 /**
+ * A middleware hook that is called during scope lifecycle events.
+ *
+ * It receives the scope instance that is currently being opened or disposed.
+ * Can be used to track, instrument, or extend the behavior of scope management.
+ *
+ * @param scope - The scope instance that is being handled.
+ */
+type TContainerMiddlewareOnScope = (
+    scope: IContainerScope<AnyTypeMap>
+) => void;
+
+/**
  * Container middleware.
  *
  * Middleware allows intercepting and extending DI behavior.
@@ -385,6 +397,24 @@ interface IContainerMiddleware {
     onActivated?: TContainerMiddlewareOnActivated;
 
     onResolve?: TContainerMiddlewareOnResolve;
+
+    /**
+     * Called when a new child scope is opened.
+     * 
+     * This hook runs immediately after the child scope is created,
+     * and before any instances are resolved within it.
+     */
+    onScopeOpen?: TContainerMiddlewareOnScope;
+
+
+    /**
+     * Called when a scope is about to be disposed.
+     * 
+     * This hook is invoked after all child scopes have been disposed,
+     * but before the current scope disposes its own instances and is marked as closed.
+     * This hook is also called for the root scope when it is disposed.
+     */
+    onScopeDispose?: TContainerMiddlewareOnScope;
 }
 
 /**
