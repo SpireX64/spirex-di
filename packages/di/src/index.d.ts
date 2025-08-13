@@ -1,3 +1,5 @@
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
 /**
  * A map of string keys to types used in the DI container.
  * Each key represents a type token, and its value is the type of the instance bound to that token.
@@ -171,6 +173,12 @@ type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
      * If the binding does not have a name, this field will be `undefined`.
      */
     readonly name: string | undefined;
+
+    /**
+     * The module that owns this binding, if any.
+     * For bindings not associated with any module, this value will be `undefined`.
+     */
+    readonly module: DIModule<TypeMap> | undefined;
 
     /**
      * Optional metadata associated with this entry.
@@ -373,9 +381,7 @@ type TContainerMiddlewareOnResolve = (
  *
  * @param scope - The scope instance that is being handled.
  */
-type TContainerMiddlewareOnScope = (
-    scope: IContainerScope<AnyTypeMap>
-) => void;
+type TContainerMiddlewareOnScope = (scope: IContainerScope<AnyTypeMap>) => void;
 
 /**
  * Container middleware.
@@ -400,16 +406,15 @@ interface IContainerMiddleware {
 
     /**
      * Called when a new child scope is opened.
-     * 
+     *
      * This hook runs immediately after the child scope is created,
      * and before any instances are resolved within it.
      */
     onScopeOpen?: TContainerMiddlewareOnScope;
 
-
     /**
      * Called when a scope is about to be disposed.
-     * 
+     *
      * This hook is invoked after all child scopes have been disposed,
      * but before the current scope disposes its own instances and is marked as closed.
      * This hook is also called for the root scope when it is disposed.
@@ -423,6 +428,31 @@ interface IContainerMiddleware {
  * @template TypeMap - The type map that defines all valid type keys and their corresponding types.
  */
 interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
+    /**
+     * Declares that the specified type binding is required.
+     * This ensures that a binding for the given type (and optionally name) exists when building container.
+     * If the binding is missing, an error will be thrown during the build phase.
+     *
+     * @param type - The type key to require a binding for.
+     * @param name - Optional name of the binding if using named bindings.
+     *
+     * @throws {Error} If the required binding is not present when building container.
+     *
+     * @returns The builder instance for chaining.
+     */
+    requireType(type: keyof TypeMap, name?: string): this;
+
+    /**
+     * Conditionally applies bindings based on the provided boolean condition.
+     * @param condition - The condition to evaluate.
+     * @param delegate - A function that declares bindings when the condition is true.
+     * @returns The container builder instance for chaining.
+     */
+    when(
+        condition: boolean,
+        delegate: TBinderDelegate<TypeMap>,
+    ): this;
+
     /**
      * Binds a concrete instance to a type.
      *
@@ -506,6 +536,58 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
         options?: TAliasBindingOptions,
     ): this;
 }
+
+/**
+ * A specialized type entry binder used inside module definitions.
+ * @template TypeMap The type map being built by the current module.
+ */
+interface IModuleTypeEntryBinder<TypeMap extends TTypeMapBase>
+    extends ITypeEntryBinder<TypeMap> {
+    /**
+     * Includes another module into this module.
+     *
+     * This allows the current module to use types from the imported module internally
+     * without exposing them as part of its public type map.
+     *
+     * @template ModuleTypeMap The type map provided by the imported module.
+     * @param module The module to import.
+     * @returns The same binder with an updated type map for internal resolution.
+     */
+    include<ModuleTypeMap extends TTypeMapBase>(
+        module: DIModule<ModuleTypeMap>,
+    ): IModuleTypeEntryBinder<
+        TypeMap extends ModuleTypeMap ? TypeMap : Prettify<TypeMap & ModuleTypeMap>
+    >;
+}
+
+/**
+ * A delegate function that defines all bindings provided by a static module.
+ *
+ * @template TypeMap The map of types this module will provide.
+ * @param binder The binder used to register module types
+ */
+type DIStaticModuleDelegate<TypeMap extends TTypeMapBase> = (
+    binder: IModuleTypeEntryBinder<TypeMap>,
+) => void;
+
+/**
+ * Static DI module.
+ * @template TypeMap The map of types this module provides.
+ */
+type DIStaticModule<TypeMap extends TTypeMapBase> = {
+    /** The name of the module (useful for debugging and logs) */
+    readonly name: string;
+    /** The kind of module — always "static" */
+    readonly type: "static";
+    /** The function that registers types into the container. */
+    readonly delegate: DIStaticModuleDelegate<TypeMap>;
+};
+
+/**
+ * Represents union of all supported DI modules kinds.
+ * @template TypeMap The map of types this module provides.
+ */
+type DIModule<TypeMap extends TTypeMapBase> = DIStaticModule<TypeMap>;
 
 /**
  * An interface that provides access to the container's type resolution mechanism.
@@ -643,37 +725,21 @@ interface IContainerScope<TypeMap extends TTypeMapBase>
 interface IContainerBuilder<TypeMap extends TTypeMapBase>
     extends ITypeEntryBinder<TypeMap> {
     /**
-     * Conditionally applies bindings based on the provided boolean condition.
-     * @param condition - The condition to evaluate.
-     * @param delegate - A function that declares bindings when the condition is true.
-     * @returns The container builder instance for chaining.
-     */
-    when(
-        condition: boolean,
-        delegate: TBinderDelegate<TypeMap>,
-    ): IContainerBuilder<TypeMap>;
-
-    /**
-     * Declares that the specified type binding is required during container building.
-     * This ensures that a binding for the given type (and optionally name) exists when building container.
-     * If the binding is missing, an error will be thrown during the build phase.
-     *
-     * @param type - The type key to require a binding for.
-     * @param name - Optional name of the binding if using named bindings.
-     *
-     * @throws {Error} If the required binding is not present when building container.
-     *
-     * @returns The container builder instance for chaining.
-     */
-    requireType(type: keyof TypeMap, name?: string): IContainerBuilder<TypeMap>;
-
-    /**
      * Checks whether the given middleware is already registered in the container builder.
      *
      * @param middleware - The middleware instance to check.
      * @returns `true` if the middleware is already registered; otherwise, `false`.
      */
     hasMiddleware(middleware: IContainerMiddleware): boolean;
+
+    /**
+     * Checks whether the specified module has been included in the container builder,
+     * either directly or through another included module.
+     *
+     * @param module - The module to check.
+     * @returns `true` if the module is present in the builder's configuration, `false` otherwise.
+     */
+    hasModule(module: DIModule<any>): boolean
 
     /**
      * Checks whether a binding exists for the given type and optional name.
@@ -734,6 +800,22 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
     use(middleware: IContainerMiddleware): IContainerBuilder<TypeMap>;
 
     /**
+     * Includes a DI module to the container builder.
+     *
+     * After attaching the module, all types registered by the module become available
+     * for resolution inside factories and other modules.
+     *
+     * @template ModuleTypeMap The type map provided by the module.
+     * @param module The module object that defines bindings to register in the container.
+     * @returns The current container builder extended with the module's type map.
+     */
+    include<ModuleTypeMap extends TTypeMapBase>(
+        module: DIModule<ModuleTypeMap>,
+    ): IContainerBuilder<
+        TypeMap extends ModuleTypeMap ? TypeMap : Prettify<TypeMap & ModuleTypeMap>
+    >;
+
+    /**
      * Finalizes the bindings and builds a container instance.
      *
      * @returns The built DI container.
@@ -749,6 +831,33 @@ type TContainerBuilderOptions = {
     /** Default conflict resolution strategy when a binding for the same type already exists. */
     ifConflict?: TTypesBindingResolveStrategy;
 };
+
+type TStaticModuleDeclaration = {
+    /**
+     * Finalizes a static module definition using the provided delegate.
+     *
+     * @template TypeMap The type map representing the types the module provides.
+     * @param delegate The function that defines bindings for the module.
+     * @returns The completed DI module.
+     */
+    create<TypeMap extends TTypeMapBase>(
+        delegate: DIStaticModuleDelegate<TypeMap>,
+    ): DIStaticModule<TypeMap>;
+};
+
+/**
+ * Creates a named static module declaration.
+ *
+ * This function is the entry point for declaring a reusable DI module.
+ * It returns a declaration object with a `create()` method that accepts a delegate function.
+ * The delegate is where the module registers its internal bindings.
+ *
+ * @param moduleName A human-readable name for the module (for debugging and tooling).
+ * @returns A declaration object with a `create()` method for defining the module.
+ */
+export declare function staticModule(
+    moduleName: string,
+): TStaticModuleDeclaration;
 
 /**
  * Creates a new dependency injection container builder.

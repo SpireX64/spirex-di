@@ -96,7 +96,17 @@ function createContainerBlueprint() {
     /** Set of registered container middlewares. */
     var middlewares = new Set();
 
+    var modules = new Set();
+
     // region: PUBLIC METHODS
+    function hasMod(module) {
+        return modules.has(module);
+    }
+
+    function addMod(module) {
+        modules.add(module);
+    }
+
     function hasMw(middleware) {
         return middlewares.has(middleware);
     }
@@ -109,10 +119,9 @@ function createContainerBlueprint() {
         var result = args[resultArgIndex];
         for (var mv of middlewares) {
             var hook = mv[hookName];
-            if (typeof hook === 'function') {
+            if (typeof hook === "function") {
                 result = hook(...args);
-                if (resultArgIndex >= 0)
-                    args[resultArgIndex] = result;
+                if (resultArgIndex >= 0) args[resultArgIndex] = result;
             }
         }
         return result;
@@ -294,6 +303,8 @@ function createContainerBlueprint() {
         hasMw,
         addMw,
         callMw,
+        hasMod,
+        addMod,
         findEntry,
         findAlias,
         findAllEntries,
@@ -396,7 +407,7 @@ function createRootContainerScope(blueprint) {
             : entry.factory(scope, ctx);
 
         // Call 'OnActivated' middleware
-        instance = blueprint.callMw('onActivated', 1, entry, instance, scope)
+        instance = blueprint.callMw("onActivated", 1, entry, instance, scope);
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -458,11 +469,11 @@ function createRootContainerScope(blueprint) {
                 scope[$locals].set(entry, instance);
         }
 
-        return blueprint.callMw('onResolve', 1, entry, instance, scope);
+        return blueprint.callMw("onResolve", 1, entry, instance, scope);
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
-        blueprint.callMw('onRequest', -1, entry, scope, type, name);
+        blueprint.callMw("onRequest", -1, entry, scope, type, name);
         return entry;
     }
 
@@ -562,7 +573,7 @@ function createRootContainerScope(blueprint) {
                 ),
             );
 
-            blueprint.callMw('onScopeOpen', -1, scope);
+            blueprint.callMw("onScopeOpen", -1, scope);
             scopesMap.set(id, scope);
             return scope;
         },
@@ -574,7 +585,7 @@ function createRootContainerScope(blueprint) {
             this[$scopes].forEach((scope) => scope.dispose());
             this[$scopes].clear();
 
-            blueprint.callMw('onScopeDispose', -1, this);
+            blueprint.callMw("onScopeDispose", -1, this);
             this[$state].disposed = true;
 
             // Dispose local instances
@@ -637,6 +648,7 @@ export function createContainerBuilder(builderOptions) {
 
     var hasSomeSafeFactory = false;
     var requiredTypes = new Set();
+    var moduleStack = [];
 
     // region INTERNAL METHODS
 
@@ -714,6 +726,7 @@ export function createContainerBuilder(builderOptions) {
                 type,
                 instance,
                 name: options && options.name,
+                module: moduleStack[moduleStack.length - 1],
                 allowedScopes: options && options.allowedScopes,
                 meta: options && options.meta,
             },
@@ -737,6 +750,7 @@ export function createContainerBuilder(builderOptions) {
                 factory,
                 lifecycle,
                 name: options && options.name,
+                module: moduleStack[moduleStack.length - 1],
                 allowedScopes: options && options.allowedScopes,
                 meta: options && options.meta,
             },
@@ -761,6 +775,7 @@ export function createContainerBuilder(builderOptions) {
                 factory,
                 lifecycle,
                 name: options && options.name,
+                module: moduleStack[moduleStack.length - 1],
                 allowedScopes: options && options.allowedScopes,
                 meta: options && options.meta,
             },
@@ -796,6 +811,16 @@ export function createContainerBuilder(builderOptions) {
         return this;
     }
 
+    function include(m) {
+        if (!blueprint.hasMod(m)) {
+            blueprint.addMod(m);
+            moduleStack.push(m);
+            m.delegate(this);
+            moduleStack.pop();
+        }
+        return this;
+    }
+
     function requireTypesFromSafeFactories() {
         if (!hasSomeSafeFactory) return;
 
@@ -806,7 +831,7 @@ export function createContainerBuilder(builderOptions) {
         };
 
         blueprint.entries.forEach((entry) => {
-            if ("injector" in entry)
+            if (typeof entry.injector === "function")
                 try {
                     // Dry-run call to collect required types from safe factories.
                     // We only care about which types are accessed via `get(...)`.
@@ -838,6 +863,7 @@ export function createContainerBuilder(builderOptions) {
 
     return {
         has: blueprint.has,
+        hasModule: blueprint.hasMod,
         hasMiddleware: blueprint.hasMw,
         findEntry: blueprint.findEntry,
         findAllEntries: blueprint.findAllEntries,
@@ -848,7 +874,20 @@ export function createContainerBuilder(builderOptions) {
         bindSafeFactory,
         bindAlias,
         when,
+        include,
         use,
         build,
+    };
+}
+
+export function staticModule(name) {
+    return {
+        create: (delegate) => {
+            return {
+                name,
+                delegate,
+                type: "static",
+            };
+        },
     };
 }
