@@ -648,6 +648,7 @@ export function createContainerBuilder(builderOptions) {
 
     var hasSomeSafeFactory = false;
     var requiredTypes = new Set();
+    var externalInjections = [];
     var moduleStack = [];
 
     // region INTERNAL METHODS
@@ -817,8 +818,7 @@ export function createContainerBuilder(builderOptions) {
             try {
                 m.delegate(this);
                 blueprint.addMod(m);
-            }
-            finally {
+            } finally {
                 moduleStack.pop();
             }
         }
@@ -847,6 +847,11 @@ export function createContainerBuilder(builderOptions) {
         });
     }
 
+    function injectInto(delegate) {
+        externalInjections.push(delegate);
+        return this;
+    }
+
     function build() {
         // Compile aliases
         blueprint.compileAliases();
@@ -860,7 +865,9 @@ export function createContainerBuilder(builderOptions) {
                 throw new Error(DIErrors.MissingRequiredTypeError($id));
         });
 
-        return createRootContainerScope(blueprint);
+        var container = createRootContainerScope(blueprint);
+        externalInjections.forEach((delegate) => delegate(container));
+        return container;
     }
 
     // endregion PUBLIC METHODS
@@ -873,6 +880,7 @@ export function createContainerBuilder(builderOptions) {
         findAllEntries: blueprint.findAllEntries,
         getAliasOrigin: blueprint.getAliasOrigin,
         requireType,
+        injectInto,
         bindInstance,
         bindFactory,
         bindSafeFactory,

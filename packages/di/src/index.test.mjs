@@ -2090,6 +2090,58 @@ describe("Container Builder", () => {
                 expect(factoryMock).toHaveBeenCalledTimes(1);
             });
         });
+
+        describe("Inject into external service", () => {
+            test("WHEN: Register injection delegate", () => {
+                // Arrange ------
+                var delegate = vi.fn();
+                var builder = createContainerBuilder();
+
+                // Act ----------
+                var builderRef = builder.injectInto(delegate);
+
+                // Assert -------
+                // 1. Should support call chaining
+                expect(builderRef).toBe(builder);
+
+                // 2. Should not run before container build
+                expect(delegate).not.toHaveBeenCalled();
+            });
+
+            test("WHEN: Build container with injection delegates", () => {
+                // Arrange --------
+                var external = { foo: 0, bar: "" };
+
+                var expectedNumValue = 42;
+                var expectedStrValue = "foo";
+
+                var delegateA = vi.fn((r) => {
+                    external.foo = r.get("num");
+                });
+                var delegateB = vi.fn((r) => {
+                    external.bar = r.get("str");
+                });
+
+                var builder = createContainerBuilder()
+                    .bindInstance("num", expectedNumValue)
+                    .bindInstance("str", expectedStrValue)
+                    .injectInto(delegateA)
+                    .injectInto(delegateB);
+
+                // Act -------------
+                var container = builder.build();
+
+                // Assert ----------
+                // 1. Delegates are called in order with the container as resolver
+                expect(delegateB).toHaveBeenCalledAfter(delegateA);
+                expect(delegateA).toHaveBeenCalledWith(container);
+                expect(delegateB).toHaveBeenCalledWith(container);
+
+                // 2. Values are correctly injected into external objects
+                expect(external.foo).toBe(expectedNumValue);
+                expect(external.bar).toBe(expectedStrValue);
+            });
+        });
     });
 });
 

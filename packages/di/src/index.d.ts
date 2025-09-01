@@ -41,7 +41,10 @@ export type TProvider<T> = () => T;
  *
  * @returns An instance of the type associated with the token `T`.
  */
-export type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
+export type TTypeFactory<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = (
     resolver: ITypesResolver<TypeMap>,
     context: IFactoryScopeContext,
 ) => TypeMap[T];
@@ -90,7 +93,11 @@ export type TTypeSafeFactory<Deps, R> = (
  * - `"replace"`: Replaces the existing binding with the new one.
  * - `"append"`: Adds the new binding alongside the existing one(s)
  */
-export type TTypesBindingResolveStrategy = "throw" | "keep" | "replace" | "append";
+export type TTypesBindingResolveStrategy =
+    | "throw"
+    | "keep"
+    | "replace"
+    | "append";
 
 /** Configuration options for creating a new scope. */
 export type TScopeOptions = {
@@ -155,7 +162,10 @@ export type TAliasBindingOptions = TBindingOptions & {
  * @typeParam TypeMap - The mapping of type tokens to their corresponding instance types.
  * @typeParam T - A key from the type map representing the registered type.
  */
-export type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
+export type TTypeEntryBase<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = {
     /**
      * A unique identifier for the binding entry.
      * This ID is used internally to distinguish between different bindings of the same type.
@@ -284,6 +294,10 @@ export interface IDisposable {
     dispose(): void;
 }
 
+export type TInjectIntoDelegate<TypeMap extends TTypeMapBase> = (
+    resolver: ITypesResolver<TypeMap>,
+) => void;
+
 /**
  * A middleware function that called when the middleware
  * is added into the container builder.
@@ -381,7 +395,9 @@ export type TContainerMiddlewareOnResolve = (
  *
  * @param scope - The scope instance that is being handled.
  */
-export type TContainerMiddlewareOnScope = (scope: IContainerScope<AnyTypeMap>) => void;
+export type TContainerMiddlewareOnScope = (
+    scope: IContainerScope<AnyTypeMap>,
+) => void;
 
 /**
  * Container middleware.
@@ -449,6 +465,19 @@ export interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
      * @returns The container builder instance for chaining.
      */
     when(condition: boolean, delegate: TBinderDelegate<TypeMap>): this;
+
+    /**
+     * Injects dependencies from the container into an external object or service.
+     *
+     * Use this method for **one-off or third-party instances** that cannot be
+     * constructed directly via the container. Each call should target a single
+     * external object or service.
+     *
+     * @param delegate - A function that receives the container resolver and
+     *                   performs the injection into the external object.
+     * @returns The container builder instance for chaining.
+     */
+    injectInto(delegate: TInjectIntoDelegate<TypeMap>): this;
 
     /**
      * Binds a concrete instance to a type.
@@ -565,14 +594,14 @@ export interface IModuleTypeEntryBinder<TypeMap extends TTypeMapBase>
  */
 export type DIModule<TypeMap extends TTypeMapBase> = {
     /** The unique identifier of the module (useful for debugging and logs) */
-    readonly id: string
+    readonly id: string;
 
     /** The kind of module */
-    readonly type: string
+    readonly type: string;
 
     /** The function that registers types into the container. */
-    readonly delegate: DIModuleDelegate<TypeMap>
-}
+    readonly delegate: DIModuleDelegate<TypeMap>;
+};
 
 /**
  * A delegate function that defines all bindings provided by a static module.
@@ -592,7 +621,6 @@ export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
     /** The kind of module — always "static" */
     readonly type: "static";
 };
-
 
 /**
  * An interface that provides access to the container's type resolution mechanism.
@@ -862,9 +890,7 @@ export type TModuleDeclaration = {
  * @param moduleId A unique identifier of the module.
  * @returns A declaration object with a `create()` method for defining the module.
  */
-export declare function staticModule(
-    moduleId: string,
-): TModuleDeclaration;
+export declare function staticModule(moduleId: string): TModuleDeclaration;
 
 /**
  * Creates a new dependency injection container builder.
