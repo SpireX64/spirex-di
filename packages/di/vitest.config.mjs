@@ -10,7 +10,7 @@ export default defineConfig({
             "**/node_modules/**",
             "**/.{idea,git,cache,output,temp}/**",
             "**/{rollup,vitest,eslint,prettier}.config.*",
-            "**/{build,docs,coverage}/**",
+            "**/{dist,coverage}/**",
             "**/__test__/*.{test,spec}.(c|m)js",
         ],
         coverage: {

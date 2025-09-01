@@ -38,19 +38,19 @@
         "powerful",
         "spirex"
     ],
-    "main": "build/index.js",
-    "module": "build/index.mjs",
-    "types": "build/index.d.ts",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
             "import": {
-                "default": "./build/index.mjs"
+                "default": "./dist/index.mjs"
             },
             "require": {
-                "default": "./build/index.cjs"
+                "default": "./dist/index.cjs"
             },
             "default": {
-                "default": "./build/index.js"
+                "default": "./dist/index.js"
             }
         }
     },
@@ -58,7 +58,8 @@
         "test": "vitest run --config ./vitest.config.mjs",
         "test:c": "vitest run --config ./vitest.config.mjs --coverage",
         "build": "rollup --config --environment NODE_ENV:development",
-        "build:release": "rollup --config --environment NODE_ENV:production"
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "clean": "rimraf dist coverage"
     },
     "peerDependencies": {
         "@spirex/di": "*"

@@ -1,8 +1,6 @@
-!build/
+!dist/
 node_modules/
-src-ts/
 coverage/
-docs/
 yarn.lock
 tsconfig.json
 vitest.config.mjs

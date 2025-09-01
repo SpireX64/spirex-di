@@ -17,14 +17,14 @@ const terserPlugin =
 
 const sourceDir = "./src";
 const sourceFile = `${sourceDir}/index.js`;
-const outDir = "./build";
+const outDir = "./dist";
 const output = `${outDir}/index`;
 
 const generatedCode = {
     constBindings: false,
     objectShorthand: true,
     moduleSideEffects: false,
-}
+};
 
 exports.default = [
     {
