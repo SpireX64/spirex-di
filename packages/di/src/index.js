@@ -125,6 +125,18 @@ function createContainerBlueprint() {
     var middlewares = new Set();
 
     var modules = new Set();
+    var typesEnum = null;
+
+    function types() {
+        if (typesEnum == null) {
+            typesEnum = {};
+            entries.forEach((_, k) => {
+                typesEnum[k] = k;
+            });
+            Object.freeze(typesEnum);
+        }
+        return typesEnum;
+    }
 
     // region: PUBLIC METHODS
     function hasMod(module) {
@@ -327,6 +339,7 @@ function createContainerBlueprint() {
         entries,
         aliases,
         middlewares,
+        types,
         has,
         hasMw,
         addMw,
@@ -533,6 +546,10 @@ function createRootContainerScope(blueprint) {
     }
 
     var scopePrototype = {
+        get types() {
+            return blueprint.types();
+        },
+
         get isDisposed() {
             return this[$state].disposed;
         },

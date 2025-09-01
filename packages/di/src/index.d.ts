@@ -7,6 +7,16 @@ type Prettify<T> = { [K in keyof T]: T[K] } & {};
 export type TTypeMapBase = object;
 
 /**
+ * A type-safe readonly mapping of container type keys to themselves.
+ *
+ * Acts like an enum of registered service keys:
+ * each key maps to its own string literal.
+ */
+export type TTypesEnum<TypeMap extends TTypeMapBase> = Readonly<{
+    [T in keyof TypeMap]: T;
+}>;
+
+/**
  * Defines the lifecycle for a binding in the container.
  *
  * - `"singleton"` — The instance is created eagerly with the container and exists as a single shared instance.
@@ -44,10 +54,7 @@ export type TProvider<T> = () => T;
 export type TTypeFactory<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
-> = (
-    resolver: ITypesResolver<TypeMap>,
-    context: IScopeContext,
-) => TypeMap[T];
+> = (resolver: ITypesResolver<TypeMap>, context: IScopeContext) => TypeMap[T];
 
 /**
  * Injector function type.
@@ -291,7 +298,7 @@ export interface IDisposable {
      * After calling `dispose()`, the object is considered inactive
      * and should not be used again.
      */
-    readonly dispose(): void;
+    dispose(): void;
 }
 
 export type TInjectIntoDelegate<TypeMap extends TTypeMapBase> = (
@@ -629,6 +636,23 @@ export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
  */
 export interface ITypesResolver<TypeMap extends TTypeMapBase> {
     /**
+     * A readonly dictionary of all registered type keys in the container.
+     *
+     * This property provides a type-safe way to access service keys.
+     * Each key points to itself, effectively behaving like an enum of type names.
+     * 
+     * @example 
+     * // Check if a type exists
+     * if ('MyType' in r.types) { ... }
+     * 
+     * @example
+     * // Type-safe access via enum
+     * r.get(r.types.MyType)
+     * 
+     */
+    readonly types: TTypesEnum<TypeMap>;
+
+    /**
      * Retrieves an instance associated with the given type token and optional name.
      *
      * @typeParam T - A specific token key from the TypeMap.
@@ -726,11 +750,11 @@ export interface IScopeContext extends IDisposable {
 
     /**
      * Closes the current scope and cleans up all local instances.
-     * 
+     *
      * After calling dispose, the scope is considered closed and further
      * operations using this context may throw errors or be invalid.
      */
-    readonly dispose(): void
+    dispose(): void;
 }
 
 export interface IContainerScope<TypeMap extends TTypeMapBase>

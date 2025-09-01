@@ -2146,6 +2146,47 @@ describe("Container Builder", () => {
 });
 
 describe("Container Scope", () => {
+    describe("Types enum", () => {
+        test("WHEN: get types enum from container", () => {
+            // Arrange --------
+            var typeKeyA = "typeKeyA";
+            var typeKeyB = "typeKeyB";
+
+            var container = createContainerBuilder()
+                .bindInstance(typeKeyA, 11)
+                .bindInstance(typeKeyB, 22)
+                .build();
+
+            // Act ------------
+            var types = container.types;
+
+            // Assert ---------
+            expect(types).instanceOf(Object);
+            expect(types).is.frozen;
+
+            expect(types).toHaveProperty(typeKeyA, typeKeyA);
+            expect(types).toHaveProperty(typeKeyB, typeKeyB);
+        });
+
+        test("WHEN: get types enum twice", () => {
+            // Arrange --------
+            var typeKeyA = "typeKeyA";
+            var typeKeyB = "typeKeyB";
+
+            var container = createContainerBuilder()
+                .bindInstance(typeKeyA, 11)
+                .bindInstance(typeKeyB, 22)
+                .build();
+
+            // Act ------------
+            var types1 = container.types;
+            var types2 = container.types;
+
+            // Assert ---------
+            expect(types1).toBe(types2);
+        });
+    });
+
     describe("Resolve type instances", () => {
         describe("Get type instance", () => {
             test("WHEN get not bound type instance", () => {
