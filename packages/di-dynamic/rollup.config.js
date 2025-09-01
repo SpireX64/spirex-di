@@ -30,7 +30,7 @@ exports.default = [
     {
         input: sourceFile,
         output: {
-            name: "DI",
+            name: "DIDynamic",
             file: `${output}.js`,
             format: "umd",
             sourcemap: release ? false : "inline",

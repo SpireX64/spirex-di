@@ -1,23 +1,15 @@
-// @ts-check
+import js from "@eslint/js";
+import pluginReact from "eslint-plugin-react";
+import { defineConfig } from "eslint/config";
 
-import eslint from "@eslint/js";
-import tseslint from "typescript-eslint";
-
-export default tseslint.config(
-    eslint.configs.recommended,
-    ...tseslint.configs.strictTypeChecked,
+export default defineConfig([
     {
+        files: ["./src/**/*.{js,mjs,cjs,jsx}"],
+        plugins: { js },
+        extends: ["js/recommended"],
         rules: {
-            "@typescript-eslint/no-namespace": "off",
-            "@typescript-eslint/no-this-alias": "off",
+            "no-var": "off",
         },
     },
-    {
-        languageOptions: {
-            parserOptions: {
-                project: true,
-                tsconfigRootDir: import.meta.dirname,
-            },
-        },
-    },
-);
+    pluginReact.configs.flat.recommended,
+]);

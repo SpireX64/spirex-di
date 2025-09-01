@@ -7,7 +7,7 @@
   "keywords": [
     "di", "dependency", "injection", "typescript", "javascript", "ioc",
     "container", "lifecycle", "binding", "singleton", "scope", "module",
-    "dynamic", "factory", "service", "resolver", "lazy", "injector",
+    "factory", "service", "resolver", "lazy", "injector",
     "flexible", "modern", "powerful", "spirex"
   ],
   "author": {
@@ -20,37 +20,37 @@
     "type": "git",
     "url": "https://github.com/SpireX64/spirex-di"
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": {
-        "default": "./build/index.mjs"
+        "default": "./dist/index.mjs"
       },
       "require": {
-        "default": "./build/index.cjs"
+        "default": "./dist/index.cjs"
       },
       "default": {
-        "default": "./build/index.js"
+        "default": "./dist/index.js"
       }
     }
   },
   "scripts": {
-    "test": "jest",
-    "test:c": "jest --coverage",
+    "test": "vitest run --config ./vitest.config.mjs",
+    "test:c": "vitest run --config ./vitest.config.mjs --coverage",
     "build": "rollup --config --environment NODE_ENV:development",
-    "build:release": "rollup --config --environment NODE_ENV:production"
+    "build:release": "rollup --config --environment NODE_ENV:production",
+    "clean": "rimraf dist coverage"
   },
   "devDependencies": {
     "@types/jest": "*",
     "prettier": "*",
-    "typescript": "*",
     "eslint": "*",
     "rollup": "*",
     "rollup-plugin-terser": "*",
-    "@rollup/plugin-typescript": "*",
-    "jest": "*",
-    "tslib": "*",
-    "ts-jest": "*"
+    "rollup-plugin-copy": "*",
+    "vitest": "*",
+    "@vitest/coverage-istanbul": "*"
   }
 }

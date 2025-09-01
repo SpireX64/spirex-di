@@ -1,0 +1,77 @@
+{
+    "name": "@spirex/di-dynamic",
+    "version": "1.0.0",
+    "license": "MIT",
+    "private": false,
+    "homepage": "https://github.com/SpireX64/spirex-di",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SpireX64/spirex-di"
+    },
+    "author": {
+        "name": "Artem Sobolenkov (SpireX)",
+        "email": "SpireX@outlook.com",
+        "url": "https://github.com/SpireX64"
+    },
+    "description": "Dynamic modules support for @spirex/di library",
+    "keywords": [
+        "di",
+        "dependency",
+        "injection",
+        "typescript",
+        "javascript",
+        "ioc",
+        "container",
+        "lifecycle",
+        "binding",
+        "singleton",
+        "scope",
+        "module",
+        "factory",
+        "service",
+        "resolver",
+        "lazy",
+        "injector",
+        "dynamic",
+        "flexible",
+        "modern",
+        "powerful",
+        "spirex"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "default": "./dist/index.cjs"
+            },
+            "default": {
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vitest run --config ./vitest.config.mjs",
+        "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+        "build": "rollup --config --environment NODE_ENV:development",
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "clean": "rimraf dist coverage"
+    },
+    "peerDependencies": {
+        "@spirex/di": "*"
+    },
+    "devDependencies": {
+        "@types/jest": "*",
+        "prettier": "*",
+        "eslint": "*",
+        "rollup": "*",
+        "rollup-plugin-terser": "*",
+        "rollup-plugin-copy": "*",
+        "vitest": "*",
+        "@vitest/coverage-istanbul": "*"
+    }
+}

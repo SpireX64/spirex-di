@@ -32,3 +32,4 @@ yarn-error.log*
 
 # Build output folder
 build/
+dist/
