@@ -813,10 +813,14 @@ export function createContainerBuilder(builderOptions) {
 
     function include(m) {
         if (!blueprint.hasMod(m)) {
-            blueprint.addMod(m);
             moduleStack.push(m);
-            m.delegate(this);
-            moduleStack.pop();
+            try {
+                m.delegate(this);
+                blueprint.addMod(m);
+            }
+            finally {
+                moduleStack.pop();
+            }
         }
         return this;
     }
@@ -880,14 +884,13 @@ export function createContainerBuilder(builderOptions) {
     };
 }
 
-export function staticModule(name) {
+export function staticModule(id) {
     return {
-        create: (delegate) => {
-            return {
-                name,
+        create: (delegate) =>
+            Object.freeze({
+                id,
                 delegate,
                 type: "static",
-            };
-        },
+            }),
     };
 }

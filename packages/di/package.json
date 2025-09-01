@@ -7,7 +7,7 @@
   "keywords": [
     "di", "dependency", "injection", "typescript", "javascript", "ioc",
     "container", "lifecycle", "binding", "singleton", "scope", "module",
-    "dynamic", "factory", "service", "resolver", "lazy", "injector",
+    "factory", "service", "resolver", "lazy", "injector",
     "flexible", "modern", "powerful", "spirex"
   ],
   "author": {

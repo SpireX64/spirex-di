@@ -4,7 +4,7 @@ type Prettify<T> = { [K in keyof T]: T[K] } & {};
  * A map of string keys to types used in the DI container.
  * Each key represents a type token, and its value is the type of the instance bound to that token.
  */
-type TTypeMapBase = object;
+export type TTypeMapBase = object;
 
 /**
  * Defines the lifecycle for a binding in the container.
@@ -14,7 +14,7 @@ type TTypeMapBase = object;
  * - `"scope"` — The instance is unique per scope and is disposed with it.
  * - `"transient"` — A new instance is created on each resolution.
  */
-type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
+export type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
 
 /**
  * Metadata object for a binding entry.
@@ -24,9 +24,9 @@ type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
  * This metadata is not used by the DI itself,
  * but can be leveraged by middleware or user code.
  */
-type TTypeEntryMetaData = Record<string, unknown>;
+export type TTypeEntryMetaData = Record<string, unknown>;
 
-type TProvider<T> = () => T;
+export type TProvider<T> = () => T;
 
 /**
  * A factory function that produces an instance of a type from the container.
@@ -41,7 +41,7 @@ type TProvider<T> = () => T;
  *
  * @returns An instance of the type associated with the token `T`.
  */
-type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
+export type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
     resolver: ITypesResolver<TypeMap>,
     context: IFactoryScopeContext,
 ) => TypeMap[T];
@@ -61,7 +61,7 @@ type TTypeFactory<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = (
  *
  * @returns {R} - Dependencies of any type passed to the factory.
  */
-type TTypeInjector<TypeMap extends TTypeMapBase, R> = (
+export type TTypeInjector<TypeMap extends TTypeMapBase, R> = (
     resolver: ITypesResolver<TypeMap>,
     context: IFactoryScopeContext,
 ) => R;
@@ -77,7 +77,7 @@ type TTypeInjector<TypeMap extends TTypeMapBase, R> = (
  *
  * @returns {R} - The created instance.
  */
-type TTypeSafeFactory<Deps, R> = (
+export type TTypeSafeFactory<Deps, R> = (
     deps: Deps,
     context: IFactoryScopeContext,
 ) => R;
@@ -90,10 +90,10 @@ type TTypeSafeFactory<Deps, R> = (
  * - `"replace"`: Replaces the existing binding with the new one.
  * - `"append"`: Adds the new binding alongside the existing one(s)
  */
-type TTypesBindingResolveStrategy = "throw" | "keep" | "replace" | "append";
+export type TTypesBindingResolveStrategy = "throw" | "keep" | "replace" | "append";
 
 /** Configuration options for creating a new scope. */
-type TScopeOptions = {
+export type TScopeOptions = {
     /**
      * Prevents this scope from creating any child scopes.
      * Attempting to create a child scope will throw an error.
@@ -110,7 +110,7 @@ type TScopeOptions = {
 /**
  * Options to control how the binding should behave during registration.
  */
-type TBindingOptions = {
+export type TBindingOptions = {
     /** Defines the strategy to apply when a binding conflict occurs */
     ifConflict?: TTypesBindingResolveStrategy;
 
@@ -119,7 +119,7 @@ type TBindingOptions = {
 };
 
 /** Binding options specific to a type implementation. */
-type TTypeBindingOptions = TBindingOptions & {
+export type TTypeBindingOptions = TBindingOptions & {
     /**
      * Optional metadata for the binding.
      * Can be used to store custom data
@@ -135,13 +135,13 @@ type TTypeBindingOptions = TBindingOptions & {
 };
 
 /** Options for configuring a factory-based binding. */
-type TFactoryBindingOptions = TTypeBindingOptions & {
+export type TFactoryBindingOptions = TTypeBindingOptions & {
     /** Determines how and when the instance is created and cached. */
     lifecycle?: TLifecycle;
 };
 
 /** Options for configuring an alias binding. */
-type TAliasBindingOptions = TBindingOptions & {
+export type TAliasBindingOptions = TBindingOptions & {
     /**
      * Name qualifier of the origin binding that this alias points to.
      * Useful when aliasing named bindings.
@@ -155,7 +155,7 @@ type TAliasBindingOptions = TBindingOptions & {
  * @typeParam TypeMap - The mapping of type tokens to their corresponding instance types.
  * @typeParam T - A key from the type map representing the registered type.
  */
-type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
+export type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
     /**
      * A unique identifier for the binding entry.
      * This ID is used internally to distinguish between different bindings of the same type.
@@ -199,7 +199,7 @@ type TTypeEntryBase<TypeMap extends TTypeMapBase, T extends keyof TypeMap> = {
  * @typeParam TypeMap - The mapping of type tokens to their corresponding instance types.
  * @typeParam T - A key from the type map representing the registered type.
  */
-type TInstanceTypeEntry<
+export type TInstanceTypeEntry<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
 > = TTypeEntryBase<TypeMap, T> & {
@@ -216,7 +216,7 @@ type TInstanceTypeEntry<
  * @typeParam TypeMap - The mapping of type tokens to their corresponding instance types.
  * @typeParam T - A key from the type map representing the registered type.
  */
-type TFactoryTypeEntry<
+export type TFactoryTypeEntry<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
 > = TTypeEntryBase<TypeMap, T> & {
@@ -237,7 +237,7 @@ type TFactoryTypeEntry<
  * @template T - Key of the bound type.
  * @template Deps - Type of the dependencies object injected into the factory.
  */
-type TSafeFactoryEntry<
+export type TSafeFactoryEntry<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
     Deps,
@@ -256,7 +256,7 @@ type TSafeFactoryEntry<
 };
 
 /** A type entry, either an instance entry or a factory entry */
-type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
+export type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
     | TInstanceTypeEntry<TypeMap, T>
     | TFactoryTypeEntry<TypeMap, T>
     | TSafeFactoryEntry<TypeMap, T, {}>;
@@ -267,7 +267,7 @@ type TTypeEntry<TypeMap extends TTypeMapBase, T extends keyof TypeMap> =
  * This allows writing reusable and shareable middleware components
  * that can be applied across different container configurations
  */
-type AnyTypeMap = Record<string, any>;
+export type AnyTypeMap = Record<string, any>;
 
 /**
  * Interface for disposable resources that require explicit cleanup.
@@ -275,7 +275,7 @@ type AnyTypeMap = Record<string, any>;
  * Implement this interface to allow objects to release resources such as
  * file handles, database connections, or internal state when they are no longer needed.
  */
-interface IDisposable {
+export interface IDisposable {
     /**
      * Releases any held resources and performs necessary cleanup.
      * After calling `dispose()`, the object is considered inactive
@@ -292,7 +292,7 @@ interface IDisposable {
  *
  * @param builder The container builder where the middleware is being registered.
  */
-type TContainerBuilderMiddlewareOnUse = (
+export type TContainerBuilderMiddlewareOnUse = (
     builder: IContainerBuilder<AnyTypeMap>,
 ) => void;
 
@@ -304,7 +304,7 @@ type TContainerBuilderMiddlewareOnUse = (
  * @param originEntry - The original type entry as it was initially defined, before any middleware modifications.
  * @returns The final type entry to be registered in the container.
  */
-type TContainerBuilderMiddlewareOnBind = (
+export type TContainerBuilderMiddlewareOnBind = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
 ) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
@@ -324,7 +324,7 @@ type TContainerBuilderMiddlewareOnBind = (
  *
  * @returns If the hook throws, the request will be aborted.
  */
-type TContainerMiddlewareOnRequest = (
+export type TContainerMiddlewareOnRequest = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     scope: IContainerScope<AnyTypeMap>,
     type: keyof AnyTypeMap,
@@ -347,7 +347,7 @@ type TContainerMiddlewareOnRequest = (
  *
  * @returns The instance to be returned. Can be the original or a modified one.
  */
-type TContainerMiddlewareOnActivated = (
+export type TContainerMiddlewareOnActivated = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     instance: {},
     scope: IContainerScope<AnyTypeMap>,
@@ -367,7 +367,7 @@ type TContainerMiddlewareOnActivated = (
  *
  * @returns The final instance to be returned to the user.
  */
-type TContainerMiddlewareOnResolve = (
+export type TContainerMiddlewareOnResolve = (
     entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
     instance: {},
     scope: IContainerScope<AnyTypeMap>,
@@ -381,14 +381,14 @@ type TContainerMiddlewareOnResolve = (
  *
  * @param scope - The scope instance that is being handled.
  */
-type TContainerMiddlewareOnScope = (scope: IContainerScope<AnyTypeMap>) => void;
+export type TContainerMiddlewareOnScope = (scope: IContainerScope<AnyTypeMap>) => void;
 
 /**
  * Container middleware.
  *
  * Middleware allows intercepting and extending DI behavior.
  */
-interface IContainerMiddleware {
+export interface IContainerMiddleware {
     /** Optional name used to identify the middleware in code or error messages. */
     name?: string;
 
@@ -427,7 +427,7 @@ interface IContainerMiddleware {
  *
  * @template TypeMap - The type map that defines all valid type keys and their corresponding types.
  */
-interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
+export interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     /**
      * Declares that the specified type binding is required.
      * This ensures that a binding for the given type (and optionally name) exists when building container.
@@ -448,10 +448,7 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
      * @param delegate - A function that declares bindings when the condition is true.
      * @returns The container builder instance for chaining.
      */
-    when(
-        condition: boolean,
-        delegate: TBinderDelegate<TypeMap>,
-    ): this;
+    when(condition: boolean, delegate: TBinderDelegate<TypeMap>): this;
 
     /**
      * Binds a concrete instance to a type.
@@ -541,7 +538,7 @@ interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
  * A specialized type entry binder used inside module definitions.
  * @template TypeMap The type map being built by the current module.
  */
-interface IModuleTypeEntryBinder<TypeMap extends TTypeMapBase>
+export interface IModuleTypeEntryBinder<TypeMap extends TTypeMapBase>
     extends ITypeEntryBinder<TypeMap> {
     /**
      * Includes another module into this module.
@@ -556,8 +553,25 @@ interface IModuleTypeEntryBinder<TypeMap extends TTypeMapBase>
     include<ModuleTypeMap extends TTypeMapBase>(
         module: DIModule<ModuleTypeMap>,
     ): IModuleTypeEntryBinder<
-        TypeMap extends ModuleTypeMap ? TypeMap : Prettify<TypeMap & ModuleTypeMap>
+        TypeMap extends ModuleTypeMap
+            ? TypeMap
+            : Prettify<TypeMap & ModuleTypeMap>
     >;
+}
+
+/**
+ * Represents union of all supported DI modules kinds.
+ * @template TypeMap The map of types this module provides.
+ */
+export type DIModule<TypeMap extends TTypeMapBase> = {
+    /** The unique identifier of the module (useful for debugging and logs) */
+    readonly id: string
+
+    /** The kind of module */
+    readonly type: string
+
+    /** The function that registers types into the container. */
+    readonly delegate: DIModuleDelegate<TypeMap>
 }
 
 /**
@@ -566,7 +580,7 @@ interface IModuleTypeEntryBinder<TypeMap extends TTypeMapBase>
  * @template TypeMap The map of types this module will provide.
  * @param binder The binder used to register module types
  */
-type DIStaticModuleDelegate<TypeMap extends TTypeMapBase> = (
+export type DIModuleDelegate<TypeMap extends TTypeMapBase> = (
     binder: IModuleTypeEntryBinder<TypeMap>,
 ) => void;
 
@@ -574,27 +588,18 @@ type DIStaticModuleDelegate<TypeMap extends TTypeMapBase> = (
  * Static DI module.
  * @template TypeMap The map of types this module provides.
  */
-type DIStaticModule<TypeMap extends TTypeMapBase> = {
-    /** The name of the module (useful for debugging and logs) */
-    readonly name: string;
+export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
     /** The kind of module — always "static" */
     readonly type: "static";
-    /** The function that registers types into the container. */
-    readonly delegate: DIStaticModuleDelegate<TypeMap>;
 };
 
-/**
- * Represents union of all supported DI modules kinds.
- * @template TypeMap The map of types this module provides.
- */
-type DIModule<TypeMap extends TTypeMapBase> = DIStaticModule<TypeMap>;
 
 /**
  * An interface that provides access to the container's type resolution mechanism.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
  */
-interface ITypesResolver<TypeMap extends TTypeMapBase> {
+export interface ITypesResolver<TypeMap extends TTypeMapBase> {
     /**
      * Retrieves an instance associated with the given type token and optional name.
      *
@@ -655,7 +660,7 @@ interface ITypesResolver<TypeMap extends TTypeMapBase> {
  * @template TypeMap - The type map that defines all valid type keys and their corresponding types.
  * @param binder - An interface providing methods for binding types.
  */
-type TBinderDelegate<TypeMap extends TTypeMapBase> = (
+export type TBinderDelegate<TypeMap extends TTypeMapBase> = (
     binder: ITypeEntryBinder<TypeMap>,
 ) => void;
 
@@ -665,7 +670,7 @@ type TBinderDelegate<TypeMap extends TTypeMapBase> = (
  * Its useful for conditional instance creation or resolving dependencies differently
  * depending on where in the scope tree the resolution occurs.
  */
-interface IFactoryScopeContext {
+export interface IFactoryScopeContext {
     /** Current scope ID */
     readonly current: string;
 
@@ -673,7 +678,7 @@ interface IFactoryScopeContext {
     readonly path: readonly string[];
 }
 
-interface IContainerScope<TypeMap extends TTypeMapBase>
+export interface IContainerScope<TypeMap extends TTypeMapBase>
     extends ITypesResolver<TypeMap>,
         IDisposable {
     /** Scope unique ID */
@@ -722,7 +727,7 @@ interface IContainerScope<TypeMap extends TTypeMapBase>
     [Symbol.dispose](): void;
 }
 
-interface IContainerBuilder<TypeMap extends TTypeMapBase>
+export interface IContainerBuilder<TypeMap extends TTypeMapBase>
     extends ITypeEntryBinder<TypeMap> {
     /**
      * Checks whether the given middleware is already registered in the container builder.
@@ -739,7 +744,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
      * @param module - The module to check.
      * @returns `true` if the module is present in the builder's configuration, `false` otherwise.
      */
-    hasModule(module: DIModule<any>): boolean
+    hasModule(module: DIModule<any>): boolean;
 
     /**
      * Checks whether a binding exists for the given type and optional name.
@@ -812,7 +817,9 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
     include<ModuleTypeMap extends TTypeMapBase>(
         module: DIModule<ModuleTypeMap>,
     ): IContainerBuilder<
-        TypeMap extends ModuleTypeMap ? TypeMap : Prettify<TypeMap & ModuleTypeMap>
+        TypeMap extends ModuleTypeMap
+            ? TypeMap
+            : Prettify<TypeMap & ModuleTypeMap>
     >;
 
     /**
@@ -824,7 +831,7 @@ interface IContainerBuilder<TypeMap extends TTypeMapBase>
 }
 
 /** Global options for the container builder. */
-type TContainerBuilderOptions = {
+export type TContainerBuilderOptions = {
     /** Default lifecycle for bindings (if not specified in individual bindings). */
     lifecycle?: TLifecycle;
 
@@ -832,32 +839,32 @@ type TContainerBuilderOptions = {
     ifConflict?: TTypesBindingResolveStrategy;
 };
 
-type TStaticModuleDeclaration = {
+export type TModuleDeclaration = {
     /**
      * Finalizes a static module definition using the provided delegate.
      *
      * @template TypeMap The type map representing the types the module provides.
      * @param delegate The function that defines bindings for the module.
-     * @returns The completed DI module.
+     * @returns The static module definition.
      */
     create<TypeMap extends TTypeMapBase>(
-        delegate: DIStaticModuleDelegate<TypeMap>,
+        delegate: DIModuleDelegate<TypeMap>,
     ): DIStaticModule<TypeMap>;
 };
 
 /**
- * Creates a named static module declaration.
+ * Creates a static module declaration.
  *
  * This function is the entry point for declaring a reusable DI module.
  * It returns a declaration object with a `create()` method that accepts a delegate function.
  * The delegate is where the module registers its internal bindings.
  *
- * @param moduleName A human-readable name for the module (for debugging and tooling).
+ * @param moduleId A unique identifier of the module.
  * @returns A declaration object with a `create()` method for defining the module.
  */
 export declare function staticModule(
-    moduleName: string,
-): TStaticModuleDeclaration;
+    moduleId: string,
+): TModuleDeclaration;
 
 /**
  * Creates a new dependency injection container builder.

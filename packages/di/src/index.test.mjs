@@ -1328,101 +1328,99 @@ describe("Container Builder", () => {
     });
 
     describe("Modules", () => {
-        describe("Static module", () => {
-            test("WHEN: Include static module", () => {
-                // Arrange --------
-                var instType = "instType";
-                var factoryType = "factoryType";
-                var safeFactoryType = "safeFactoryType";
-                var aliasKey = "alias";
-                var sModule = staticModule("test").create((binder) =>
-                    binder
-                        .bindInstance(instType, 42)
-                        .bindFactory(factoryType, () => "foo")
-                        .bindSafeFactory(
-                            safeFactoryType,
-                            (r) => r.get(instType),
-                            (d) => ({ value: d }),
-                        )
-                        .bindAlias(aliasKey, factoryType),
-                );
+        test("WHEN: Include static module", () => {
+            // Arrange --------
+            var instType = "instType";
+            var factoryType = "factoryType";
+            var safeFactoryType = "safeFactoryType";
+            var aliasKey = "alias";
+            var sModule = staticModule("test").create((binder) =>
+                binder
+                    .bindInstance(instType, 42)
+                    .bindFactory(factoryType, () => "foo")
+                    .bindSafeFactory(
+                        safeFactoryType,
+                        (r) => r.get(instType),
+                        (d) => ({ value: d }),
+                    )
+                    .bindAlias(aliasKey, factoryType),
+            );
 
-                // Act ------------
-                var builder = createContainerBuilder().include(sModule);
+            // Act ------------
+            var builder = createContainerBuilder().include(sModule);
 
-                var instTypeEntry = builder.findEntry(instType);
-                var factoryTypeEntry = builder.findEntry(factoryType);
-                var safeFactoryEntry = builder.findEntry(safeFactoryType);
+            var instTypeEntry = builder.findEntry(instType);
+            var factoryTypeEntry = builder.findEntry(factoryType);
+            var safeFactoryEntry = builder.findEntry(safeFactoryType);
 
-                // Assert ---------
-                expect(builder.hasModule(sModule)).is.true;
-                expect(instTypeEntry).toBeDefined();
-                expect(instTypeEntry.module).toEqual(sModule);
-                expect(factoryTypeEntry).toBeDefined();
-                expect(factoryTypeEntry.module).toEqual(sModule);
-                expect(safeFactoryEntry).toBeDefined();
-                expect(safeFactoryEntry.module).toEqual(sModule);
-                expect(builder.has(aliasKey)).is.true;
+            // Assert ---------
+            expect(builder.hasModule(sModule)).is.true;
+            expect(instTypeEntry).toBeDefined();
+            expect(instTypeEntry.module).toEqual(sModule);
+            expect(factoryTypeEntry).toBeDefined();
+            expect(factoryTypeEntry.module).toEqual(sModule);
+            expect(safeFactoryEntry).toBeDefined();
+            expect(safeFactoryEntry.module).toEqual(sModule);
+            expect(builder.has(aliasKey)).is.true;
+        });
+
+        test("WHEN: Include static module twice", () => {
+            // Arrange --------
+            var instType = "instType";
+            var factoryType = "factoryType";
+            var safeFactoryType = "safeFactoryType";
+            var aliasKey = "alias";
+            var sModule = staticModule("test").create((binder) =>
+                binder
+                    .bindInstance(instType, 42)
+                    .bindFactory(factoryType, () => "foo")
+                    .bindSafeFactory(
+                        safeFactoryType,
+                        (r) => r.get(instType),
+                        (d) => ({ value: d }),
+                    )
+                    .bindAlias(aliasKey, factoryType),
+            );
+
+            var builder = createContainerBuilder().include(sModule);
+
+            // Act ------------
+            builder.include(sModule);
+
+            // Assert ---------
+            // Should not to throw error cause binding conflict
+            // cause module includes only once to the builder
+            expect(builder.hasModule(sModule)).is.true;
+            expect(builder.has(instType)).is.true;
+            expect(builder.has(factoryType)).is.true;
+            expect(builder.has(safeFactoryType)).is.true;
+            expect(builder.has(aliasKey)).is.true;
+        });
+
+        test("WHEN: Include one static module into another", () => {
+            // Arrange ------
+            var typeKeyA = "typeKeyA";
+            var typeKeyB = "typeKeyB";
+
+            var moduleA = staticModule("A").create((binder) => {
+                binder.bindInstance(typeKeyA, 11);
             });
 
-            test("WHEN: Include static module twice", () => {
-                // Arrange --------
-                var instType = "instType";
-                var factoryType = "factoryType";
-                var safeFactoryType = "safeFactoryType";
-                var aliasKey = "alias";
-                var sModule = staticModule("test").create((binder) =>
-                    binder
-                        .bindInstance(instType, 42)
-                        .bindFactory(factoryType, () => "foo")
-                        .bindSafeFactory(
-                            safeFactoryType,
-                            (r) => r.get(instType),
-                            (d) => ({ value: d }),
-                        )
-                        .bindAlias(aliasKey, factoryType),
-                );
-
-                var builder = createContainerBuilder().include(sModule);
-
-                // Act ------------
-                builder.include(sModule);
-
-                // Assert ---------
-                // Should not to throw error cause binding conflict
-                // cause module includes only once to the builder
-                expect(builder.hasModule(sModule)).is.true;
-                expect(builder.has(instType)).is.true;
-                expect(builder.has(factoryType)).is.true;
-                expect(builder.has(safeFactoryType)).is.true;
-                expect(builder.has(aliasKey)).is.true;
+            var moduleB = staticModule("B").create((binder) => {
+                binder.include(moduleA).bindInstance(typeKeyB, 22);
             });
 
-            test("WHEN: Include one static module into another", () => {
-                // Arrange ------
-                var typeKeyA = "typeKeyA";
-                var typeKeyB = "typeKeyB";
+            var builder = createContainerBuilder().include(moduleB);
 
-                var moduleA = staticModule("A").create((binder) => {
-                    binder.bindInstance(typeKeyA, 11);
-                });
+            // Act ----------
+            var typeA = builder.findEntry(typeKeyA);
+            var typeB = builder.findEntry(typeKeyB);
 
-                var moduleB = staticModule("B").create((binder) => {
-                    binder.include(moduleA).bindInstance(typeKeyB, 22);
-                });
-
-                var builder = createContainerBuilder().include(moduleB);
-
-                // Act ----------
-                var typeA = builder.findEntry(typeKeyA);
-                var typeB = builder.findEntry(typeKeyB);
-
-                // Assert -------
-                expect(builder.hasModule(moduleA)).is.true;
-                expect(builder.hasModule(moduleB)).is.true;
-                expect(typeA.module).toBe(moduleA);
-                expect(typeB.module).toBe(moduleB);
-            });
+            // Assert -------
+            expect(builder.hasModule(moduleA)).is.true;
+            expect(builder.hasModule(moduleB)).is.true;
+            expect(typeA.module).toBe(moduleA);
+            expect(typeB.module).toBe(moduleB);
         });
     });
 
@@ -3899,20 +3897,18 @@ describe("Container Scope", () => {
 });
 
 describe("Container Module", () => {
-    describe("Static Module", () => {
-        test("WHEN: Define static module", () => {
-            // Arrange ---------
-            var moduleName = "testModule";
-            var delegate = vi.fn();
+    test("WHEN: Define static module", () => {
+        // Arrange ---------
+        var moduleName = "testModule";
+        var delegate = vi.fn();
 
-            // Act -------------
-            var module = staticModule(moduleName).create(delegate);
+        // Act -------------
+        var myModule = staticModule(moduleName).create(delegate);
 
-            // Assert ----------
-            expect(module.name).toBe(moduleName);
-            expect(module.type).toBe("static");
-            expect(module.delegate).toBe(delegate);
-            expect(delegate).not.toHaveBeenCalled();
-        });
+        // Assert ----------
+        expect(myModule.id).toBe(moduleName);
+        expect(myModule.type).toBe("static");
+        expect(myModule.delegate).toBe(delegate);
+        expect(delegate).not.toHaveBeenCalled();
     });
 });
