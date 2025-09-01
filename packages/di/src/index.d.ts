@@ -640,15 +640,15 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
      *
      * This property provides a type-safe way to access service keys.
      * Each key points to itself, effectively behaving like an enum of type names.
-     * 
-     * @example 
+     *
+     * @example
      * // Check if a type exists
      * if ('MyType' in r.types) { ... }
-     * 
+     *
      * @example
      * // Type-safe access via enum
      * r.get(r.types.MyType)
-     * 
+     *
      */
     readonly types: TTypesEnum<TypeMap>;
 
@@ -953,3 +953,22 @@ export declare function staticModule(moduleId: string): TModuleDeclaration;
 export declare function createContainerBuilder<TypeMap extends TTypeMapBase>(
     builderOptions?: TContainerBuilderOptions,
 ): IContainerBuilder<TypeMap>;
+
+/**
+ * Extracts the `TypeMap` from various DI-related objects.
+ *
+ * This utility type infers the underlying `TypeMap` that
+ * defines the mapping of type keys to their corresponding types.
+ *
+ * @example
+ * type ModuleTypeMap = TypeMapOf<typeof module>;
+ */
+export type TypeMapOf<T> = T extends
+    | IContainerScope<infer TypeMap>
+    | DIModule<infer TypeMap>
+    | IContainerBuilder<infer TypeMap>
+    | ITypeEntryBinder<infer TypeMap>
+    | ITypesResolver<infer TypeMap>
+    | TTypeEntry<infer TypeMap, any>
+    ? TypeMap
+    : never;
