@@ -1,5 +1,5 @@
 import { vi, describe, test, expect } from "vitest";
-import { createContainerBuilder, staticModule } from "@spirex/di";
+import { diBuilder, staticModule } from "@spirex/di";
 import { dynamicModule, DynamicModules } from "./index";
 import { Errors } from "./index.js";
 
@@ -147,7 +147,7 @@ describe("Dynamic Modules", () => {
                     .bindFactory("value", (r) => esm.mNumber + r.get("sub"));
             });
 
-            const container = createContainerBuilder()
+            const container = diBuilder()
                 .use(DynamicModules)
                 .include(dyModule)
                 .build();
@@ -195,7 +195,7 @@ describe("Dynamic Modules", () => {
                     .bindFactory("value", (r) => esm.mNumber + r.get("sub"));
             });
 
-            const builder = createContainerBuilder()
+            const builder = diBuilder()
                 .use(DynamicModules)
                 .include(dyModule);
 
@@ -220,7 +220,7 @@ describe("Dynamic Modules", () => {
     describe("Include to container", () => {
         test("WHEN: Add middleware", () => {
             // Arrange -------
-            var builder = createContainerBuilder();
+            var builder = diBuilder();
 
             // Act -----------
             builder.use(DynamicModules);
@@ -238,7 +238,7 @@ describe("Dynamic Modules", () => {
             var dyModule = dynamicModule(moduleID, importDelegate).create(
                 binderDelegate,
             );
-            var builder = createContainerBuilder();
+            var builder = diBuilder();
 
             // Act ----------
             var error = catchError(() => builder.include(dyModule));
@@ -263,7 +263,7 @@ describe("Dynamic Modules", () => {
                 binderDelegate,
             );
 
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act -----------
             builder.include(dyModule);
@@ -285,7 +285,7 @@ describe("Dynamic Modules", () => {
                 binderDelegate,
             );
 
-            var builder = createContainerBuilder()
+            var builder = diBuilder()
                 .use(DynamicModules)
                 .include(dyModule);
 
@@ -311,7 +311,7 @@ describe("Dynamic Modules", () => {
                 },
             );
 
-            var builder = createContainerBuilder()
+            var builder = diBuilder()
                 .use(DynamicModules)
                 .include(dyModule);
 
@@ -337,7 +337,7 @@ describe("Dynamic Modules", () => {
                 binderDelegate,
             );
 
-            var builder = createContainerBuilder()
+            var builder = diBuilder()
                 .use(DynamicModules)
                 .include(dyModule);
 
@@ -365,7 +365,7 @@ describe("Dynamic Modules", () => {
                 },
             );
 
-            var builder = createContainerBuilder()
+            var builder = diBuilder()
                 .use(DynamicModules)
                 .include(dyModule);
 
@@ -394,7 +394,7 @@ describe("Dynamic Modules", () => {
                 },
             );
 
-            var builder = createContainerBuilder()
+            var builder = diBuilder()
                 .use(DynamicModules)
                 .include(dyModule);
 
@@ -434,7 +434,7 @@ describe("Dynamic Modules", () => {
                 },
             );
 
-            var builder = createContainerBuilder()
+            var builder = diBuilder()
                 .use(DynamicModules)
                 .include(dyModuleB);
 
@@ -454,7 +454,7 @@ describe("Dynamic Modules", () => {
     describe("ESModule stub", () => {
         test("WHEN: get module members", () => {
             // Arrange ----------
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act --------------
             var dyModule = dynamicModule("dyModule", () =>
@@ -487,7 +487,7 @@ describe("Dynamic Modules", () => {
 
         test("WHEN: decompose module members", () => {
             // Arrange ----------
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act --------------
             var dyModule = dynamicModule("dyModule", () =>
@@ -515,7 +515,7 @@ describe("Dynamic Modules", () => {
 
         test("WHEN: deep values access & decompose", () => {
             // Arrange ----------
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act --------------
             var dyModule = dynamicModule("dyModule", () =>
@@ -535,7 +535,7 @@ describe("Dynamic Modules", () => {
 
         test("WHEN: Trying to use values", () => {
             // Arrange ----------
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act --------------
             var dyModule = dynamicModule("dyModule", () =>
@@ -557,7 +557,7 @@ describe("Dynamic Modules", () => {
 
         test("WHEN: Trying to call func", () => {
             // Arrange ----------
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act --------------
             var dyModule = dynamicModule("dyModule", () =>
@@ -579,7 +579,7 @@ describe("Dynamic Modules", () => {
 
         test("WHEN: Trying to create class instance", () => {
             // Arrange ----------
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act --------------
             var dyModule = dynamicModule("dyModule", () =>
@@ -601,7 +601,7 @@ describe("Dynamic Modules", () => {
 
         test("WHEN: Trying to mutate module member", () => {
             // Arrange ----------
-            var builder = createContainerBuilder().use(DynamicModules);
+            var builder = diBuilder().use(DynamicModules);
 
             // Act --------------
             var dyModule = dynamicModule("dyModule", () =>
@@ -637,7 +637,7 @@ describe("Dynamic Modules", () => {
                     },
                 );
 
-                var container = createContainerBuilder()
+                var container = diBuilder()
                     .use(DynamicModules)
                     .include(dyModule)
                     .build();
@@ -663,7 +663,7 @@ describe("Dynamic Modules", () => {
                     },
                 );
 
-                var container = createContainerBuilder()
+                var container = diBuilder()
                     .use(DynamicModules)
                     .include(dyModule)
                     .build();
@@ -692,7 +692,7 @@ describe("Dynamic Modules", () => {
                     },
                 );
 
-                var container = createContainerBuilder()
+                var container = diBuilder()
                     .use(DynamicModules)
                     .include(dyModule)
                     .build();
@@ -716,7 +716,7 @@ describe("Dynamic Modules", () => {
                     },
                 );
 
-                var container = createContainerBuilder()
+                var container = diBuilder()
                     .use(DynamicModules)
                     .include(dyModule)
                     .build();
@@ -759,7 +759,7 @@ describe("Dynamic Modules", () => {
                         );
                 });
 
-                var container = createContainerBuilder()
+                var container = diBuilder()
                     .use(DynamicModules)
                     .include(dyModuleB)
                     .build();
@@ -789,7 +789,7 @@ describe("Dynamic Modules", () => {
                     binder.bindFactory("value", () => mMutFunc(mDeep));
                 });
 
-                var container = createContainerBuilder()
+                var container = diBuilder()
                     .use(DynamicModules)
                     .include(dyModule)
                     .build();

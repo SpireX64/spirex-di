@@ -950,7 +950,7 @@ export declare function staticModule(moduleId: string): TModuleDeclaration;
  * @param builderOptions - Optional builder settings.
  * @returns A new container builder used to configure and build the DI container.
  */
-export declare function createContainerBuilder<TypeMap extends TTypeMapBase>(
+export declare function diBuilder<TypeMap extends TTypeMapBase>(
     builderOptions?: TContainerBuilderOptions,
 ): IContainerBuilder<TypeMap>;
 

@@ -696,7 +696,7 @@ function createRootContainerScope(blueprint) {
     return rootScope;
 }
 
-export function createContainerBuilder(builderOptions) {
+export function diBuilder(builderOptions) {
     /** The default lifecycle to use when a binding does not explicitly define one. */
     var defaultLifecycle =
         (builderOptions && builderOptions.lifecycle) || "singleton";
