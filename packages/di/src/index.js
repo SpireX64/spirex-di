@@ -348,6 +348,7 @@ function createFactoryScopeContext(scope) {
     return {
         current: scope.id,
         path: scope.path,
+        dispose: scope.dispose.bind(scope),
     };
 }
 

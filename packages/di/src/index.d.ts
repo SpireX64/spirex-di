@@ -46,7 +46,7 @@ export type TTypeFactory<
     T extends keyof TypeMap,
 > = (
     resolver: ITypesResolver<TypeMap>,
-    context: IFactoryScopeContext,
+    context: IScopeContext,
 ) => TypeMap[T];
 
 /**
@@ -66,7 +66,7 @@ export type TTypeFactory<
  */
 export type TTypeInjector<TypeMap extends TTypeMapBase, R> = (
     resolver: ITypesResolver<TypeMap>,
-    context: IFactoryScopeContext,
+    context: IScopeContext,
 ) => R;
 
 /**
@@ -82,7 +82,7 @@ export type TTypeInjector<TypeMap extends TTypeMapBase, R> = (
  */
 export type TTypeSafeFactory<Deps, R> = (
     deps: Deps,
-    context: IFactoryScopeContext,
+    context: IScopeContext,
 ) => R;
 
 /**
@@ -291,7 +291,7 @@ export interface IDisposable {
      * After calling `dispose()`, the object is considered inactive
      * and should not be used again.
      */
-    dispose(): void;
+    readonly dispose(): void;
 }
 
 export type TInjectIntoDelegate<TypeMap extends TTypeMapBase> = (
@@ -714,14 +714,23 @@ export type TBinderDelegate<TypeMap extends TTypeMapBase> = (
  * The context representing the current scope and resolution path.
  * Provides information about the current scope and its hierarchy.
  * Its useful for conditional instance creation or resolving dependencies differently
- * depending on where in the scope tree the resolution occurs.
+ * depending on where in the scope tree the resolution occurs
+ * Also, it allows disposing the scope without exposing any internal instances.
  */
-export interface IFactoryScopeContext {
+export interface IScopeContext extends IDisposable {
     /** Current scope ID */
     readonly current: string;
 
     /** Scope hierarchy */
     readonly path: readonly string[];
+
+    /**
+     * Closes the current scope and cleans up all local instances.
+     * 
+     * After calling dispose, the scope is considered closed and further
+     * operations using this context may throw errors or be invalid.
+     */
+    readonly dispose(): void
 }
 
 export interface IContainerScope<TypeMap extends TTypeMapBase>

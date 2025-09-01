@@ -3909,6 +3909,31 @@ describe("Container Scope", () => {
             expect(container.isDisposed).is.true;
         });
 
+        test("WHEN: Dispose scope via scope context from factory", () => {
+            // Arrange -----
+            var typeKey = "typeKey";
+            var container = createContainerBuilder()
+                .bindFactory(typeKey, (_, ctx) => ({ scopeContext: ctx }), {
+                    lifecycle: "scope",
+                })
+                .build();
+
+            var scope = container.scope("child");
+            var inst = scope.get(typeKey);
+
+            // Act ---------
+            inst.scopeContext.dispose();
+
+            // Assert ------
+            // 1. The scopeContext references the child scope (ID matches)
+            // but is not the scope object itself
+            expect(inst.scopeContext).not.toBe(scope);
+            expect(inst.scopeContext.current).toEqual(scope.id);
+
+            // 2. The child scope was actually disposed
+            expect(scope.isDisposed).is.true;
+        });
+
         test("WHEN: Dispose scope with local instances twice", () => {
             // Arrange -------
             var typeKey = "typeKey";
