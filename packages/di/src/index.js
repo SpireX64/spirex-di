@@ -88,6 +88,34 @@ function isTypeEntry(mayBeTypeEntry) {
     );
 }
 
+/* istanbul ignore next */
+function phantomProxy(provider) {
+    var state = { $: null };
+    return new Proxy(state, {
+        get(state, key) {
+            var ref = state.$ || (state.$ = provider());
+            return ref[key];
+        },
+        set(state, key, value) {
+            var ref = state.$ || (state.$ = provider());
+            ref[key] = value;
+            return true;
+        },
+        has(state, key) {
+            var ref = state.$ || (state.$ = provider());
+            return key in ref;
+        },
+        ownKeys(state) {
+            var ref = state.$ || (state.$ = provider());
+            return Object.getOwnPropertyNames(ref);
+        },
+        getOwnPropertyDescriptor(state, key) {
+            var ref = state.$ || (state.$ = provider());
+            return Object.getOwnPropertyDescriptor(ref, key);
+        },
+    });
+}
+
 function createContainerBlueprint() {
     /** Map of registered type bindings */
     var entries = new Map();
@@ -415,7 +443,7 @@ function createRootContainerScope(blueprint) {
         return instance;
     }
 
-    function getInstance(scope, entry, noThrow) {
+    function getInstance(scope, entry, noThrow, noActivate) {
         var instance;
 
         // Return the directly bound instance, if any (from bindInstance)
@@ -461,15 +489,19 @@ function createRootContainerScope(blueprint) {
 
         if (!instance) {
             // Attempt to get cached instance from current scope
-            instance =
-                scope[$locals].get(entry) || activateInstance(entry, scope);
+            instance = scope[$locals].get(entry);
+            if (!instance && !noActivate) {
+                instance = activateInstance(entry, scope);
 
-            // Cache the instance in scope locals if lifecycle is not transient
-            if (entry.lifecycle !== "transient")
-                scope[$locals].set(entry, instance);
+                // Cache the instance in scope locals if lifecycle is not transient
+                if (entry.lifecycle !== "transient")
+                    scope[$locals].set(entry, instance);
+            }
         }
 
-        return blueprint.callMw("onResolve", 1, entry, instance, scope);
+        return (
+            instance && blueprint.callMw("onResolve", 1, entry, instance, scope)
+        );
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
@@ -486,6 +518,17 @@ function createRootContainerScope(blueprint) {
                     this.path,
                 ),
             );
+    }
+
+    function makeProviderFunc(scope, entry) {
+        var providerFuncName = "provider<" + entry.$id + ">";
+        return {
+            // Deanonymize the function by giving it a specific name
+            [providerFuncName]: function () {
+                onRequestMiddleware(scope, entry, entry.type, entry.name);
+                return getInstance.call(scope, scope, entry);
+            },
+        }[providerFuncName];
     }
 
     var scopePrototype = {
@@ -523,20 +566,20 @@ function createRootContainerScope(blueprint) {
         providerOf(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
             var entry = blueprint.findEntry(type, name);
-            if (!entry)
-                throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            if (entry) return makeProviderFunc(this, entry);
+            throw new Error(DIErrors.TypeBindingNotFound(type, name));
+        },
 
-            var scope = this;
+        phantomOf(type, name) {
+            assertScopeNotDisposedToResolve.call(this, type, name);
+            var entry = blueprint.findEntry(type, name);
+            if (entry)
+                return (
+                    getInstance(this, entry, true, true) ||
+                    phantomProxy(makeProviderFunc(this, entry))
+                );
 
-            // Use a custom function name to help with debugging and stack traces
-            var providerFuncName = "provider<" + entry.$id + ">";
-            return {
-                // Deanonymize the function by giving it a specific name
-                [providerFuncName]: function () {
-                    onRequestMiddleware(scope, entry, type, name);
-                    return getInstance.call(scope, scope, entry);
-                },
-            }[providerFuncName];
+            throw new Error(DIErrors.TypeBindingNotFound(type, name));
         },
 
         hasChildScope(id) {

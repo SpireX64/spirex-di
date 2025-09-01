@@ -679,6 +679,24 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
         type: T,
         name?: string,
     ): TProvider<TypeMap[T]>;
+
+    /**
+     * Returns a phantom instance of the given type.
+     *
+     * A phantom is a lazy stub that looks and behaves like a real instance
+     * but does not trigger its creation until it is actually used.
+     *
+     * If the instance was already created earlier, it will return
+     * the real instance immediately.
+     *
+     * This method is intended for **objects** (classes, services, complex values).
+     * Using it with primitive types (number, string, boolean, etc.) may lead to unexpected results.
+     *
+     * @param type - The token representing the type to resolve.
+     * @param name - (Optional) The name of the specific binding to retrieve.
+     * @returns The phantom instance of the requested type.
+     */
+    phantomOf<T extends keyof TypeMap>(type: T, name?: string): TypeMap[T];
 }
 
 /**

@@ -2709,6 +2709,76 @@ describe("Container Scope", () => {
                 expect(value).toBe(expectedValue);
             });
         });
+
+        describe("Phantom instance", () => {
+            test("WHEN: get phantom instance", () => {
+                // Arrange -----
+                var typeKey = "typeKey";
+                var lazyFactory = vi.fn();
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, lazyFactory, { lifecycle: "lazy" })
+                    .build();
+
+                // Act ---------
+                var inst = container.phantomOf(typeKey);
+
+                // Assert ------
+                expect(inst).toBeDefined();
+                expect(lazyFactory).not.toHaveBeenCalled();
+            });
+
+            test("WHEN: interact with phantom object", () => {
+                // Arrange -----
+                var typeKey = "typeKey";
+                var expectedValue = "foo";
+                var lazyFactory = vi.fn(() => ({ value: expectedValue }));
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, lazyFactory, { lifecycle: "lazy" })
+                    .build();
+
+                var inst = container.phantomOf(typeKey);
+
+                // Act ---------
+                var value = inst.value;
+
+                // Assert ------
+                expect(value).toBe(expectedValue);
+                expect(lazyFactory).toHaveBeenCalledOnce();
+            });
+
+            test("WHEN: get phantom instance after activation", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+                var lazyFactory = vi.fn(() => ({ foo: "bar" }));
+                var container = createContainerBuilder()
+                    .bindFactory(typeKey, lazyFactory, { lifecycle: "lazy" })
+                    .build();
+
+                var firstRef = container.get(typeKey); // Activation!
+
+                // Act ----------
+                var secondRef = container.phantomOf(typeKey);
+                // (no interaction)
+
+                // Assert -------
+                expect(secondRef).toBe(firstRef);
+            });
+
+            test("WHEN: get phantom of unbound type", () => {
+                // Arrange ----
+                var typeKey = "typeKey";
+                var container = createContainerBuilder().build();
+
+                // Act --------
+                var error = catchError(() => container.phantomOf(typeKey));
+
+                // Assert -----
+                expect(error).toBeInstanceOf(Error);
+                expect(error.message).toEqual(
+                    DIErrors.TypeBindingNotFound(typeKey),
+                );
+            });
+        });
     });
 
     describe("Lifecycles", () => {
