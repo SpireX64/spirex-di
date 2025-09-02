@@ -64,6 +64,11 @@
     "peerDependencies": {
         "@spirex/di": "*"
     },
+    "peerDependenciesMeta": {
+        "@spirex/di": {
+            "optional": false
+        }
+    },
     "devDependencies": {
         "@types/jest": "*",
         "prettier": "*",
