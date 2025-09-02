@@ -3,7 +3,7 @@
   "version": "1.0.0-alpha.4",
   "license": "MIT",
   "private": false,
-  "description": "Powerful and highly flexible dependency injection (DI) library designed for modern JavaScript and TypeScript applications",
+  "description": "Type-safe DI library for building modular, testable, and maintainable apps.",
   "keywords": [
     "di", "dependency", "injection", "typescript", "javascript", "ioc",
     "container", "lifecycle", "binding", "singleton", "scope", "module",
