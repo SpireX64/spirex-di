@@ -1,5 +1,4 @@
 import js from "@eslint/js";
-import pluginReact from "eslint-plugin-react";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
@@ -11,5 +10,4 @@ export default defineConfig([
             "no-var": "off",
         },
     },
-    pluginReact.configs.flat.recommended,
 ]);

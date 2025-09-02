@@ -1,0 +1,76 @@
+{
+    "name": "@spirex/di-react",
+    "version": "1.0.0-alpha",
+    "license": "MIT",
+    "private": false,
+    "description": "React bindings for @spirex/di — context-based dependency injection",
+    "author": {
+        "name": "Artem Sobolenkov (SpireX)",
+        "email": "SpireX@outlook.com",
+        "url": "https://github.com/SpireX64"
+    },
+    "keywords": [
+        "di",
+        "spirex",
+        "react",
+        "injection",
+        "dependency",
+        "context",
+        "scope",
+        "hoc",
+        "hook",
+        "provider",
+        "modular",
+        "clean",
+        "javascript",
+        "typescript",
+        "ioc",
+        "container",
+        "integration",
+        "services",
+        "arch"
+    ],
+    "homepage": "https://github.com/SpireX64/spirex-di",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SpireX64/spirex-di"
+    },
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "default": "./dist/index.mjs"
+            },
+            "default": {
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vitest run --config ./vitest.config.mjs",
+        "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+        "build": "rollup --config --environment NODE_ENV:development",
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "clean": "rimraf dist coverage"
+    },
+    "devDependencies": {
+        "react": "19.1.1",
+        "react-dom": "19.1.1",
+        "@testing-library/react": "16.3.0",
+        "@testing-library/dom": "10.4.1",
+        "jsdom": "26.1.0",
+        "@types/jest": "*",
+        "@vitest/coverage-istanbul": "*",
+        "eslint": "*",
+        "prettier": "*",
+        "rollup": "*",
+        "rollup-plugin-copy": "*",
+        "rollup-plugin-terser": "*",
+        "vitest": "*"
+    },
+    "peerDependencies": {
+        "react": "^16.8.0"
+    }
+}
