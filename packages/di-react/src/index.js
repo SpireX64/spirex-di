@@ -9,9 +9,8 @@ import {
 export function createDIContext() {
     const DIContext = createContext(null);
 
-    const DIRootScope = ({ root, children }) => {
-        return createElement(DIContext.Provider, { value: root }, children);
-    };
+    const DIRootScope = ({ root, children }) =>
+        createElement(DIContext.Provider, { value: root }, children);
 
     const DIScope = ({ id, sealed, isolated, children }) => {
         var currentScope = useContext(DIContext);
@@ -22,14 +21,13 @@ export function createDIContext() {
 
     function useInject(selector, name) {
         var scope = useContext(DIContext);
-        return useMemo(() => {
-            var result =
+        return useMemo(
+            () =>
                 typeof selector === "string"
                     ? scope.get(selector, name)
-                    : selector(scope);
-
-            return result;
-        }, []);
+                    : selector(scope),
+            [],
+        );
     }
 
     function withInject(selector) {
