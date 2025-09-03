@@ -1,5 +1,11 @@
 # SpireX/DI
 
+![NPM Type Definitions](https://img.shields.io/npm/types/%40spirex%2Fdi?style=for-the-badge)
+[![NPM Version](https://img.shields.io/npm/v/%40spirex%2Fdi?style=for-the-badge)](https://www.npmjs.com/package/@spirex/di)
+![GitHub License](https://img.shields.io/github/license/spirex64/spirex-di?style=for-the-badge)
+[![Codecov](https://img.shields.io/codecov/c/github/spirex64/spirex-di?token=VXQZK5WDSY&flag=di&style=for-the-badge)](https://codecov.io/github/SpireX64/spirex-di)
+
+
 `@spirex/di` is a **powerful**, **safe**, **flexible**, and **lightweight** dependency injection library designed for JS/TS projects of any complexity. It offers **strict static typing** with an **immutable container**, ensuring reliability and clarity in your code. With **zero dependencies**, it works in any modern JavaScript environment out of the box — true **plug & play**.
 
 ## Features
@@ -60,9 +66,19 @@ const service = container.get("service");
 ## Integrations & Extensions
 Container is designed to be fully extensible and works seamlessly with additional packages to enhance functionality:
 
-`@spirex/di-dynamic` — Adds support for **dynamic modules**, allowing you to load parts of your container asynchronously at runtime. Perfect for *code-splitting* and modular applications.
+### SpireX/DI Dynamic Modules
+`@spirex/di-dynamic` 
 
-`@spirex/di-react` — Provides **React** integration, including hooks and higher-order components (HoC) for injecting dependencies into components.
+ Adds support for **dynamic modules**, allowing you to load parts of your container asynchronously at runtime. Perfect for *code-splitting* and modular applications.
+
+[![codecov](https://codecov.io/github/SpireX64/spirex-di/graph/badge.svg?token=VXQZK5WDSY&flag=di-dynamic)](https://codecov.io/github/SpireX64/spirex-di)
+
+### SpireX/DI for React
+`@spirex/di-react`
+
+ Provides **ReactJS** integration, including hooks and higher-order components (HoC) for injecting dependencies into components.
+
+[![codecov](https://codecov.io/github/SpireX64/spirex-di/graph/badge.svg?token=VXQZK5WDSY&flag=di-dynamic)](https://codecov.io/github/SpireX64/spirex-di)
 
 ## License
 `@spirex/di` is released under the MIT License.
