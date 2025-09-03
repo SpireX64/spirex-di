@@ -1,56 +1,79 @@
 {
-  "name": "@spirex/di",
-  "version": "1.0.0-alpha.4",
-  "license": "MIT",
-  "private": false,
-  "description": "Type-safe DI library for building modular, testable, and maintainable apps.",
-  "keywords": [
-    "di", "dependency", "injection", "typescript", "javascript", "ioc",
-    "container", "lifecycle", "binding", "singleton", "scope", "module",
-    "factory", "service", "resolver", "lazy", "injector",
-    "flexible", "modern", "powerful", "spirex"
-  ],
-  "author": {
-    "name": "Artem Sobolenkov (SpireX)",
-    "email": "SpireX@outlook.com",
-    "url": "https://github.com/SpireX64"
-  },
-  "homepage": "https://github.com/SpireX64/spirex-di",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SpireX64/spirex-di"
-  },
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": {
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "default": "./dist/index.cjs"
-      },
-      "default": {
-        "default": "./dist/index.js"
-      }
+    "name": "@spirex/di",
+    "version": "1.0.0-alpha.5",
+    "license": "MIT",
+    "private": false,
+    "sideEffects": false,
+    "description": "Powerful, type-safe, flexible, and lightweight dependency injection library designed for JS/TS projects of any complexity.",
+    "keywords": [
+        "di",
+        "ioc",
+        "dependency",
+        "injection",
+        "injector",
+        "container",
+        "dependency injection",
+        "dependency inversion",
+        "inversion of control",
+        "flexible",
+        "modern",
+        "modular",
+        "type-safe",
+        "fail-fast",
+        "typescript",
+        "javascript",
+        "lifecycle",
+        "factory",
+        "resolver",
+        "middleware",
+        "singleton",
+        "scope",
+        "lazy",
+        "spirex"
+    ],
+    "author": {
+        "name": "Artem Sobolenkov (SpireX)",
+        "email": "SpireX@outlook.com",
+        "url": "https://github.com/SpireX64"
+    },
+    "homepage": "https://github.com/SpireX64/spirex-di",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SpireX64/spirex-di",
+        "directory": "packages/di"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "default": "./dist/index.cjs"
+            },
+            "default": {
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "prepack": "cp ../../README.md ./README.md",
+        "test": "vitest run --config ./vitest.config.mjs",
+        "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+        "build": "rollup --config --environment NODE_ENV:development",
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "clean": "rimraf dist coverage"
+    },
+    "devDependencies": {
+        "@types/jest": "*",
+        "prettier": "*",
+        "eslint": "*",
+        "rollup": "*",
+        "rollup-plugin-terser": "*",
+        "rollup-plugin-copy": "*",
+        "vitest": "*",
+        "@vitest/coverage-istanbul": "*"
     }
-  },
-  "scripts": {
-    "test": "vitest run --config ./vitest.config.mjs",
-    "test:c": "vitest run --config ./vitest.config.mjs --coverage",
-    "build": "rollup --config --environment NODE_ENV:development",
-    "build:release": "rollup --config --environment NODE_ENV:production",
-    "clean": "rimraf dist coverage"
-  },
-  "devDependencies": {
-    "@types/jest": "*",
-    "prettier": "*",
-    "eslint": "*",
-    "rollup": "*",
-    "rollup-plugin-terser": "*",
-    "rollup-plugin-copy": "*",
-    "vitest": "*",
-    "@vitest/coverage-istanbul": "*"
-  }
 }

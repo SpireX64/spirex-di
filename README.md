@@ -69,7 +69,7 @@ Container is designed to be fully extensible and works seamlessly with additiona
 ### SpireX/DI Dynamic Modules
 `@spirex/di-dynamic` 
 
- Adds support for **dynamic modules**, allowing you to load parts of your container asynchronously at runtime. Perfect for *code-splitting* and modular applications.
+Adds support for **dynamic modules**, allowing you to load parts of your container asynchronously at runtime. Perfect for *code-splitting* and modular applications.
 
 [![codecov](https://codecov.io/github/SpireX64/spirex-di/graph/badge.svg?token=VXQZK5WDSY&flag=di-dynamic)](https://codecov.io/github/SpireX64/spirex-di)
 

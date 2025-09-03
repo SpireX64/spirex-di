@@ -415,6 +415,7 @@ export interface IContainerMiddleware {
     /** Optional name used to identify the middleware in code or error messages. */
     name?: string;
 
+    /** Triggered when this middleware is added into the container builder */
     onUse?: TContainerBuilderMiddlewareOnUse;
 
     /** Triggered when a new type entry is being bound */
@@ -423,8 +424,10 @@ export interface IContainerMiddleware {
     /** Triggered whenever a instance is requested from the container. */
     onRequest?: TContainerMiddlewareOnRequest;
 
+    /** Triggered after an instance is created, but before it is returned to the requester */
     onActivated?: TContainerMiddlewareOnActivated;
 
+    /** Triggered after the instance has been fully resolved */
     onResolve?: TContainerMiddlewareOnResolve;
 
     /**
@@ -657,7 +660,7 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
      *
      * @typeParam T - A specific token key from the TypeMap.
      * @param type - The token representing the type to resolve.
-     * @param name - (Optional) The name of the specific binding to retrieve.
+     * @param [name] - (Optional) The name of the specific binding to retrieve.
      *
      * @returns An instance of the requested type.
      *
@@ -672,7 +675,7 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
      *
      * @typeParam T - A specific token key from the TypeMap.
      * @param type - The token representing the type to resolve.
-     * @param name -  (Optional) The name of the specific binding to retrieve.
+     * @param [name] -  (Optional) The name of the specific binding to retrieve.
      * @returns An instance of the requested type, or `undefined` if not found.
      */
     maybe<T extends keyof TypeMap>(
@@ -680,6 +683,15 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
         name?: string,
     ): TypeMap[T] | undefined;
 
+    /**
+     * Retrieves all instances registered for the given type and name.
+     *
+     * Does not throws when no bindings are found
+     * and instead returns an empty array.
+     *
+     * @param type - The type key to resolve instances for.
+     * @param [name] - (Optional) The name of the specific binding to retrieve.
+     */
     getAll<T extends keyof TypeMap>(
         type: T,
         name?: string,
@@ -692,7 +704,7 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
      * If no binding is found for the provided type and name, an error is thrown.
      *
      * @param type - The token representing the type to resolve.
-     * @param name - (Optional) The name of the specific binding to retrieve.
+     * @param [name] - (Optional) The name of the specific binding to retrieve.
      *
      * @returns A function that resolves the instance when called.
      *
