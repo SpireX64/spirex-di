@@ -26,6 +26,18 @@ jobs:
       - name: "Install Dependencies"
         run: yarn install --frozen-lockfile
 
+      - name: "Build Package"
+        run: |
+          # Build core package
+          if [ "${{ matrix.package }}" != "di" ]; then
+            echo "Building core @spirex/di..."
+            yarn workspace @spirex/di build:release
+          fi
+
+          # Build current package
+          echo "Building @spirex/${{ matrix.package }}..."
+          yarn workspace @spirex/${{ matrix.package }} build:release
+
       - name: "Run Tests"
         run: yarn workspace @spirex/${{ matrix.package }} test:c
 

@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
     test: {
-        name: "@spirex/di",
+        name: "@spirex/di-react",
         root: "./src",
         environment: 'jsdom',
         include: ["**/*.{test,spec}.(c|m)js"],
