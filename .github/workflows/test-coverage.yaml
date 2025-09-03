@@ -1,0 +1,45 @@
+name: "Test & Coverage"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - di
+          - di-dynamic
+          - di-react
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Setup Node.JS"
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'yarn'
+      
+      - name: "Install Dependencies"
+        run: yarn install --frozen-lockfile
+
+      - name: "Run Tests"
+        working-directory: packages/${{ matrix.package }}
+        run: yarn test:c
+
+      - name: "Upload Coverage"
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.package }}
+          path: packages/${{ matrix.package }}/coverage/lcov.info
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          flags: ${{ matrix.package }}
+          files: packages/${{ matrix.package }}/coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}

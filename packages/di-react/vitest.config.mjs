@@ -16,7 +16,7 @@ export default defineConfig({
         ],
         coverage: {
             provider: "istanbul",
-            reporter: ["text", "json", "html"],
+            reporter: ["text", "lcov", "html"],
             reportsDirectory: "../coverage",
         },
         testTimeout: 200,
