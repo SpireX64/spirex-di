@@ -39,7 +39,9 @@ jobs:
           yarn workspace @spirex/${{ matrix.package }} build:release
 
       - name: "Run Tests"
-        run: yarn workspace @spirex/${{ matrix.package }} test:c
+        run: |
+          yarn workspace @spirex/${{ matrix.package }} test:c
+          sed -i.bak "s|^SF:|SF:packages/${{ matrix.package }}/src/|g" packages/${{ matrix.package }}/coverage/lcov.info
 
       - name: "Upload Coverage"
         if: success()
@@ -53,4 +55,5 @@ jobs:
         with:
           flags: ${{ matrix.package }}
           files: packages/${{ matrix.package }}/coverage/lcov.info
+          fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
