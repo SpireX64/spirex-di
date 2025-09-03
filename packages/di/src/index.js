@@ -963,3 +963,9 @@ export function staticModule(id) {
             }),
     };
 }
+
+export function factoryOf(Class) {
+    return Array.isArray(Class.inject)
+        ? (r) => new Class(...Class.inject.map((t) => r.get(t)))
+        : () => new Class();
+}

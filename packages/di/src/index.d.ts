@@ -956,6 +956,63 @@ export type TModuleDeclaration = {
 export declare function staticModule(moduleId: string): TModuleDeclaration;
 
 /**
+ * Represents the constructor arguments for a class that uses dependency injection.
+ * @template TypeMap - A mapping of type keys to actual types.
+ * @template InjectTuple - A tuple of keys from `TypeMap` representing the order of injections.
+ */
+export type TInjectableClassCtorArgs<
+    TypeMap extends TTypeMapBase,
+    InjectTuple extends readonly (keyof TypeMap)[],
+> = {
+    [K in keyof InjectTuple]: InjectTuple[K] extends keyof TypeMap
+        ? TypeMap[InjectTuple[K]]
+        : never;
+};
+
+/**
+ * Represents a class that can be instantiated via a dependency injection container.
+ * 
+ * The class must have a static `inject` property listing the keys of dependencies from `TypeMap`.
+ * The constructor arguments correspond to the types defined by `InjectTuple`.
+ * 
+ * @template TypeMap - A mapping of type keys to actual types.
+ * @template InjectTuple - A tuple of keys from `TypeMap` specifying the injection order.
+ * @template R - A type that class produces.
+ */
+export type TInjectableClass<
+    TypeMap extends TTypeMapBase,
+    InjectTuple extends readonly (keyof TypeMap)[],
+    R,
+> = {
+    new (
+        ...args: TInjectableClassCtorArgs<TypeMap, InjectTuple>
+    ): R;
+    readonly inject: InjectTuple;
+} | (new () => R)
+
+/**
+ * A factory function that converts a class into a container-friendly factory.
+ *
+ * This function wraps a class constructor so it can be registered in a DI container.
+ * It automatically resolves constructor arguments from the container according to the
+ * class's `inject` property.
+ *
+ * @template TypeMap - A mapping of type keys to actual types.
+ * @template ClassKey - The key in `TypeMap` corresponding to the type this factory produces.
+ * @template InjectTuple - A tuple of keys from `TypeMap` specifying the injection order.
+ *
+ * @param Class - A class with a static `inject` property or a no-argument class.
+ * @returns A type-safe factory for the DI container binding.
+ */
+export declare function factoryOf<
+    TypeMap extends TTypeMapBase,
+    ClassKey extends keyof TypeMap,
+    InjectTuple extends readonly (keyof TypeMap)[],
+>(
+    Class: TInjectableClass<TypeMap, InjectTuple, TypeMap[ClassKey]>
+): TTypeFactory<TypeMap, ClassKey>;
+
+/**
  * Creates a new dependency injection container builder.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.

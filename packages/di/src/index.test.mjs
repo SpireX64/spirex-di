@@ -1,5 +1,5 @@
 import { vi, describe, test, expect } from "vitest";
-import { diBuilder, staticModule } from "./index";
+import { diBuilder, staticModule, factoryOf } from "./index";
 import { DIErrors } from "./index.js";
 
 /**
@@ -541,6 +541,23 @@ describe("Container Builder", () => {
                 expect(entryWithName.type).to.equal(typeKey);
                 expect(entryWithName.name).to.equal(name);
             });
+
+            test("WHEN: binding factory with 'factoryOf' wrapper", () => {
+                // Arrange -------
+                var classKey = 'MyService'
+                class MyService {}
+                var builder = diBuilder()
+
+                // Act ----------
+                builder.bindFactory(classKey, factoryOf(MyService))
+
+                var typeEntry = builder.findEntry(classKey);
+
+                // Assert -------
+                expect(typeEntry).toBeDefined();
+                expect(typeEntry.type).toEqual(classKey);
+                expect(typeof typeEntry.factory).toBe('function');
+            })
 
             describe("Conflict", () => {
                 test("WHEN strategy 'throw' (default)", () => {
@@ -2269,6 +2286,48 @@ describe("Container Scope", () => {
                 expect(resolvedValue).toBe(expectedValue);
                 expect(factoryMock).toHaveBeenCalled();
             });
+
+            test("WHEN: get from generated class factory with dependencies", () => {
+                // Arrange -------
+                var typeKey = 'typeKey'
+                var classKey = 'service'
+                var expectedValue = 42
+
+                class Service {
+                    static inject = [typeKey]
+                    constructor(value) {
+                        this.value = value
+                    }
+                }
+
+                var container = diBuilder()
+                    .bindInstance(typeKey, expectedValue)
+                    .bindFactory(classKey, factoryOf(Service))
+                    .build();
+
+                // Act ---------
+                var inst = container.get(classKey)
+
+                // Assert ------
+                expect(inst).instanceOf(Service)
+                expect(inst.value).toBe(expectedValue)
+            })
+
+            test("WHEN: get from generated class factory without dependencies", () => {
+                // Arrange ------
+                var classKey = 'service'
+                class Service {}
+
+                var container = diBuilder()
+                    .bindFactory(classKey, factoryOf(Service))
+                    .build()
+
+                // Act ----------
+                var inst = container.get(classKey)
+
+                // Assert -------
+                expect(inst).toBeInstanceOf(Service)
+            })
 
             test("WHEN: get from safe factory", () => {
                 // Arrange --------
