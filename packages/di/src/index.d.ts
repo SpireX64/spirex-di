@@ -411,7 +411,7 @@ export type TContainerMiddlewareOnScope = (
  *
  * Middleware allows intercepting and extending DI behavior.
  */
-export interface IContainerMiddleware {
+export interface IContainerMiddleware<TypeMap extends TTypeMapBase = AnyTypeMap> {
     /** Optional name used to identify the middleware in code or error messages. */
     name?: string;
 
@@ -893,7 +893,7 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
      * @param middleware - The middleware instance to register.
      * @returns The container builder instance for chaining.
      */
-    use(middleware: IContainerMiddleware): IContainerBuilder<TypeMap>;
+    use(middleware: IContainerMiddleware<TypeMap>): IContainerBuilder<TypeMap>;
 
     /**
      * Includes a DI module to the container builder.
