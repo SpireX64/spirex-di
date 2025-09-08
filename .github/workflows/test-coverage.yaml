@@ -13,6 +13,7 @@ jobs:
         package:
           - di
           - di-dynamic
+          - di-config
           - di-react
     steps:
       - uses: actions/checkout@v3
