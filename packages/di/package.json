@@ -1,6 +1,6 @@
 {
     "name": "@spirex/di",
-    "version": "1.0.0-alpha.6",
+    "version": "1.0.0",
     "license": "MIT",
     "private": false,
     "sideEffects": false,
@@ -39,7 +39,7 @@
     "homepage": "https://github.com/SpireX64/spirex-di",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SpireX64/spirex-di",
+        "url": "git+https://github.com/SpireX64/spirex-di.git",
         "directory": "packages/di"
     },
     "main": "./dist/index.js",
