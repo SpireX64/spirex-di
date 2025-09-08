@@ -1,0 +1,86 @@
+{
+    "name": "@spirex/di-config",
+    "version": "1.0.0",
+    "license": "MIT",
+    "private": false,
+    "homepage": "https://github.com/SpireX64/spirex-di",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SpireX64/spirex-di",
+        "directory": "packages/di-configure"
+    },
+    "author": {
+        "name": "Artem Sobolenkov (SpireX)",
+        "email": "SpireX@outlook.com",
+        "url": "https://github.com/SpireX64"
+    },
+    "description": "A middleware for @spirex/di that configures services right after they are created.",
+    "keywords": [
+        "di",
+        "ioc",
+        "dependency",
+        "injection",
+        "injector",
+        "container",
+        "config",
+        "dependency injection",
+        "dependency inversion",
+        "inversion of control",
+        "flexible",
+        "modern",
+        "modular",
+        "type-safe",
+        "fail-fast",
+        "typescript",
+        "javascript",
+        "configure",
+        "lifecycle",
+        "factory",
+        "resolver",
+        "middleware",
+        "singleton",
+        "lazy",
+        "spirex"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "default": "./dist/index.cjs"
+            },
+            "default": {
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vitest run --config ./vitest.config.mjs",
+        "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+        "build": "rollup --config --environment NODE_ENV:development",
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "clean": "rimraf dist coverage"
+    },
+    "peerDependencies": {
+        "@spirex/di": "*"
+    },
+    "peerDependenciesMeta": {
+        "@spirex/di": {
+            "optional": false
+        }
+    },
+    "devDependencies": {
+        "@types/jest": "*",
+        "prettier": "*",
+        "eslint": "*",
+        "rollup": "*",
+        "rollup-plugin-terser": "*",
+        "rollup-plugin-copy": "*",
+        "vitest": "*",
+        "@vitest/coverage-istanbul": "*"
+    }
+}
