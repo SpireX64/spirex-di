@@ -27,11 +27,12 @@ yarn add @spirex/di
 
 ## Quick start
 ```ts
-import { diBuilder } from "@spirex/di";
+import { diBuilder, factoryOf } from "@spirex/di";
 
 class Gateway { ... }
 
 class Service {
+    static inject = ['gateway'] as const
     constructor(gateway: Gateway) {...}
     doSomething(): void { ... }
 }
@@ -43,10 +44,10 @@ const container = diBuilder<{
 }>()
     // Bind 'service' to a factory
     // that resolves its dependencies from the container
-    .bindFactory("service", r => new Service(r.get("gateway")))
+    .bindFactory("service", factoryOf(Service))
 
-    // // Bind 'gateway' to a factory that creates a new Gateway
-    .bindFactory("gateway", r => new Gateway())
+    // Bind 'gateway' to a Gateway factory
+    .bindFactory("gateway", factoryOf(Gateway))
 
     // Build the container;
     // after this, it becomes immutable & ready to use
@@ -73,12 +74,69 @@ Adds support for **dynamic modules**, allowing you to load parts of your contain
 
 [![codecov](https://codecov.io/github/SpireX64/spirex-di/graph/badge.svg?token=VXQZK5WDSY&flag=di-dynamic)](https://codecov.io/github/SpireX64/spirex-di)
 
+```ts
+import type { CartService } from "./features/cart"
+
+const CartModule = dynamicModule(
+    "CartModule",
+    () => import("./features/cart/index.ts"),
+).create<{
+    cart: CartService,
+}>((binder, { CartService }) => {
+    binder.bindFactory("cart", factoryOf(CartService));
+});
+
+const container = diBuilder()
+    .include(CartModule)
+
+// Before resolve types from dynamic module:
+await CartModule.loadAsync()
+```
+
+### SpireX/DI Config
+
+A middleware that configures services right after they are created. Configure lets you apply post-construction initialization logic without modifying the service factory or class itself, making it easier to extend and reuse modules.
+
+[![codecov](https://codecov.io/github/SpireX64/spirex-di/graph/badge.svg?token=VXQZK5WDSY&flag=di-config)](https://codecov.io/github/SpireX64/spirex-di)
+
+```ts
+import { Config } from '@spirex/di-config';
+
+const container = diBuilder()
+    .include(SQLiteModule)
+    .use(Config({
+        sqlite: (sqlite) => { sqlite.file = "db.sqlite" }
+    }));
+```
+
 ### SpireX/DI for React
 `@spirex/di-react`
 
  Provides **ReactJS** integration, including hooks and higher-order components (HoC) for injecting dependencies into components.
 
 [![codecov](https://codecov.io/github/SpireX64/spirex-di/graph/badge.svg?token=VXQZK5WDSY&flag=di-dynamic)](https://codecov.io/github/SpireX64/spirex-di)
+
+```tsx
+const { DIRootScope, useInject } = createDIContext<TypeMap>()
+
+const Page: React.VFC = () => {
+    const vm = useInject("pageViewModel");
+    return <h1>{vm.title}</h1>
+}
+
+const App: React.VFC = () => {
+    const container = createContainer();
+
+    const reactScope = container.scope("react");
+    return (
+        <DIRootScope root={reactScope}>
+            <DIScope id="page" sealed>
+                <Page />
+            </DIScope>
+        </DIRootScope>
+    )
+}
+```
 
 ## License
 `@spirex/di` is released under the MIT License.
