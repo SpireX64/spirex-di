@@ -1,6 +1,6 @@
 {
     "name": "@spirex/di-react",
-    "version": "1.0.0-alpha",
+    "version": "1.0.0",
     "license": "MIT",
     "private": false,
     "sideEffects": false,
@@ -42,7 +42,7 @@
     "homepage": "https://github.com/SpireX64/spirex-di",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SpireX64/spirex-di",
+        "url": "git+https://github.com/SpireX64/spirex-di.git",
         "directory": "packages/di-react"
     },
     "main": "dist/index.js",
@@ -81,6 +81,7 @@
         "vitest": "*"
     },
     "peerDependencies": {
-        "react": "^16.8.0"
+        "@spirex/di": "^1",
+        "react": ">=16.8"
     }
 }

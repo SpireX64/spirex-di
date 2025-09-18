@@ -6,7 +6,7 @@
     "homepage": "https://github.com/SpireX64/spirex-di",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SpireX64/spirex-di",
+        "url": "git+https://github.com/SpireX64/spirex-di.git",
         "directory": "packages/di-dynamic"
     },
     "author": {
@@ -65,7 +65,7 @@
         "clean": "rimraf dist coverage"
     },
     "peerDependencies": {
-        "@spirex/di": "*"
+        "@spirex/di": "^1"
     },
     "peerDependenciesMeta": {
         "@spirex/di": {
