@@ -94,6 +94,7 @@ await CartModule.loadAsync()
 ```
 
 ### SpireX/DI Config
+`@spirex/di-config`
 
 A middleware that configures services right after they are created. Configure lets you apply post-construction initialization logic without modifying the service factory or class itself, making it easier to extend and reuse modules.
 
@@ -136,6 +137,55 @@ const App: React.VFC = () => {
         </DIRootScope>
     )
 }
+```
+
+### SpireX/DI for Svelte
+`@spirex/di-svelte`
+
+Provides **Svelte** integration for injecting dependencies into components.
+
+```ts
+// ./di/context
+import { createDIContext, DIScope } from "@spirex/di-svelte"
+import type { TypeMap } from "./container"
+
+export const {
+    setDIRootScope,
+    setDIScope,
+    useInject,
+} = createDIContext<TypeMap>()
+```
+
+```svelte
+<!-- ./app.svelte -->
+<script lang="ts">
+    import { createContainer } from "./di/container";
+    import { setDIRootScope } from "./di/context";
+
+    const container = createContainer();
+    const uiScope = container.scope('ui');
+
+    setDIRootScope(uiScope)
+</script>
+
+<slot/>
+```
+
+```svelte
+<!-- ./page.svelte -->
+<script lang="ts">
+    import { useInject } from "./di/context"
+
+    const t = useInject("i18n").translate;
+    const viewModel = useInject("viewModel");
+</script>
+
+<div>
+  <h1>{t(viewModel.textTitle)}</h1>
+  <button onclick={viewModel.onAction}>
+    {t(viewModel.textButton)}
+  </button>
+</div>
 ```
 
 ## License

@@ -1,0 +1,33 @@
+{
+  "name": "@spirex/di-svelte",
+  "version": "1.0.0-alpha",
+  "description": "SpireX/DI integration for Svelte",
+  "main": "index.js",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "test": "vitest run --config ./vitest.config.mjs",
+    "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+    "build": "rollup --config --environment NODE_ENV:development",
+    "build:release": "rollup --config --environment NODE_ENV:production",
+    "clean": "rimraf dist coverage"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0",
+    "svelte": "5.39.11",
+    "@testing-library/svelte": "5.2.8",
+    "@sveltejs/vite-plugin-svelte": "6.2.1",
+    "@types/jest": "*",
+    "@vitest/coverage-istanbul": "*",
+    "eslint": "*",
+    "prettier": "*",
+    "rollup": "*",
+    "rollup-plugin-copy": "*",
+    "rollup-plugin-terser": "*",
+    "vitest": "*"
+  },
+  "peerDependencies": {
+    "@spirex/di": "^1",
+    "svelte": ">=3.12"
+  }
+}
