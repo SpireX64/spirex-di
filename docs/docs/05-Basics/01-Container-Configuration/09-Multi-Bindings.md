@@ -122,3 +122,7 @@ Multiple binding allows you to group several implementations under a single type
 
 Multiple binding is a powerful mechanism for extensible and modular designs,
 such as plugin systems and processing pipelines.
+
+## Related Topics
+> - Bindings Conflict
+> - Multi Bindings

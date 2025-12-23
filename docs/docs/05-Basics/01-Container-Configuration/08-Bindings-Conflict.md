@@ -155,3 +155,7 @@ SpireX/DI allows you to control how these conflicts are handled using the `ifCon
 - `append` strategy allows multiple bindings.
 
 Conflict resolution strategies make container configuration flexible while keeping behavior explicit and predictable.
+
+## Related Topics
+> - Multi Bindings
+> - Aliases
