@@ -3,7 +3,7 @@ Factory binding has one important limitation: dependency validation happens only
 
 This is a natural consequence of how factories work — the container cannot know which dependencies are requested without actually executing the factory function.
 
-Executing a factory just to discover its dependencies is **unsafe**:
+Executing a factory merely to discover its dependencies is **unsafe**:
 - the factory may create objects;
 - it may perform side effects;
 - it may assume the application is already running.
@@ -30,10 +30,12 @@ Safe factory binding is done using `bindSafeFactory`.
 ```ts
 builder.bindSafeFactory(
   "authService",
+  // Declare dependencies
   r => ({
     repo: r.get("authRepo"),
     gateway: r.get("authGateway"),
   }),
+  // Create instance
   d => new AuthService(d.repo, d.gateway),
 );
 ```
@@ -95,7 +97,6 @@ Safe factory binding is a stricter and safer form of factory binding.
 
 
 ## Related Topics
-> TODO: Add links: 
 > - Factory Binding
 > - Type Requirement
 > - Conditional Bindings

@@ -7,8 +7,6 @@ With this approach, you bind an **already created and fully initialized instance
 
 In `@spirex/di`, instance binding is performed using the builder operation `bindInstance`.
 
-> TODO: Add link to "bindInstance" reference.
-
 
 ## When Should You Use Instance Binding?
 Instance binding is ideal when:
@@ -18,7 +16,7 @@ Instance binding is ideal when:
 - You want maximum performance and minimal container overhead.
 
 Typical use cases include:
-- Constants and primitive values:
+- Constants and primitive values;
 - Configuration objects;
 - Immutable data;
 - External library instances created outside the container;
@@ -66,13 +64,11 @@ Retrieving such an instance is almost equivalent to accessing a value from a `Ma
 Since the instance is created upfront, you can access it directly from the binding entry if needed, using builder API:
 ```ts
 const valueBinding = builder.findEntry("value");
-const value = valueBinding.instance;
+const value: string = valueBinding.instance;
 
 console.log(value); // "Hello"
 ```
 This can be useful for debugging or advanced setup scenarios.
-
-> TODO: Add link to builder inspecting
 
 
 ### Immutability Recommendation
@@ -124,8 +120,8 @@ builder.bindFactory(...)
 - Best suited for constants, configs, and external instances;
 - For dynamic or dependency-based creation, prefer `bindFactory`.
 
+
 ## Related Topics
-> TODO: Add links: 
 > - Factory binding
 > - Named binding
 > - Binding Conflict

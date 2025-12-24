@@ -23,7 +23,7 @@ bun add @spirex/di
 
 ## Runtime requirements
 
-SpireX/DI relies on modern JavaScript features such as *Map*, *Set*, and *Proxy*. Ensure your environment supports these features. If targeting older environments, include appropriate polyfills.
+SpireX/DI relies on modern JavaScript features such as *Map*, *Set*, and *Proxy*. Make sure your environment supports these features. If targeting older environments, include appropriate polyfills.
 
 Minimal supported environments:
 
@@ -38,7 +38,7 @@ Minimal supported environments:
 
 SpireX/DI works with different JavaScript module systems:
 
-- **ES Modules (ESM / EJS)** – modern standard for JavaScript modules using import and export.
+- **ES Modules (ESM)** – modern standard for JavaScript modules using import and export.
 - **CommonJS (CJS)** – Node.js module system using require and module.exports.
 - **UMD (Universal Module Definition)** – works in both browsers and Node.js, compatible with AMD and global scripts.
 

@@ -22,6 +22,22 @@ const container = diBuilder<{
 This approach works, but it quickly becomes verbose and repetitive, especially when services have many dependencies.
 
 Other DI libraries often solve this problem using decorators and reflection.
+
+```ts
+import "reflect-metadata";
+import { Injectable, Inject } from "di-library";
+
+@Injectable()
+export class MyService {
+  public constructor(
+    @Inject("postsRepo") private readonly _posts: IPostsRepository,
+    @Inject("usersRepo") private readonly _users: IUsersRepository,
+    @Inject("authRepo") private readonly _auth: IAuthRepository,
+    @Inject("notifier") private readonly _notifier: INotifier,
+  )
+}
+```
+
 However, that approach has serious drawbacks:
 - it weakens type inference
 - it hides dependencies from the type system
@@ -50,6 +66,7 @@ The constructor must then accept the dependencies **in the same order**.
 
 ```ts
 class BlogService {
+  // Dependency keys
   public static inject = [
     "postsRepo",
     "usersRepo",
@@ -158,7 +175,6 @@ This approach strikes a balance between convenience, safety, and explicitness, m
 
 
 ## Related Topics
-> TODO: Add links: 
 > - Philosophy of SpireX/DI
 > - Type Map
 > - Factory Binding

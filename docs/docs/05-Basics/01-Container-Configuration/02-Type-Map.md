@@ -21,7 +21,7 @@ type TypeMap = {
 This `TypeMap` declares that the container may provide:
 - A "logger" implementing the `Logger` type.
 - A "config" implementing the `Config` type.
-- A "attempts" of type `number`.
+- An "attempts" value of type `number`.
 
 
 ## Why String Keys?
@@ -30,9 +30,9 @@ Unlike some DI libraries that use classes or symbols as identifiers,
 
 The reasons are:
 
-1. **Simplicity** – Strings are the natural keys in plain JavaScript objects.You cannot declare a class or a symbol as a key in a `TypeMap` — TypeScript will simply not allow it.  
+1. **Simplicity** – Strings are the natural keys in plain JavaScript objects. You cannot declare a class or a symbol as a key in a `TypeMap` — TypeScript will simply not allow it.  
 
-1. **Portability** – String keys work consistently across module systems  
+2. **Portability** – String keys work consistently across module systems  
    (ESM, CJS, UMD) without relying on runtime references.  
 
 2. **Type Safety** – Every key must be explicitly declared in the `TypeMap`.  
@@ -69,7 +69,7 @@ type TypeMap = {
 **Why?**
 - Abstract types decouple service definition from implementation.
 - You can replace implementations without changing the container configuration.
-- It improves testability and flexibility of your codebase.
+- Makes it trivial to replace real implementations with mocks in tests.
 
 ## Inline Declaration in `diBuilder`
 

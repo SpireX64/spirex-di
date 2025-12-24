@@ -31,7 +31,7 @@ export class MyService {
 
 ## 2. Define a TypeMap
 
-Now we declare the TypeMap, mapping keys to the types we want to manage:
+Next, we declare the TypeMap, mapping keys to the types we want to manage:
 
 ```ts
 type TypeMap = {
@@ -54,7 +54,7 @@ const builder = diBuilder<TypeMap>()
 
 Here TypeScript checks that 42 is compatible with the type of value (number) from the TypeMap.
 
-## 4. Bind a factories
+## 4. Bind factories
 
 Factories create objects, possibly depending on other services.
 
@@ -66,7 +66,7 @@ import { diBuilder, factoryOf } from '@spirex/di';
 // ...
 
 builder
-  .bindFactory('logger', () => new Logger());
+  .bindFactory('logger', () => new Logger())
   .bindFactory('service', factoryOf(MyService));
 ```
 
@@ -82,8 +82,7 @@ const container = builder.build();
 
 
 ## 6. Retrieve instances
-
-Now we can get our services from the container:
+At this point, we can get our services from the container:
 
 ```ts
 const logger = container.get('logger');

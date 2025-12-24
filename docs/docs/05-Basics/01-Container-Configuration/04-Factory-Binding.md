@@ -36,8 +36,6 @@ Although lifecycles are described in detail in a separate section, it is importa
 
 All examples in this section rely on this behavior to work as intended.
 
-> TODO: Add link to the lifecycles section
-
 
 ## Factories Are Synchronous
 Factory functions must be synchronous.
@@ -48,6 +46,32 @@ If a service requires asynchronous initialization, a common approach is:
 2. Move asynchronous logic into a separate initialization method
 3. Call that method after retrieving the instance from the container
 
+```ts
+class MyService {
+  public static inject = ["api"] as const;
+
+  private _config: MyServiceConfig | null = null;
+  private _initialized = false;
+
+  public constructor(private readonly api: ApiClient) {}
+
+  public async initialize(): Promise<void> {
+    if (this._initialized) return;
+    this._config = this.api.fetchConfiguration();
+    this._initialized = true;
+  }
+}
+
+const container = diBuilder<{ service: MyService }>()
+  .include(InfraModule)
+  .bindFactory("service", factoryOf(MyService))
+  .build()
+
+async function appInit() {
+  const service = container.get("service");
+  await service.initialize();
+}
+```
 
 ## Resolving Dependencies Inside a Factory
 Unlike instance bindings, factory bindings can depend on other types.
@@ -160,7 +184,8 @@ This can be a warning sign of **architectural issues**. Mutual dependencies ofte
 -----
 
 ## Summary
-Factory binding allows you to define how instances are created instead of providing ready-made values.
+Instead of providing a ready-to-use object,
+you register a **factory function** that creates the instance.
 
 - `bindFactory` operation registers a factory function for a type;
 - Factories may contain arbitrary creation logic;

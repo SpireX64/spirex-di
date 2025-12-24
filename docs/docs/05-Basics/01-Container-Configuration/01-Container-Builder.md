@@ -1,7 +1,7 @@
 # Container Builder
 
 In **SpireX/DI**, you cannot directly create a container instance.  
-This is because a container is designed to be **immutable**: once it is built, it cannot be changed anymore.  
+This is because a container is designed to be **immutable**: once it is built, it cannot be changed.  
 
 To configure the container before it is created, you must use the **builder** returned by the `diBuilder` function.  
 The builder provides a fluent API for defining how the container will behave, including which types are available and how they are constructed.
@@ -36,7 +36,7 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase> {
 }
 ```
 
-This means:
+As a result:
 - The builder is strongly tied to your TypeMap.
 - All operator methods (such as bindInstance and bindFactory) use the type information from TypeMap.
 
