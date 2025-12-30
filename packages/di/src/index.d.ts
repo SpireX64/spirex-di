@@ -52,6 +52,21 @@ export interface ITypeEntryMetaData<
 export type TProvider<T> = () => T;
 
 /**
+ * Predicate function used to filter or match type bindings.
+ * 
+ * The predicate is applied to a type entry and should return `true`
+ * if the entry satisfies the required condition.
+ * 
+ * @template TypeMap A map of container types used for strict typing.
+ * @param typeEntry An immutable type entry representing a single container binding.
+ * @returns `true` if the type entry matches the predicate condition, otherwise `false`.
+ * 
+ * @since 1.1.0
+ */
+export type TTypeEntryPredicate<TypeMap extends TTypeMapBase> =
+    (typeEntry: TTypeEntry<TypeMap, keyof TypeMap>) => boolean
+
+/**
  * A factory function that produces an instance of a type from the container.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
@@ -920,6 +935,8 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
      * @param name - Optional name qualifier.
      *
      * @returns A type entry if found, or `undefined` if not bound.
+     * 
+     * @deprecated since 1.1.0 - Use 'find' method instead.
      */
     findEntry(
         type: keyof TypeMap,
@@ -935,11 +952,34 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
      * @param type - The type for which to retrieve binding entries.
      * @param name - Optional name qualifier of the binding, if named bindings are used.
      * @returns An array of all matching binding entries. Returns an empty array if none are found.
+     * 
+     * @deprecated since 1.1.0 - Use 'findAll' method instead.
      */
     findAllEntries(
         type: keyof TypeMap,
         name?: string,
     ): Readonly<TTypeEntry<TypeMap, typeof type>>[];
+
+    /**
+     * Finds the first container entry that matches the given predicate.
+     * The returned entry is frozen and can't to be mutated.
+     *
+     * @param predicate - A function that receives a type-entry and returns `true` if it should be selected.
+     * @returns The first entry matching the predicate, or `undefined` if no entry matches.
+     * 
+     * @since 1.1.0
+     */
+    find(predicate: TTypeEntryPredicate<TypeMap>): Readonly<TTypeEntry<TypeMap, keyof TypeMap>> | undefined;
+
+    /**
+     * Finds all container entries matching a given condition.
+     *
+     * @param predicate — A function that receives a container entry and returns `true` for entries to include in the result.
+     * @returns An array of entries that satisfy the predicate. Returns an empty array if none match.
+     * 
+     * @since 1.1.0
+     */
+    findAll(predicate: TTypeEntryPredicate<TypeMap>): Readonly<TTypeEntry<TypeMap, keyof TypeMap>>[];
 
     /**
      * Returns the origin type reference that an alias points to, if any.

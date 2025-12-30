@@ -204,10 +204,24 @@ function createContainerBlueprint() {
     }
 
     function forEach(delegate) {
-        entries.forEach((entry) => {
-            if (isTypeEntry(entry)) delegate(entry);
-            else entry.forEach(delegate);
+        for (var entryOrSet of entries.values()) {
+            if (!isTypeEntry(entryOrSet)) entryOrSet.forEach(delegate);
+            else if (delegate(entryOrSet)) return;
+        }
+    }
+
+    function find(predicate) {
+        var result;
+        forEach((entry) => predicate(entry) && (result = entry));
+        return result;
+    }
+
+    function findAll(predicate) {
+        var results = [];
+        forEach((entry) => {
+            if (predicate(entry)) results.push(entry);
         });
+        return results;
     }
 
     function addAlias(aliasId, originType, originName, multibinding) {
@@ -351,6 +365,8 @@ function createContainerBlueprint() {
         findAlias,
         findAllEntries,
         forEach,
+        find,
+        findAll,
         getAliasOrigin,
         addAlias,
         addTypeEntry,
@@ -450,7 +466,14 @@ function createRootContainerScope(blueprint) {
             : entry.factory(scope, ctx);
 
         // Call 'OnActivated' middleware
-        instance = blueprint.callMw("onActivated", 1, entry, instance, scope, activationStack.slice());
+        instance = blueprint.callMw(
+            "onActivated",
+            1,
+            entry,
+            instance,
+            scope,
+            activationStack.slice(),
+        );
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -806,6 +829,8 @@ export function diBuilder(builderOptions) {
 
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
 
+        if (factory.inject) factory.inject.forEach((it) => requireType(it));
+
         blueprint.addTypeEntry(
             this,
             $id,
@@ -853,7 +878,7 @@ export function diBuilder(builderOptions) {
 
     function when(condition, truthyDelegate, falsyDelegate) {
         if (condition) truthyDelegate && truthyDelegate(this);
-        else falsyDelegate && falsyDelegate(this)
+        else falsyDelegate && falsyDelegate(this);
         return this;
     }
 
@@ -919,7 +944,7 @@ export function diBuilder(builderOptions) {
     }
 
     function build() {
-        blueprint.callMw("onPreBuild", -1, this)
+        blueprint.callMw("onPreBuild", -1, this);
 
         // Compile aliases
         blueprint.compileAliases(this);
@@ -935,7 +960,7 @@ export function diBuilder(builderOptions) {
 
         var container = createRootContainerScope(blueprint);
         externalInjections.forEach((delegate) => delegate(container));
-        blueprint.callMw("onPostBuild", -1, container)
+        blueprint.callMw("onPostBuild", -1, container);
         return container;
     }
 
@@ -947,6 +972,8 @@ export function diBuilder(builderOptions) {
         hasMiddleware: blueprint.hasMw,
         findEntry: blueprint.findEntry,
         findAllEntries: blueprint.findAllEntries,
+        find: blueprint.find,
+        findAll: blueprint.findAll,
         getAliasOrigin: blueprint.getAliasOrigin,
         requireType,
         injectInto,
@@ -972,12 +999,20 @@ export function staticModule(id) {
     };
 }
 
-const mapInject = (r,i) => i.map(t => r.get(t))
+const mapInject = (r, i) => i.map((t) => r.get(t));
 export function factoryOf(Class, inject) {
-    if (Array.isArray(inject))
-        return (r) => Class(...mapInject(r, inject))
+    var isFactory = Array.isArray(inject);
 
-    return (r) => Array.isArray(Class.inject)
-        ? new Class(...mapInject(r, Class.inject))
-        : new Class();
+    inject = inject || Class.inject;
+    var hasDeps = Array.isArray(inject) && inject.length > 0;
+
+    var factory;
+    if (isFactory) factory = (r) => Class(...mapInject(r, inject));
+    else
+        factory = hasDeps
+            ? (r) => new Class(...mapInject(r, inject))
+            : (factory = () => new Class());
+
+    if (hasDeps) factory.inject = inject;
+    return factory;
 }
