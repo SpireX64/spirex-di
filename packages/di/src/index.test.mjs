@@ -209,7 +209,7 @@ describe("Container Builder", () => {
                     .bindInstance(typeKey, 22, { name: typeNameB });
 
                 // Act --------------
-                var result = builder.find((e) => e.type === 'unknown');
+                var result = builder.find((e) => e.type === "unknown");
 
                 // Assert -----------
                 expect(result).toBeUndefined();
@@ -219,57 +219,59 @@ describe("Container Builder", () => {
         describe("findAll", () => {
             test("WHEN: Found one type entry", () => {
                 // Arrange -------
-                var typeKey = 'typeKey'
-                var typeName = 'typeName'
+                var typeKey = "typeKey";
+                var typeName = "typeName";
 
                 var builder = diBuilder()
                     .bindInstance(typeKey, 11)
-                    .bindInstance(typeKey, 22, { name: typeName })
-                    
+                    .bindInstance(typeKey, 22, { name: typeName });
+
                 // Act -----------
-                var result = builder.findAll(e => e.type === typeKey && e.name === typeName)
+                var result = builder.findAll(
+                    (e) => e.type === typeKey && e.name === typeName,
+                );
 
                 // Assert --------
-                expect(result).toHaveLength(1)
-                expect(result[0].instance).toBe(22)
-            })
+                expect(result).toHaveLength(1);
+                expect(result[0].instance).toBe(22);
+            });
 
             test("WHEN: Found many type entries", () => {
                 // Arrange ----------
-                var typeKey = 'typeKey'
+                var typeKey = "typeKey";
 
                 var builder = diBuilder()
-                    .bindInstance(typeKey, 11, { ifConflict: 'append' })
-                    .bindInstance(typeKey, 22, { ifConflict: 'append' })
-                    .bindInstance(typeKey, 33, { ifConflict: 'append' })
+                    .bindInstance(typeKey, 11, { ifConflict: "append" })
+                    .bindInstance(typeKey, 22, { ifConflict: "append" })
+                    .bindInstance(typeKey, 33, { ifConflict: "append" });
 
                 // Act --------------
-                var result = builder.findAll(e => e.type === typeKey)
+                var result = builder.findAll((e) => e.type === typeKey);
 
                 // Assert -----------
-                expect(result).toHaveLength(3)
+                expect(result).toHaveLength(3);
 
-                var values = result.map(e => e.instance)
-                expect(values).toContain(11)
-                expect(values).toContain(22)
-                expect(values).toContain(33)
-            })
+                var values = result.map((e) => e.instance);
+                expect(values).toContain(11);
+                expect(values).toContain(22);
+                expect(values).toContain(33);
+            });
 
             test("WHEN: no one type entry found", () => {
                 // Arrange ----
-                var typeKey = 'typeKey'
+                var typeKey = "typeKey";
 
                 var builder = diBuilder()
-                    .bindInstance(typeKey, 24, { ifConflict: 'append' })
-                    .bindInstance(typeKey, 42, { ifConflict: 'append' })
+                    .bindInstance(typeKey, 24, { ifConflict: "append" })
+                    .bindInstance(typeKey, 42, { ifConflict: "append" });
 
                 // Act --------
-                var result = builder.findAll(e => e.type === 'unknown')
+                var result = builder.findAll((e) => e.type === "unknown");
 
                 // Assert -----
-                expect(result).toHaveLength(0)
-            })
-        })
+                expect(result).toHaveLength(0);
+            });
+        });
     });
 
     describe("Binding", () => {
@@ -3834,6 +3836,76 @@ describe("Container Scope", () => {
                 );
                 expect(childScope.sealed).is.false;
                 expect(childScope.isolated).is.true;
+            });
+
+            test("WHEN: Create scope via factory binding", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+
+                var container = diBuilder()
+                    .bindFactory(
+                        typeKey,
+                        (r, { current }) => {
+                            return { scopeId: current, child: r.get("child") };
+                        },
+                        {
+                            lifecycle: "scope",
+                            withScope: true,
+                        },
+                    )
+                    .bindFactory("child", (_, { current }) => current, {
+                        lifecycle: "transient",
+                    })
+                    .build();
+
+                // Act ----------
+                var inst = container.get(typeKey);
+
+                var scope = container.scope(typeKey);
+                var instFromScope = scope.get(typeKey);
+
+                // Assert -------
+                expect(inst.scopeId).toBe(typeKey);
+                expect(inst.scopeId).toBe(scope.id);
+                expect(inst.child).toBe(scope.id);
+                expect(scope.isolated).is.false;
+                expect(scope.sealed).is.false;
+                expect(inst).toBe(instFromScope);
+            });
+
+            test("WHEN: Create isolated scope via factory binding", () => {
+                // Arrange ------
+                var typeKey = "typeKey";
+
+                var container = diBuilder()
+                    .bindFactory(
+                        typeKey,
+                        (r, { current }) => {
+                            return { scopeId: current, child: r.get("child") };
+                        },
+                        {
+                            lifecycle: "scope",
+                            withScope: { isolated: true },
+                        },
+                    )
+                    .bindFactory("child", (_, { current }) => current, {
+                        lifecycle: "transient",
+                    })
+                    .build();
+
+                // Act ----------
+                var inst = container.get(typeKey);
+
+                var scope = container.scope(typeKey);
+                var instFromScope = scope.get(typeKey);
+
+                // Assert -------
+                expect(inst.scopeId).toBe(typeKey);
+                expect(inst.scopeId).toBe(scope.id);
+                expect(inst.child).toBe(scope.id);
+                expect(scope.isolated).is.true;
+                expect(scope.sealed).is.false;
+                expect(inst).toBe(instFromScope);
             });
         });
 

@@ -186,6 +186,12 @@ export type TFactoryBindingOptions<
 > = TTypeBindingOptions<TypeMap, T> & {
     /** Determines how and when the instance is created and cached. */
     lifecycle?: TLifecycle;
+
+    /**
+     * Indicates that the factory should create a new scope when producing an instance.
+     * @since 1.1.0
+     */
+    withScope?: TScopeOptions | boolean
 };
 
 /** Options for configuring an alias binding. */
@@ -859,6 +865,29 @@ export interface IContainerScope<TypeMap extends TTypeMapBase>
 
     /** Scope hierarchy */
     readonly path: readonly string[];
+
+    /**
+     * Indicates whether this scope is isolated from its parent scopes.
+     * 
+     * When `true`, the scope does not inherit instances from parent containers,
+     * except for instances provided by the root container (e.g. shared singletons).
+     * This allows the scope to have its own isolated instance graph while still
+     * accessing globally shared dependencies.
+     *
+     * @since 1.1.0
+     */
+    readonly isolated: boolean;
+
+    /**
+     * Indicates whether this scope is sealed.
+     * 
+     * When `true`, no child scopes can be created from this scope.
+     * This is useful for enforcing strict scope boundaries and preventing
+     * further scope hierarchy expansion.
+     *
+     * @since 1.1.0
+     */
+    readonly sealed: boolean;
 
     /**
      * Indicates whether the scope has been disposed.

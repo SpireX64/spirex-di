@@ -529,6 +529,9 @@ function createRootContainerScope(blueprint) {
             // Attempt to get cached instance from current scope
             instance = scope[$locals].get(entry);
             if (!instance && !noActivate) {
+                if (entry.withScope)
+                    scope = scope.scope(entry.type, entry.withScope)
+
                 instance = activateInstance(entry, scope);
 
                 // Cache the instance in scope locals if lifecycle is not transient
@@ -840,6 +843,7 @@ export function diBuilder(builderOptions) {
                 factory,
                 lifecycle,
                 name: options && options.name,
+                withScope: options && options.withScope,
                 module: moduleStack[moduleStack.length - 1],
                 allowedScopes: options && options.allowedScopes,
                 meta: options && options.meta,
