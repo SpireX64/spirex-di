@@ -332,9 +332,9 @@ export type TInjectIntoDelegate<TypeMap extends TTypeMapBase> = (
  *
  * @param builder The container builder where the middleware is being registered.
  */
-export type TContainerBuilderMiddlewareOnUse = (
-    builder: IContainerBuilder<AnyTypeMap>,
-) => void;
+export type TContainerBuilderMiddlewareOnUse<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (builder: IContainerBuilder<TypeMap>) => void;
 
 /**
  * A middleware function that intercepts type binding during container building.
@@ -344,10 +344,13 @@ export type TContainerBuilderMiddlewareOnUse = (
  * @param originEntry - The original type entry as it was initially defined, before any middleware modifications.
  * @returns The final type entry to be registered in the container.
  */
-export type TContainerBuilderMiddlewareOnBind = (
-    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-    originEntry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-) => TTypeEntry<AnyTypeMap, keyof AnyTypeMap>;
+export type TContainerBuilderMiddlewareOnBind<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (
+    entry: TTypeEntry<TypeMap, keyof TypeMap>,
+    originEntry: TTypeEntry<TypeMap, keyof TypeMap>,
+    builder: IContainerBuilder<TypeMap>,
+) => TTypeEntry<TypeMap, keyof TypeMap>;
 
 /**
  * A middleware function that triggered whenever a instance is requested from the container.
@@ -364,10 +367,12 @@ export type TContainerBuilderMiddlewareOnBind = (
  *
  * @returns If the hook throws, the request will be aborted.
  */
-export type TContainerMiddlewareOnRequest = (
-    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
-    scope: IContainerScope<AnyTypeMap>,
-    type: keyof AnyTypeMap,
+export type TContainerMiddlewareOnRequest<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (
+    entry: TTypeEntry<TypeMap, keyof TypeMap>,
+    scope: IContainerScope<TypeMap>,
+    type: keyof TypeMap,
     name: string | undefined,
 ) => void | never;
 
@@ -379,18 +384,23 @@ export type TContainerMiddlewareOnRequest = (
  * - This hook is **not** called if the instance is reused.
  * - Returning `null` or `undefined` is discouraged — always return a valid object
  *
- * @param entry    - The original type entry (binding) used to create the instance.
+ * @param entry - The original type entry (binding) used to create the instance.
  * @param instance - The freshly created instance before returning to the requester.
  *                   It is guaranteed to be a non-null object/value.
- * @param scope    - The current container scope in which the instance was created.
- *                   Can be used to resolve other services or inspect the context.
+ * @param scope - The current container scope in which the instance was created.
+ *                Can be used to resolve other services or inspect the context.
+ * @param activationStack - The activation stack representing the chain of
+ *                          activations that led to this instance.
  *
  * @returns The instance to be returned. Can be the original or a modified one.
  */
-export type TContainerMiddlewareOnActivated = (
-    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
+export type TContainerMiddlewareOnActivated<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (
+    entry: TTypeEntry<TypeMap, keyof TypeMap>,
     instance: {},
-    scope: IContainerScope<AnyTypeMap>,
+    scope: IContainerScope<TypeMap>,
+    activationStack: readonly TTypeEntry<TypeMap, keyof TypeMap>[],
 ) => {};
 
 /**
@@ -407,10 +417,12 @@ export type TContainerMiddlewareOnActivated = (
  *
  * @returns The final instance to be returned to the user.
  */
-export type TContainerMiddlewareOnResolve = (
-    entry: TTypeEntry<AnyTypeMap, keyof AnyTypeMap>,
+export type TContainerMiddlewareOnResolve<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (
+    entry: TTypeEntry<TypeMap, keyof TypeMap>,
     instance: {},
-    scope: IContainerScope<AnyTypeMap>,
+    scope: IContainerScope<TypeMap>,
 ) => {};
 
 /**
@@ -447,21 +459,24 @@ export type TContainerMiddlewareOnPostBuild<
  *
  * @param scope - The scope instance that is being handled.
  */
-export type TContainerMiddlewareOnScope = (
-    scope: IContainerScope<AnyTypeMap>,
-) => void;
+export type TContainerMiddlewareOnScope<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (scope: IContainerScope<TypeMap>) => void;
 
 /**
  * Container middleware.
  *
  * Middleware allows intercepting and extending DI behavior.
  */
-export interface IContainerMiddleware<TypeMap extends TTypeMapBase = AnyTypeMap> {
+export interface IContainerMiddleware<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+    MiddlewareTypeMap extends TTypeMapBase = TypeMap,
+> {
     /** Optional name used to identify the middleware in code or error messages. */
     name?: string;
 
     /** Triggered when this middleware is added into the container builder */
-    onUse?: TContainerBuilderMiddlewareOnUse;
+    onUse?: TContainerBuilderMiddlewareOnUse<TypeMap>;
 
     /** Triggered when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind<TypeMap>;
@@ -473,13 +488,13 @@ export interface IContainerMiddleware<TypeMap extends TTypeMapBase = AnyTypeMap>
     onPostBuild?: TContainerMiddlewareOnPostBuild<TypeMap>;
 
     /** Triggered whenever a instance is requested from the container. */
-    onRequest?: TContainerMiddlewareOnRequest;
+    onRequest?: TContainerMiddlewareOnRequest<TypeMap>;
 
-    /** Triggered after an instance is created, but before it is returned to the requester */
-    onActivated?: TContainerMiddlewareOnActivated;
+    /** Triggered after an instance is created, but before it is cached in a scope cache */
+    onActivated?: TContainerMiddlewareOnActivated<TypeMap>;
 
-    /** Triggered after the instance has been fully resolved */
-    onResolve?: TContainerMiddlewareOnResolve;
+    /** Triggered after the instance has been fully resolved, but before it is returned to the requester */
+    onResolve?: TContainerMiddlewareOnResolve<TypeMap>;
 
     /**
      * Called when a new child scope is opened.
@@ -487,7 +502,7 @@ export interface IContainerMiddleware<TypeMap extends TTypeMapBase = AnyTypeMap>
      * This hook runs immediately after the child scope is created,
      * and before any instances are resolved within it.
      */
-    onScopeOpen?: TContainerMiddlewareOnScope;
+    onScopeOpen?: TContainerMiddlewareOnScope<TypeMap>;
 
     /**
      * Called when a scope is about to be disposed.
@@ -496,7 +511,7 @@ export interface IContainerMiddleware<TypeMap extends TTypeMapBase = AnyTypeMap>
      * but before the current scope disposes its own instances and is marked as closed.
      * This hook is also called for the root scope when it is disposed.
      */
-    onScopeDispose?: TContainerMiddlewareOnScope;
+    onScopeDispose?: TContainerMiddlewareOnScope<TypeMap>;
 }
 
 /**
@@ -945,7 +960,11 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
      * @param middleware - The middleware instance to register.
      * @returns The container builder instance for chaining.
      */
-    use(middleware: IContainerMiddleware<TypeMap>): IContainerBuilder<TypeMap>;
+    use<MiddlewareTypeMap extends TTypeMapBase>(
+        middleware: IContainerMiddleware<TypeMap, MiddlewareTypeMap>,
+    ): TypeMap extends MiddlewareTypeMap
+        ? IContainerBuilder<TypeMap>
+        : IContainerBuilder<Prettify<TypeMap & MiddlewareTypeMap>>;
 
     /**
      * Includes a DI module to the container builder.
@@ -1088,6 +1107,7 @@ export type TypeMapOf<T> = T extends
     | IContainerScope<infer TypeMap>
     | DIModule<infer TypeMap>
     | IContainerBuilder<infer TypeMap>
+    | IContainerMiddleware<infer TypeMap>
     | ITypeEntryBinder<infer TypeMap>
     | ITypesResolver<infer TypeMap>
     | TTypeEntry<infer TypeMap, any>

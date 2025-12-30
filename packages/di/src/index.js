@@ -237,18 +237,19 @@ function createContainerBlueprint() {
      * - If the existing entry is a single binding, it will be converted into a `Set` containing both the old and new entries.
      * - If the existing entry is already a `Set` (i.e. multibinding), the new entry is added to the set.
      *
+     * @param builder - current builder reference
      * @param id - unique entry identifier
      * @param entry - entry The type binding entry to store.
      * @param multibinding - Allows multiple entries under the same type. Otherwise, the new entry replaces the existing one.
      *
      * @internal
      */
-    function addTypeEntry(id, entry, multibinding) {
+    function addTypeEntry(builder, id, entry, multibinding) {
         var entryToBind = entry;
         middlewares.forEach((middleware) => {
             if (!middleware.onBind) return;
 
-            entryToBind = middleware.onBind(entryToBind, entry);
+            entryToBind = middleware.onBind(entryToBind, entry, builder);
             if (
                 !entryToBind ||
                 !isTypeEntry(entryToBind) ||
@@ -282,9 +283,9 @@ function createContainerBlueprint() {
         }
     }
 
-    function compileAliasRef(aliasRef, stack) {
+    function compileAliasRef(builder, aliasRef, stack) {
         if (typeof aliasRef !== "string") {
-            for (var ref of aliasRef) compileAliasRef(ref, stack);
+            for (var ref of aliasRef) compileAliasRef(builder, ref, stack);
             return;
         }
 
@@ -296,7 +297,7 @@ function createContainerBlueprint() {
         var ref = aliases.get(aliasRef);
         if (ref !== undefined) {
             stack.push(aliasRef);
-            compileAliasRef(ref, stack);
+            compileAliasRef(builder, ref, stack);
             stack.pop();
             return;
         }
@@ -310,23 +311,23 @@ function createContainerBlueprint() {
         stack.push(aliasRef);
         for (var aliasId of stack) {
             if (isTypeEntry(typeEntry)) {
-                addTypeEntry(aliasId, typeEntry, true);
+                addTypeEntry(builder, aliasId, typeEntry, true);
             } else {
                 for (var entry of typeEntry) {
-                    addTypeEntry(aliasId, entry, true);
+                    addTypeEntry(builder, aliasId, entry, true);
                 }
             }
         }
         stack.pop();
     }
 
-    function compileAliases() {
+    function compileAliases(builder) {
         if (!aliases.size) return;
 
         var stack = [];
         for (var [aliasId, ref] of aliases) {
             stack.push(aliasId);
-            compileAliasRef(ref, stack);
+            compileAliasRef(builder, ref, stack);
             stack.pop();
         }
 
@@ -449,7 +450,7 @@ function createRootContainerScope(blueprint) {
             : entry.factory(scope, ctx);
 
         // Call 'OnActivated' middleware
-        instance = blueprint.callMw("onActivated", 1, entry, instance, scope);
+        instance = blueprint.callMw("onActivated", 1, entry, instance, scope, activationStack.slice());
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -782,6 +783,7 @@ export function diBuilder(builderOptions) {
         if (verifyBinding($id, ifConflict)) return this;
 
         blueprint.addTypeEntry(
+            this,
             $id,
             {
                 $id,
@@ -805,6 +807,7 @@ export function diBuilder(builderOptions) {
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
 
         blueprint.addTypeEntry(
+            this,
             $id,
             {
                 $id,
@@ -829,6 +832,7 @@ export function diBuilder(builderOptions) {
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
 
         blueprint.addTypeEntry(
+            this,
             $id,
             {
                 $id,
@@ -918,7 +922,7 @@ export function diBuilder(builderOptions) {
         blueprint.callMw("onPreBuild", -1, this)
 
         // Compile aliases
-        blueprint.compileAliases();
+        blueprint.compileAliases(this);
 
         // Collect required types from safe factories
         requireTypesFromSafeFactories();
