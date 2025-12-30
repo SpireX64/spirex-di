@@ -395,6 +395,32 @@ export type TContainerMiddlewareOnResolve = (
 ) => {};
 
 /**
+ * A hook that runs before the container is built.
+ * 
+ * Called right before the build process starts, allowing middleware
+ * to modify or extend the container builder configuration.
+ *
+ * @template TypeMap - The type map defining all bindings in the container.
+ * @param builder - Reference to the container builder being configured.
+ */
+export type TContainerMiddlewareOnPreBuild<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (builder: IContainerBuilder<TypeMap>) => void;
+
+/**
+ * A hook that runs after the container is fully built.
+ * 
+ * Called immediately after the container construction is completed,
+ * providing access to the root container scope.
+ *
+ * @template TypeMap - The type map defining all bindings in the container.
+ * @param root - Reference to the built container (root scope).
+ */
+export type TContainerMiddlewareOnPostBuild<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (root: IContainerScope<TypeMap>) => void;
+
+/**
  * A middleware hook that is called during scope lifecycle events.
  *
  * It receives the scope instance that is currently being opened or disposed.
@@ -419,7 +445,13 @@ export interface IContainerMiddleware<TypeMap extends TTypeMapBase = AnyTypeMap>
     onUse?: TContainerBuilderMiddlewareOnUse;
 
     /** Triggered when a new type entry is being bound */
-    onBind?: TContainerBuilderMiddlewareOnBind;
+    onBind?: TContainerBuilderMiddlewareOnBind<TypeMap>;
+
+    /** A hook that runs before the container is built. */
+    onPreBuild?: TContainerMiddlewareOnPreBuild<TypeMap>;
+
+    /** A hook that runs after the container is fully built. */
+    onPostBuild?: TContainerMiddlewareOnPostBuild<TypeMap>;
 
     /** Triggered whenever a instance is requested from the container. */
     onRequest?: TContainerMiddlewareOnRequest;
@@ -471,10 +503,11 @@ export interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     /**
      * Conditionally applies bindings based on the provided boolean condition.
      * @param condition - The condition to evaluate.
-     * @param delegate - A function that declares bindings when the condition is true.
+     * @param truthyDelegate - A function that declares bindings when the condition is true.
+     * @param falsyDelegate - A function that declares bindings when the condition is false.
      * @returns The container builder instance for chaining.
      */
-    when(condition: boolean, delegate: TBinderDelegate<TypeMap>): this;
+    when(condition: boolean, truthyDelegate: TBinderDelegate<TypeMap>, falsyDelegate?: TBinderDelegate<TypeMap>): this;
 
     /**
      * Injects dependencies from the container into an external object or service.

@@ -847,8 +847,9 @@ export function diBuilder(builderOptions) {
         return this;
     }
 
-    function when(condition, delegate) {
-        if (condition) delegate(this);
+    function when(condition, truthyDelegate, falsyDelegate) {
+        if (condition) truthyDelegate && truthyDelegate(this);
+        else falsyDelegate && falsyDelegate(this)
         return this;
     }
 
@@ -914,6 +915,8 @@ export function diBuilder(builderOptions) {
     }
 
     function build() {
+        blueprint.callMw("onPreBuild", -1, this)
+
         // Compile aliases
         blueprint.compileAliases();
 
@@ -928,6 +931,7 @@ export function diBuilder(builderOptions) {
 
         var container = createRootContainerScope(blueprint);
         externalInjections.forEach((delegate) => delegate(container));
+        blueprint.callMw("onPostBuild", -1, container)
         return container;
     }
 
