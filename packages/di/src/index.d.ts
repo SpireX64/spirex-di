@@ -1146,3 +1146,39 @@ export type TypeMapOf<T> = T extends
     | TTypeEntry<infer TypeMap, any>
     ? TypeMap
     : never;
+
+/**
+ * Extracts type map that includes only entries whose value type
+ * is assignable to the specified type `T`.
+ *
+ * @template TypeMap - The original type map to filter.
+ * @template T       - The target type to match against.
+ *
+ * @example
+ * type TypeMap = { logger: ILogger; http: HttpService };
+ * type LoggerEntries = TypeMapFilterByType<TypeMap, ILogger>;
+ * // Result: { logger: ILogger }
+ */
+export type TypeMapFilterByType<TypeMap extends TTypeMapBase, T> = {
+    [K in keyof TypeMap as TypeMap[K] extends T ? K : never]: TypeMap[K];
+};
+
+/**
+ * Extracts type map that includes only entries whose value type
+ * exactly matches the specified type `T` (both assignable directions must hold).
+ *
+ * @template TypeMap - The original type map to filter.
+ * @template T        - The exact type to match against.
+ *
+ * @example
+ * type TypeMap = { logger: ILogger; consoleLogger: ConsoleLogger };
+ * type ExactLoggers = TypeMapFilterByExactType<TypeMap, ILogger>;
+ * // Result: { logger: ILogger }
+ */
+export type TypeMapFilterByExactType<TypeMap extends TTypeMapBase, T> = {
+    [K in keyof TypeMap as [TypeMap[K]] extends [T]
+        ? [T] extends [TypeMap[K]]
+            ? K
+            : never
+        : never]: TypeMap[K];
+};
