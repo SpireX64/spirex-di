@@ -34,7 +34,20 @@ export type TLifecycle = "singleton" | "lazy" | "scope" | "transient";
  * This metadata is not used by the DI itself,
  * but can be leveraged by middleware or user code.
  */
-export type TTypeEntryMetaData = Record<string, unknown>;
+export type TTypeEntryMeta<
+    TypeMap extends TTypeMapBase,
+    TypeKey extends keyof TypeMap,
+> = Record<
+    string,
+    ITypeEntryMetaData<TypeMap, TypeKey> | string | number | boolean
+>;
+
+export interface ITypeEntryMetaData<
+    TypeMap extends TTypeMapBase,
+    TypeKey extends keyof TypeMap,
+> {
+    [key: string]: unknown;
+}
 
 export type TProvider<T> = () => T;
 
@@ -133,13 +146,16 @@ export type TBindingOptions = {
 };
 
 /** Binding options specific to a type implementation. */
-export type TTypeBindingOptions = TBindingOptions & {
+export type TTypeBindingOptions<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = TBindingOptions & {
     /**
      * Optional metadata for the binding.
      * Can be used to store custom data
      * such as platform targeting, environment, tags, etc.
      */
-    meta?: TTypeEntryMetaData | undefined;
+    meta?: TTypeEntryMeta<TypeMap, T>;
 
     /**
      * List of scope IDs where this type is allowed to be resolved or instantiated.
@@ -149,7 +165,10 @@ export type TTypeBindingOptions = TBindingOptions & {
 };
 
 /** Options for configuring a factory-based binding. */
-export type TFactoryBindingOptions = TTypeBindingOptions & {
+export type TFactoryBindingOptions<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = TTypeBindingOptions<TypeMap, T> & {
     /** Determines how and when the instance is created and cached. */
     lifecycle?: TLifecycle;
 };
@@ -201,7 +220,7 @@ export type TTypeEntryBase<
      * Optional metadata associated with this entry.
      * Useful for middleware or runtime inspection.
      */
-    readonly meta?: TTypeEntryMetaData;
+    readonly meta?: TTypeEntryMeta<TypeMap, T>;
 
     /**
      * List of scope IDs where this type is allowed to be resolved or instantiated.
@@ -537,7 +556,7 @@ export interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     bindInstance<T extends keyof TypeMap>(
         type: T,
         instance: TypeMap[T],
-        options?: TTypeBindingOptions,
+        options?: TTypeBindingOptions<TypeMap, T>,
     ): this;
 
     /**
@@ -556,7 +575,7 @@ export interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
     bindFactory<T extends keyof TypeMap>(
         type: T,
         factory: TTypeFactory<TypeMap, T>,
-        options?: TFactoryBindingOptions,
+        options?: TFactoryBindingOptions<TypeMap, T>,
     ): this;
 
     /**
@@ -581,8 +600,8 @@ export interface ITypeEntryBinder<TypeMap extends TTypeMapBase> {
         type: T,
         injector: TTypeInjector<TypeMap, Deps>,
         factory: TTypeSafeFactory<Deps, TypeMap[T]>,
-        options?: TFactoryBindingOptions,
-    );
+        options?: TFactoryBindingOptions<TypeMap, T>,
+    ): this;
 
     /**
      * Binds an alias to an existing binding or another alias.
