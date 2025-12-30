@@ -27,6 +27,8 @@ function catchError(procedure) {
     return undefined;
 }
 
+function noop() {}
+
 // @ts-nocheck
 describe("Container Builder", () => {
     describe("Create", () => {
@@ -525,10 +527,10 @@ describe("Container Builder", () => {
                 var typeKey = "typeKey";
                 var name = "typeName";
                 var builder = diBuilder();
-                builder.bindFactory(typeKey, () => {});
+                builder.bindFactory(typeKey, noop);
 
                 // Act -----------
-                builder.bindFactory(typeKey, () => {}, { name });
+                builder.bindFactory(typeKey, noop, { name });
                 var entryWithoutName = builder.findEntry(typeKey);
                 var entryWithName = builder.findEntry(typeKey, name);
 
@@ -569,7 +571,7 @@ describe("Container Builder", () => {
 
                     // Act -----------
                     var err = catchError(() =>
-                        builder.bindFactory(typeKey, () => {}),
+                        builder.bindFactory(typeKey, noop),
                     );
                     var entry = builder.findEntry(typeKey);
 
@@ -592,7 +594,7 @@ describe("Container Builder", () => {
                     builder.bindFactory(typeKey, expectedFactory);
 
                     // Act ---------
-                    builder.bindFactory(typeKey, () => {}, {
+                    builder.bindFactory(typeKey, noop, {
                         ifConflict: "keep",
                     });
                     var entry = builder.findEntry(typeKey);
@@ -609,7 +611,7 @@ describe("Container Builder", () => {
                     var typeKey = "typeKey";
                     var expectedFactory = vi.fn();
                     var builder = diBuilder();
-                    builder.bindFactory(typeKey, () => {});
+                    builder.bindFactory(typeKey, noop);
 
                     // Act ---------
                     builder.bindFactory(typeKey, expectedFactory, {
@@ -632,7 +634,7 @@ describe("Container Builder", () => {
                     var builder = diBuilder({
                         ifConflict: expectedStrategy,
                     });
-                    builder.bindFactory(typeKey, () => {});
+                    builder.bindFactory(typeKey, noop);
 
                     // Act -----------
                     builder.bindFactory(typeKey, expectedFactory);
@@ -648,7 +650,7 @@ describe("Container Builder", () => {
                 test("WHEN strategy 'append' for first bind", () => {
                     // Arrange --------
                     var typeKey = "typeKey";
-                    var expectedFactory = () => {};
+                    var expectedFactory = noop;
                     var builder = diBuilder();
 
                     // Act ------------
@@ -695,12 +697,12 @@ describe("Container Builder", () => {
                 test("WHEN strategy 'replace' after 'append'", () => {
                     // Arrange ----------
                     var typeKey = "typeKey";
-                    var expectedFactory = () => {};
+                    var expectedFactory = noop;
                     var builder = diBuilder()
-                        .bindFactory(typeKey, () => {}, {
+                        .bindFactory(typeKey, noop, {
                             ifConflict: "append",
                         })
-                        .bindFactory(typeKey, () => {}, {
+                        .bindFactory(typeKey, noop, {
                             ifConflict: "append",
                         });
 
@@ -777,7 +779,7 @@ describe("Container Builder", () => {
                     var builder = diBuilder();
 
                     // Act ------------
-                    builder.bindFactory(typeKey, () => {});
+                    builder.bindFactory(typeKey, noop);
                     var entry = builder.findEntry(typeKey);
 
                     // Assert ---------
@@ -794,7 +796,7 @@ describe("Container Builder", () => {
                     });
 
                     // Act ------------
-                    builder.bindFactory(typeKey, () => {});
+                    builder.bindFactory(typeKey, noop);
                     var entry = builder.findEntry(typeKey);
 
                     // Assert ---------
@@ -809,7 +811,7 @@ describe("Container Builder", () => {
                     var builder = diBuilder();
 
                     // Act -----------
-                    builder.bindFactory(typeKey, () => {}, {
+                    builder.bindFactory(typeKey, noop, {
                         lifecycle: expectedLifecycle,
                     });
                     var entry = builder.findEntry(typeKey);
@@ -916,7 +918,7 @@ describe("Container Builder", () => {
                     // Act -------------
                     builder.bindSafeFactory(
                         typeKey,
-                        () => {},
+                        noop,
                         () => 42,
                         { meta: typeMeta },
                     );
@@ -944,8 +946,8 @@ describe("Container Builder", () => {
                     var err = catchError(() =>
                         builder.bindSafeFactory(
                             typeKey,
-                            () => {},
-                            () => {},
+                            noop,
+                            noop,
                         ),
                     );
                     var entry = builder.findEntry(typeKey);
@@ -978,8 +980,8 @@ describe("Container Builder", () => {
                     // Act ---------
                     builder.bindSafeFactory(
                         typeKey,
-                        () => {},
-                        () => {},
+                        noop,
+                        noop,
                         {
                             ifConflict: "keep",
                         },
@@ -1003,8 +1005,8 @@ describe("Container Builder", () => {
                     var builder = diBuilder();
                     builder.bindSafeFactory(
                         typeKey,
-                        () => {},
-                        () => {},
+                        noop,
+                        noop,
                     );
 
                     // Act ---------
@@ -1037,8 +1039,8 @@ describe("Container Builder", () => {
                     });
                     builder.bindSafeFactory(
                         typeKey,
-                        () => {},
-                        () => {},
+                        noop,
+                        noop,
                     );
 
                     // Act -----------
@@ -1311,7 +1313,7 @@ describe("Container Builder", () => {
                     builder.when(condition, (binder) =>
                         binder
                             .bindInstance(instanceKey, 42)
-                            .bindFactory(factoryKey, () => {})
+                            .bindFactory(factoryKey, noop)
                             .bindAlias(aliasKey, instanceKey),
                     );
 
@@ -1327,6 +1329,20 @@ describe("Container Builder", () => {
                     );
                 },
             );
+
+            test.each([true, false])("WHEN: falsy branch with '%s' condition", (isTruthy) => {
+                // Arrange ----
+                var truthyBranchFn = vi.fn()
+                var falsyBranchFn = vi.fn()
+
+                // Act --------
+                var builder = diBuilder()
+                    .when(isTruthy, truthyBranchFn, falsyBranchFn)
+
+                // Assert -----
+                expect(isTruthy ? truthyBranchFn: falsyBranchFn).toHaveBeenCalledWith(builder)
+                expect(isTruthy ? falsyBranchFn: truthyBranchFn).not.toHaveBeenCalled()
+            })
         });
     });
 
@@ -1487,7 +1503,7 @@ describe("Container Builder", () => {
 
                 // Assert -------------
                 expect(entry).toBeDefined();
-                expect(onBindMock).toHaveBeenCalledWith(entry, entry);
+                expect(onBindMock).toHaveBeenCalledWith(entry, entry, builder);
             });
 
             test("WHEN bind factory", () => {
@@ -1499,13 +1515,13 @@ describe("Container Builder", () => {
                 });
 
                 // Act ----------------
-                builder.bindFactory(typeKey, () => {});
+                builder.bindFactory(typeKey, noop);
 
                 var entry = builder.findEntry(typeKey);
 
                 // Assert -------------
                 expect(entry).toBeDefined();
-                expect(onBindMock).toHaveBeenCalledWith(entry, entry);
+                expect(onBindMock).toHaveBeenCalledWith(entry, entry, builder);
             });
 
             test("WHEN modify entry with onBind one middleware", () => {
@@ -1627,7 +1643,7 @@ describe("Container Builder", () => {
                 // Arrange -------
                 var typeKey = "typeKey";
                 var builder = diBuilder().use({
-                    onBind: () => {}, // Oh no, type entry return was forgotten :(
+                    onBind: noop, // Oh no, type entry return was forgotten :(
                 });
 
                 // Act -----------
@@ -1675,7 +1691,7 @@ describe("Container Builder", () => {
                 // Act --------------
                 builder
                     .bindInstance("instanceKey", 42)
-                    .bindFactory("factoryKey", () => {});
+                    .bindFactory("factoryKey", noop);
 
                 var instanceEntry = builder.findEntry("instanceKey");
                 var factoryEntry = builder.findEntry("factoryKey");
@@ -1686,6 +1702,126 @@ describe("Container Builder", () => {
                 expect(factoryEntry).toBeDefined();
             });
         });
+
+        describe("onPreBuild hook", () => {
+            test("WHEN: use onPreBuild & bind types", () => {
+                // Arrange ------
+                var onPreBuild = vi.fn();
+
+                var builder = diBuilder()
+
+                // Act ----------
+                builder
+                    .use({ onPreBuild })
+                    .bindFactory("typeA", noop)
+                    .bindInstance("typeB", 42)
+
+                // Assert -------
+                expect(onPreBuild).not.toHaveBeenCalled();
+            });
+
+            test("WHEN: build container", () => {
+                // Arrange ------
+                var onPreBuild = vi.fn();
+
+                var builder = diBuilder()
+                    .use({ onPreBuild })
+                    .bindFactory("typeA", noop)
+                    .bindInstance("typeB", 42);
+
+                // Act ----------
+                builder.build();
+
+                // Assert -------
+                expect(onPreBuild).toHaveBeenCalledExactlyOnceWith(builder);
+            });
+
+            test("WHEN: add many onPreBuild hooks", () => {
+                // Arrange ------
+                var onPreBuildA = vi.fn();
+                var onPreBuildB = vi.fn();
+                var onPreBuildC = vi.fn();
+
+                var builder = diBuilder();
+
+                // Act ----------
+                builder
+                    .use({ onPreBuild: onPreBuildA })
+                    .use({ onPreBuild: onPreBuildB })
+                    .use({ onPreBuild: onPreBuildC })
+                    .build()
+
+                // Assert -------
+                expect(onPreBuildA).toHaveBeenCalledExactlyOnceWith(builder)
+
+                expect(onPreBuildB).toHaveBeenCalledExactlyOnceWith(builder)
+                expect(onPreBuildB).toHaveBeenCalledAfter(onPreBuildA)
+
+                expect(onPreBuildC).toHaveBeenCalledExactlyOnceWith(builder)
+                expect(onPreBuildC).toHaveBeenCalledAfter(onPreBuildB)
+            })
+        });
+
+        describe("onPostBuild hook", () => {
+            test("WHEN: use onPostBuild & bind types", () => {
+                // Arrange ----------
+                var onPostBuild = vi.fn();
+
+                var builder = diBuilder()
+
+                // Act --------------
+                builder
+                    .use({ onPostBuild })
+                    .bindFactory("typeA", noop)
+                    .bindInstance("typeB", 42)
+
+                // Assert -----------
+                expect(onPostBuild).not.toHaveBeenCalled()
+            })
+
+            test("WHEN: build container", () => {
+                // Arrange ------
+                var onPreBuild = vi.fn();
+                var onPostBuild = vi.fn();
+
+                var builder = diBuilder()
+                    .use({ onPreBuild, onPostBuild })
+                    .bindFactory("typeA", noop)
+                    .bindInstance("typeB", 42)
+
+                // Act ----------
+                var container = builder.build();
+
+                // Assert --------
+                expect(onPostBuild).toHaveBeenCalledExactlyOnceWith(container)
+                expect(onPostBuild).toHaveBeenCalledAfter(onPreBuild)
+            })
+
+            test("WHEN: add many onPostBuild hooks", () => {
+                // Arrange ------
+                var onPostBuildA = vi.fn();
+                var onPostBuildB = vi.fn();
+                var onPostBuildC = vi.fn();
+
+                var builder = diBuilder();
+
+                // Act ----------
+                var container = builder
+                    .use({ onPostBuild: onPostBuildA })
+                    .use({ onPostBuild: onPostBuildB })
+                    .use({ onPostBuild: onPostBuildC })
+                    .build()
+
+                // Assert -------
+                expect(onPostBuildA).toHaveBeenCalledExactlyOnceWith(container)
+
+                expect(onPostBuildB).toHaveBeenCalledExactlyOnceWith(container)
+                expect(onPostBuildB).toHaveBeenCalledAfter(onPostBuildA)
+
+                expect(onPostBuildC).toHaveBeenCalledExactlyOnceWith(container)
+                expect(onPostBuildC).toHaveBeenCalledAfter(onPostBuildB)
+            })
+        })
     });
 
     describe("Building container", () => {
@@ -3295,6 +3431,7 @@ describe("Container Scope", () => {
                     entry,
                     expectedInst,
                     container,
+                    [entry],
                 );
                 expect(onActivatedHandler).toHaveReturnedWith(expectedInst);
             });
@@ -3332,6 +3469,7 @@ describe("Container Scope", () => {
                     entry,
                     factoryInst,
                     container,
+                    [entry],
                 );
                 expect(onActivatedHandler).toHaveReturnedWith(expectedInst);
             });
@@ -3374,6 +3512,7 @@ describe("Container Scope", () => {
                     entry,
                     originValue,
                     container,
+                    [entry]
                 );
                 expect(onActivatedOne).toHaveReturnedWith(valueOne);
 
@@ -3383,9 +3522,36 @@ describe("Container Scope", () => {
                     entry,
                     valueOne,
                     container,
+                    [entry]
                 );
                 expect(onActivatedTwo).toHaveReturnedWith(valueTwo);
             });
+
+            test("WHEN: Deep activation", () => {
+                // Arrange ------
+                var typeKeyA = 'typeKeyA'
+                var typeKeyB = 'typeKeyB'
+
+                var onActivated = vi.fn((_, inst) => inst);
+
+                var builder = diBuilder()
+                    .use({ onActivated })
+                    .bindFactory(typeKeyA, () => 11, { lifecycle: 'lazy' })
+                    .bindFactory(typeKeyB, r => 22 + r.get(typeKeyA), { lifecycle: 'lazy' })
+
+                var typeEntryA = builder.findEntry(typeKeyA)
+                var typeEntryB = builder.findEntry(typeKeyB)
+
+                var container = builder.build();
+
+                // Act ----------
+                var instB = container.get(typeKeyB);
+                var instA = container.get(typeKeyA);
+
+                // Assert -------
+                expect(onActivated).toHaveBeenNthCalledWith(1, typeEntryA, instA, container, [typeEntryB, typeEntryA])
+                expect(onActivated).toHaveBeenNthCalledWith(2, typeEntryB, instB, container, [typeEntryB])
+            })
         });
     });
 

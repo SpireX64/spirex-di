@@ -972,8 +972,12 @@ export function staticModule(id) {
     };
 }
 
-export function factoryOf(Class) {
+const mapInject = (r,i) => i.map(t => r.get(t))
+export function factoryOf(Class, inject) {
+    if (Array.isArray(inject))
+        return (r) => Class(...mapInject(r, inject))
+
     return (r) => Array.isArray(Class.inject)
-        ? new Class(...Class.inject.map((t) => r.get(t)))
+        ? new Class(...mapInject(r, Class.inject))
         : new Class();
 }
