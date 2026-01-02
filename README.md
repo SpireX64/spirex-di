@@ -6,7 +6,11 @@
 [![Codecov](https://img.shields.io/codecov/c/github/spirex64/spirex-di?token=VXQZK5WDSY&flag=di&style=for-the-badge)](https://codecov.io/github/SpireX64/spirex-di)
 
 
-`@spirex/di` is a **powerful**, **safe**, **flexible**, and **lightweight** dependency injection library designed for JS/TS projects of any complexity. It offers **strict static typing** with an **immutable container**, ensuring reliability and clarity in your code. With **zero dependencies**, it works in any modern JavaScript environment out of the box — true **plug & play**.
+`@spirex/di` is a **powerful**, **lightweight**, and **predictable** dependency injection library for JavaScript and TypeScript. 
+
+It enforces strict TypeScript typing through a **TypeMap**, uses an **immutable container** built via a fluent builder API, and supports **modular**, reusable configurations. With **zero dependencies**, **advanced scope management**, and **extensible middleware**, it keeps your code clean, testable, and flexible without imposing any runtime boilerplate. 
+
+Fully **plug & play** and production-ready, **SpireX/DI** is ideal for enterprise projects, helping teams manage complex service graphs effortlessly while simplifying long-term maintenance.
 
 ## Features
 - **Immutable container** — no hidden runtime mutations;
@@ -16,7 +20,7 @@
 - **Lifecycle management** — singleton, lazy, scope, transient;
 - Middleware support;
 - Named bindings, aliases & conflict resolution strategies.
-- Zero dependencies, runs on pure JS, **only ~9KB**.
+- Zero dependencies, runs on pure JS, **only ~9.2KB** (~3.4kb gzipped).
 
 ## Install
 ```sh
