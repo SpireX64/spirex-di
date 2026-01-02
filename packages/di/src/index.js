@@ -5,15 +5,9 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
 function chainToString(chain, key) {
     var sep = " -> ";
-    switch (chain.length) {
-        case 0:
-            return key;
-        case 1:
-        case 2:
-            return key + sep + key;
-        default:
-            return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
-    }
+    if (!chain.length) return key;
+    if (chain.length <= 2) return key + sep + key;
+    return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
 }
 
 /**
@@ -76,7 +70,7 @@ export var DIErrors = Object.freeze({
  * @return A unique string identifier for the binding.
  */
 function makeEntryId(type, name) {
-    return !!name ? type + ID_SEP + name : type;
+    return name ? type + ID_SEP + name : type;
 }
 
 function isTypeEntry(mayBeTypeEntry) {
@@ -91,28 +85,14 @@ function isTypeEntry(mayBeTypeEntry) {
 /* istanbul ignore next */
 function phantomProxy(provider) {
     var state = { $: null };
+    var getRef = (s) => s.$ || (s.$ = provider());
     return new Proxy(state, {
-        get(state, key) {
-            var ref = state.$ || (state.$ = provider());
-            return ref[key];
-        },
-        set(state, key, value) {
-            var ref = state.$ || (state.$ = provider());
-            ref[key] = value;
-            return true;
-        },
-        has(state, key) {
-            var ref = state.$ || (state.$ = provider());
-            return key in ref;
-        },
-        ownKeys(state) {
-            var ref = state.$ || (state.$ = provider());
-            return Object.getOwnPropertyNames(ref);
-        },
-        getOwnPropertyDescriptor(state, key) {
-            var ref = state.$ || (state.$ = provider());
-            return Object.getOwnPropertyDescriptor(ref, key);
-        },
+        get: (s, k) => getRef(s)[k],
+        set: (s, k, v) => ((getRef(s)[k] = v), true),
+        has: (s, k) => k in getRef(s),
+        ownKeys: (s) => Object.getOwnPropertyNames(getRef(s)),
+        getOwnPropertyDescriptor: (s, k) =>
+            Object.getOwnPropertyDescriptor(getRef(s), k),
     });
 }
 
@@ -123,18 +103,15 @@ function createContainerBlueprint() {
     var aliases = new Map();
     /** Set of registered container middlewares. */
     var middlewares = new Set();
-
+    /** Set of included modules. */
     var modules = new Set();
+    /** Container type enumeration cache. */
     var typesEnum = null;
 
     function types() {
-        if (typesEnum == null) {
-            typesEnum = {};
-            entries.forEach((_, k) => {
-                typesEnum[k] = k;
-            });
-            Object.freeze(typesEnum);
-        }
+        if (!typesEnum)
+            typesEnum = Object.freeze(Object.fromEntries([...entries.keys()].map(k => [k, k])))
+
         return typesEnum;
     }
 
@@ -168,8 +145,7 @@ function createContainerBlueprint() {
     }
 
     function getAliasOrigin(type, name) {
-        var id = makeEntryId(type, name);
-        var ref = aliases.get(id);
+        var ref = aliases.get(makeEntryId(type, name));
         return ref instanceof Set ? Array.from(ref.values()) : ref;
     }
 
@@ -179,8 +155,7 @@ function createContainerBlueprint() {
     }
 
     function findEntry(type, name) {
-        var $id = makeEntryId(type, name);
-        var binding = entries.get($id);
+        var binding = entries.get(makeEntryId(type, name));
         return !binding || isTypeEntry(binding)
             ? binding
             : binding.values().next().value;
@@ -270,7 +245,7 @@ function createContainerBlueprint() {
                 entryToBind.$id !== entry.$id ||
                 entryToBind.type !== entry.type
             )
-                throw new Error(
+                throw new TypeError(
                     DIErrors.MiddlewareEntryTypeMismatch(
                         middleware.name,
                         entryToBind && entryToBind.$id,
@@ -326,11 +301,10 @@ function createContainerBlueprint() {
         for (var aliasId of stack) {
             if (isTypeEntry(typeEntry)) {
                 addTypeEntry(builder, aliasId, typeEntry, true);
-            } else {
+            } else
                 for (var entry of typeEntry) {
                     addTypeEntry(builder, aliasId, entry, true);
                 }
-            }
         }
         stack.pop();
     }
@@ -408,19 +382,18 @@ function createRootContainerScope(blueprint) {
         return Object.freeze(path.reverse());
     }
 
-    function createScopeObject(id, parent, options) {
+    function createScopeObject(id, parent, options = {}) {
+        var { sealed = false, isolated = false } = options;
         return {
             id,
-            sealed: (options && options.sealed) || false,
-            isolated: (options && options.isolated) || false,
+            sealed,
+            isolated,
             path: makeScopePath(id, parent),
             [$root]: parent && (parent[$root] || parent),
             [$parent]: parent,
             [$locals]: new Map(),
             [$scopes]: new Map(),
-            [$state]: {
-                disposed: false,
-            },
+            [$state]: { disposed: false },
         };
     }
 
@@ -530,7 +503,7 @@ function createRootContainerScope(blueprint) {
             instance = scope[$locals].get(entry);
             if (!instance && !noActivate) {
                 if (entry.withScope)
-                    scope = scope.scope(entry.type, entry.withScope)
+                    scope = scope.scope(entry.type, entry.withScope);
 
                 instance = activateInstance(entry, scope);
 
@@ -546,8 +519,9 @@ function createRootContainerScope(blueprint) {
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
-        blueprint.callMw("onRequest", -1, entry, scope, type, name);
-        return entry;
+        return (
+            blueprint.callMw("onRequest", 0, entry, scope, type, name) || entry
+        );
     }
 
     function assertScopeNotDisposedToResolve(type, name) {
@@ -566,7 +540,12 @@ function createRootContainerScope(blueprint) {
         return {
             // Deanonymize the function by giving it a specific name
             [providerFuncName]: function () {
-                onRequestMiddleware(scope, entry, entry.type, entry.name);
+                entry = onRequestMiddleware(
+                    scope,
+                    entry,
+                    entry.type,
+                    entry.name,
+                );
                 return getInstance.call(scope, scope, entry);
             },
         }[providerFuncName];
@@ -587,7 +566,7 @@ function createRootContainerScope(blueprint) {
             if (!entry)
                 throw new Error(DIErrors.TypeBindingNotFound(type, name));
 
-            onRequestMiddleware(this, entry, type, name);
+            entry = onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
         },
 
@@ -596,7 +575,7 @@ function createRootContainerScope(blueprint) {
             var entry = blueprint.findEntry(type, name);
             if (!entry) return undefined;
 
-            onRequestMiddleware(this, entry, type, name);
+            entry = onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry, true);
         },
 
@@ -723,14 +702,13 @@ function createRootContainerScope(blueprint) {
     return rootScope;
 }
 
-export function diBuilder(builderOptions) {
-    /** The default lifecycle to use when a binding does not explicitly define one. */
-    var defaultLifecycle =
-        (builderOptions && builderOptions.lifecycle) || "singleton";
-
-    /** The default conflict resolution strategy to use for bindings. */
-    var defaultConflictResolve =
-        (builderOptions && builderOptions.ifConflict) || "throw";
+export function diBuilder(builderOptions = {}) {
+    var {
+        /** The default lifecycle to use when a binding does not explicitly define one. */
+        lifecycle: defaultLifecycle = "singleton",
+        /** The default conflict resolution strategy to use for bindings. */
+        ifConflict: defaultConflictResolve = "throw",
+    } = builderOptions;
 
     var blueprint = createContainerBlueprint();
 
@@ -802,10 +780,9 @@ export function diBuilder(builderOptions) {
         return this;
     }
 
-    function bindInstance(type, instance, options) {
-        var $id = makeEntryId(type, options && options.name);
-        var ifConflict = options && options.ifConflict;
-
+    function bindInstance(type, instance, options = {}) {
+        var { name, ifConflict, allowedScopes, meta } = options;
+        var $id = makeEntryId(type, name);
         if (verifyBinding($id, ifConflict)) return this;
 
         blueprint.addTypeEntry(
@@ -815,23 +792,20 @@ export function diBuilder(builderOptions) {
                 $id,
                 type,
                 instance,
-                name: options && options.name,
+                name,
                 module: moduleStack[moduleStack.length - 1],
-                allowedScopes: options && options.allowedScopes,
-                meta: options && options.meta,
+                allowedScopes,
+                meta,
             },
             ifConflict === "append",
         );
         return this;
     }
 
-    function bindFactory(type, factory, options) {
-        var $id = makeEntryId(type, options && options.name);
-        var ifConflict = options && options.ifConflict;
-        var lifecycle = (options && options.lifecycle) || defaultLifecycle;
-
+    function bindFactory(type, factory, options = {}) {
+        var { name, ifConflict, lifecycle = defaultLifecycle, withScope, allowedScopes, meta } = options
+        var $id = makeEntryId(type, name);
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
-
         if (factory.inject) factory.inject.forEach((it) => requireType(it));
 
         blueprint.addTypeEntry(
@@ -842,11 +816,11 @@ export function diBuilder(builderOptions) {
                 type,
                 factory,
                 lifecycle,
-                name: options && options.name,
-                withScope: options && options.withScope,
+                name,
+                withScope,
                 module: moduleStack[moduleStack.length - 1],
-                allowedScopes: options && options.allowedScopes,
-                meta: options && options.meta,
+                allowedScopes,
+                meta,
             },
             ifConflict === "append",
         );
@@ -923,8 +897,11 @@ export function diBuilder(builderOptions) {
     function requireTypesFromSafeFactories() {
         if (!hasSomeSafeFactory) return;
 
+        var markAsRequired = (type, name) => (requireType(type, name), {});
         var dryRunScope = {
-            get: (type, name) => (requireType(type, name), {}),
+            get: markAsRequired,
+            providerOf: markAsRequired,
+            phantomOf: markAsRequired,
             maybe: () => undefined,
             getAll: () => [],
         };
@@ -965,6 +942,7 @@ export function diBuilder(builderOptions) {
         var container = createRootContainerScope(blueprint);
         externalInjections.forEach((delegate) => delegate(container));
         blueprint.callMw("onPostBuild", -1, container);
+        blueprint = null; // Dispose builder
         return container;
     }
 
@@ -1003,7 +981,7 @@ export function staticModule(id) {
     };
 }
 
-const mapInject = (r, i) => i.map((t) => r.get(t));
+var mapInject = (r, i) => i.map((t) => r.get(t));
 export function factoryOf(Class, inject) {
     var isFactory = Array.isArray(inject);
 

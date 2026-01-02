@@ -703,9 +703,9 @@ describe("Container Builder", () => {
 
                 test("WHEN: class with unresolved deps", () => {
                     // Arrange -------
-                    var depKey = "dep"
+                    var depKey = "dep";
                     var classKey = "MyService";
-                    
+
                     class MyService {
                         static inject = [depKey];
                         constructor(value) {
@@ -713,8 +713,10 @@ describe("Container Builder", () => {
                         }
                     }
 
-                    var builder = diBuilder()
-                        .bindFactory(classKey, factoryOf(MyService))
+                    var builder = diBuilder().bindFactory(
+                        classKey,
+                        factoryOf(MyService),
+                    );
 
                     // Act ----------
 
@@ -722,53 +724,66 @@ describe("Container Builder", () => {
 
                     // Assert -------
                     expect(error).toBeInstanceOf(Error);
-                    expect(error.message).toEqual(DIErrors.MissingRequiredTypeError(depKey))
+                    expect(error.message).toEqual(
+                        DIErrors.MissingRequiredTypeError(depKey),
+                    );
                 });
 
                 test("WHEN: factory function with deps list", () => {
                     // Arrange ------
-                    var typeKey = 'typeKey'
-                    var factory = vi.fn((a, b) => ({ a, b }))
-    
-                    var depKeyA = 'depKeyA'
-                    var depValueA = 42
-                    var depKeyB = 'depKeyB'
-                    var depValueB = 'foo'
+                    var typeKey = "typeKey";
+                    var factory = vi.fn((a, b) => ({ a, b }));
 
+                    var depKeyA = "depKeyA";
+                    var depValueA = 42;
+                    var depKeyB = "depKeyB";
+                    var depValueB = "foo";
 
                     var builder = diBuilder()
-                        .bindFactory(typeKey, factoryOf(factory, [depKeyA, depKeyB]), { lifecycle: 'lazy' })
+                        .bindFactory(
+                            typeKey,
+                            factoryOf(factory, [depKeyA, depKeyB]),
+                            { lifecycle: "lazy" },
+                        )
                         .bindInstance(depKeyA, depValueA)
                         .bindInstance(depKeyB, depValueB)
-                        .build()
+                        .build();
 
                     // Act ----------
-                    var inst = builder.get(typeKey)
+                    var inst = builder.get(typeKey);
 
                     // Assert -------
-                    expect(factory).toHaveBeenCalledExactlyOnceWith(depValueA, depValueB)
-                    expect(inst).toBeInstanceOf(Object)
-                    expect(inst.a).toBe(depValueA)
-                    expect(inst.b).toBe(depValueB)
+                    expect(factory).toHaveBeenCalledExactlyOnceWith(
+                        depValueA,
+                        depValueB,
+                    );
+                    expect(inst).toBeInstanceOf(Object);
+                    expect(inst.a).toBe(depValueA);
+                    expect(inst.b).toBe(depValueB);
                 });
 
                 test("WHEN: factory function with unresolved deps", () => {
-                     // Arrange ------
-                    var typeKey = 'typeKey'
-                    var factory = vi.fn(value => ({ value }))
+                    // Arrange ------
+                    var typeKey = "typeKey";
+                    var factory = vi.fn((value) => ({ value }));
 
-                    var depKey = "value"
+                    var depKey = "value";
 
-                    var builder = diBuilder()
-                        .bindFactory(typeKey, factoryOf(factory, [depKey]), { lifecycle: 'lazy' })
+                    var builder = diBuilder().bindFactory(
+                        typeKey,
+                        factoryOf(factory, [depKey]),
+                        { lifecycle: "lazy" },
+                    );
 
                     // Act ----------
-                    var error = catchError(() => builder.build())
+                    var error = catchError(() => builder.build());
 
                     // Assert -------
-                    expect(error).toBeInstanceOf(Error)
-                    expect(error.message).toEqual(DIErrors.MissingRequiredTypeError(depKey))
-                    expect(factory).not.toHaveBeenCalled()
+                    expect(error).toBeInstanceOf(Error);
+                    expect(error.message).toEqual(
+                        DIErrors.MissingRequiredTypeError(depKey),
+                    );
+                    expect(factory).not.toHaveBeenCalled();
                 });
             });
 
