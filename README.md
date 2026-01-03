@@ -103,7 +103,8 @@ const service = container.get("service");
     - [Enforcing Type Bindings](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/06-Advanced/01-Container-Builder/02-Enforcing-Type-Bindings.md)
     - [Injecting Dependencies into Existing Services](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/06-Advanced/01-Container-Builder/03-Injecting-Into-Existing-Instances.md)
 
-_(Work In Progress)_
+*Documentation is a work in progress!*
+Some topics are not yet covered. For the most up-to-date documentation, please refer to the [repository](https://github.com/SpireX64/spirex-di).
 
 
 ## Integrations & Extensions
