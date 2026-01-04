@@ -59,7 +59,6 @@ import type { TypeMap } from "./container";
 export const {
     DIRootScope,
     DIScope,
-    withDIScope,
     withInject,
     useInject,
 } = createDIContext<TypeMap>();
@@ -68,7 +67,7 @@ export const {
 
 The factory returns a set of fully typed primitives:
 - React components for providing DI scopes;
-- Higher-order components for injecting dependencies;
+- Higher-order component for injecting dependencies;
 - A hook for resolving dependencies inside functional components.
 
 All of them are aware of the container’s **TypeMap**, ensuring that dependency keys and resolved values are type-checked.

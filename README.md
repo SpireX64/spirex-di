@@ -156,7 +156,7 @@ const container = diBuilder()
 ### SpireX/DI for React
 `@spirex/di-react`
 
- Provides **ReactJS** integration, including hooks and higher-order components (HoC) for injecting dependencies into components.
+Provides **React** integration, including hooks and higher-order components (HoC) for injecting dependencies into JSX components.
 
 [![codecov](https://codecov.io/github/SpireX64/spirex-di/graph/badge.svg?token=VXQZK5WDSY&flag=di-dynamic)](https://codecov.io/github/SpireX64/spirex-di)
 

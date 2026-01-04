@@ -36,8 +36,8 @@ export type DIRootScopeProps<TypeMap extends TTypeMapBase> = {
  * @template TypeMap The DI type map for the container.
  */
 export type DIScopeProps<TypeMap extends TTypeMapBase> = {
-    /** The current container scope to extend or isolate. */
-    scope: IContainerScope<TypeMap>;
+    /** String identifier of the new DI scope */
+    id: string
 } & TScopeOptions;
 
 /**

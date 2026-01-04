@@ -42,7 +42,7 @@ const MyComponent: React.VFC = () => {
 };
 ```
 
-The `id` prop defines the identifier of the new scope.
+The `id` prop defines the string identifier of the new scope.
 All components rendered inside `DIScope` will resolve their dependencies from this scope.
 
 When the `DIScope` component is unmounted, the scope it defines is **automatically disposed**.
