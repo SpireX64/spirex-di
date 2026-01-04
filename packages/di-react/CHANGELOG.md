@@ -1,7 +1,7 @@
 # Changelog — SpireX/DI for React integration
 
 ## 1.1.0
-- В функцию инъекции `TInjectSelector` добавлен контекст текущей области (`IScopeContext`). 
-- Добавлена возможность открывать области с помощью `withInject` HoC.
-- (FIX) Исправлен тип свойств для `DIScope`, из-за которого TS ругался на строковый идентификатор области.
-- (FIX) Исправлена мемоизация вложенной области.
+- Added the current scope context (`IScopeContext`) to the `TInjectSelector` injection function.
+- Added support for opening scopes using the `withInject` HoC.
+- (FIX) Fixed the props typing for `DIScope`, which previously caused TypeScript errors when using a string-based scope identifier.
+- (FIX) Fixed memoization of nested scopes.
