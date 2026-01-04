@@ -17,7 +17,7 @@ With a **tiny footprint** and support for modern React, this package ensures pre
 - **Root & child DI scopes:** Control lifetime and visibility of dependencies
 - **Declarative injection:** `useInject` hook for functional components, `withInject` HOC for props-based injection  
 - **Automatic scope disposal:** Child scopes unmount cleanly with React components
-- **Lightweight:** Only 0.9kb (0.4kb gzipped)
+- **Lightweight:** Only 0.78kb (0.46kb gzipped)
 
 
 ## Installation

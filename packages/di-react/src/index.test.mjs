@@ -133,6 +133,46 @@ describe("React Integration", () => {
                 undefined,
             );
         });
+
+        test("WHEN: Inject to props via component scope", () => {
+            // Arrange ------
+            var typeKey = "typeKey";
+            var expectedValue = 42;
+            var extraPropValue = "foo";
+
+            var scopeId = 'newScope';
+
+            var container = diBuilder()
+                .bindInstance(typeKey, expectedValue)
+                .build();
+
+            var { DIRootScope, withInject } = createDIContext();
+
+            var OriginComponent = vi.fn();
+
+            var WrappedComponent = withInject(
+                (r, ctx) => ({ injectedValue: r.get(typeKey), scopeId: ctx.current }),
+                { id: scopeId, sealed: true },
+            )(OriginComponent);
+
+            var wrapper = ({ children }) =>
+                createElement(DIRootScope, { root: container }, children);
+
+            // Act ----------
+            render(createElement(WrappedComponent, { extra: extraPropValue }), {
+                wrapper,
+            });
+
+            // Assert -------
+            expect(OriginComponent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    scopeId,
+                    injectedValue: expectedValue,
+                    extra: extraPropValue,
+                }),
+                undefined,
+            );
+        })
     });
 
     describe("Scope", () => {

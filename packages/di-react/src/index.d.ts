@@ -1,6 +1,7 @@
 import type { ComponentType, PropsWithChildren } from "react";
 import type {
     IContainerScope,
+    IScopeContext,
     ITypesResolver,
     TScopeOptions,
     TTypeMapBase,
@@ -12,10 +13,12 @@ import type {
  * @template TypeMap The DI type map.
  * @template R The type of the resolved dependencies returned by the selector.
  * @param resolver A resolver that provides access to registered types in the DI container.
+ * @param scopeContext The context representing the current scope and resolution path.
  * @returns The selected dependency or an object containing multiple dependencies.
  */
 export type TInjectSelector<TypeMap extends TTypeMapBase, R> = (
     resolver: ITypesResolver<TypeMap>,
+    scopeContext: IScopeContext,
 ) => R;
 
 /**
@@ -95,6 +98,7 @@ export type DIReactContext<TypeMap extends TTypeMapBase> = {
      * A higher-order component (HOC) for injecting dependencies into a component.
      *
      * @param selector A selector function that picks one or more dependencies from the container.
+     * @param scope Optional scope definition.
      * @returns A HOC that wraps a component and provides the selected dependencies as props.
      *
      * @example
@@ -103,6 +107,7 @@ export type DIReactContext<TypeMap extends TTypeMapBase> = {
      */
     withInject<R extends object>(
         selector: TInjectSelector<TypeMap, R>,
+        scope?: DIScopeProps<TypeMap>,
     ): <P extends R>(
         component: ComponentType<P>,
     ) => ComponentType<Omit<P, keyof R>>;
