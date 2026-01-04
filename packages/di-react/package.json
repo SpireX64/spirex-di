@@ -1,12 +1,12 @@
 {
     "name": "@spirex/di-react",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "license": "MIT",
     "private": false,
     "sideEffects": false,
-    "description": "Provides ReactJS integration, including hooks and higher-order components (HoC) for injecting dependencies into components.",
+    "description": "Type-safe React integration for SpireX/DI. Provides a fully typed and declarative dependency injection system.",
     "author": {
-        "name": "Artem Sobolenkov (SpireX)",
+        "name": "Artem Sobolenkov",
         "email": "SpireX@outlook.com",
         "url": "https://github.com/SpireX64"
     },
