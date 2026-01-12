@@ -4,12 +4,10 @@ export function AngularAdapter() {
     return {
         name: AngularAdapter.name,
         onPreBuild: (builder) => {
-            var tokens = builder
-                .findAll(() => true)
-                .reduce((dict, entry) => {
-                    dict[entry.type] = new InjectionToken(entry.$id);
-                    return dict;
-                }, {});
+            var tokens = {} 
+            builder.find((entry) => {
+                tokens[entry.type] = new InjectionToken(entry.$id);
+            })
 
             builder.bindFactory(
                 "angularAdapter",
