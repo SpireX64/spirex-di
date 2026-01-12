@@ -2,7 +2,9 @@ export function AngularAdapter() {
     return {
         name: AngularAdapter.name,
         onPreBuild: (builder) => {
-            builder.bindFactory('ngAdapter', () => {}, { lifecycle: 'lazy' })
+            builder.bindFactory('angularAdapter', () => {
+                return Object.freeze({ tokens: [] })
+            }, { lifecycle: 'lazy' })
         }
     }
 }
