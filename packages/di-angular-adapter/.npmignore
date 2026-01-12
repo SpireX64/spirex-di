@@ -1,0 +1,8 @@
+!dist/
+src/
+node_modules/
+coverage/
+yarn.lock
+tsconfig.json
+vitest.config.mjs
+rollup.config.js

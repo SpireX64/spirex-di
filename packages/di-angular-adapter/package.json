@@ -1,0 +1,85 @@
+{
+    "name": "@spirex/di-angular-adapter",
+    "version": "1.0.0",
+    "license": "MIT",
+    "private": false,
+    "homepage": "https://github.com/SpireX64/spirex-di",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/SpireX64/spirex-di.git",
+        "directory": "packages/di-angular-adapter"
+    },
+    "author": {
+        "name": "Artem Sobolenkov (SpireX)",
+        "email": "SpireX@outlook.com",
+        "url": "https://github.com/SpireX64"
+    },
+    "description": "",
+    "keywords": [
+        "di",
+        "adapter",
+        "angular",
+        "ioc",
+        "injection",
+        "injector",
+        "container",
+        "dependency injection",
+        "dependency inversion",
+        "inversion of control",
+        "flexible",
+        "modern",
+        "modular",
+        "type-safe",
+        "fail-fast",
+        "typescript",
+        "javascript",
+        "spirex"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "default": "./dist/index.cjs"
+            },
+            "default": {
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vitest run --config ./vitest.config.mjs",
+        "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+        "build": "rollup --config --environment NODE_ENV:development",
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "clean": "rimraf dist coverage"
+    },
+    "peerDependencies": {
+        "@angular/core": "^12",
+        "@spirex/di": "^1.1"
+    },
+    "peerDependenciesMeta": {
+        "@spirex/di": {
+            "optional": false
+        }
+    },
+    "devDependencies": {
+        "@angular/core": "12",
+        "@angular/compiler": "12",
+        "zone.js": "~0.11.4",
+        "rxjs": "^6.5.3",
+        "@spirex/di": "*",
+        "@types/jest": "*",
+        "@vitest/coverage-istanbul": "*",
+        "eslint": "*",
+        "prettier": "*",
+        "rollup": "*",
+        "rollup-plugin-copy": "*",
+        "rollup-plugin-terser": "*",
+        "vitest": "*"
+    }
+}
