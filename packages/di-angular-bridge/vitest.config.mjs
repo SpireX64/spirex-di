@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
     test: {
-        name: "@spirex/di-angular-adapter",
+        name: "@spirex/di-angular-bridge",
         root: "./src",
         include: ["**/*.{test,spec}.(c|m)js"],
         exclude: [

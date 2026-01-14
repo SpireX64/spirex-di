@@ -30,18 +30,7 @@ exports.default = [
     {
         input: sourceFile,
         output: {
-            name: "DIAngularAdapter",
             file: `${output}.js`,
-            format: "umd",
-            sourcemap: release ? false : "inline",
-            generatedCode,
-        },
-        plugins: [terserPlugin],
-    },
-    {
-        input: sourceFile,
-        output: {
-            file: `${output}.mjs`,
             format: "es",
             generatedCode,
         },
