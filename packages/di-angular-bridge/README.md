@@ -90,6 +90,13 @@ export class MyComponent {
 
 ## Documentation
 
+- [Why Use Both SpireX/DI and Angular DI?](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/07-Integrations/02-Angular/01-Why-Two-Containers.md)
+- [Package installation](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/07-Integrations/02-Angular/02-Installation.md)
+- [Angular Bridge Setup](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/07-Integrations/02-Angular/03-Bridge-Setup.md)
+- [Basic Dependency Injection](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/07-Integrations/02-Angular/04-Basic-Injection.md)
+- [Named Dependency Injection](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/07-Integrations/02-Angular/05-Named-Injection.md)
+- [Multiple Dependencies Injection](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/07-Integrations/02-Angular/06-Multiple-Injection.md)
+- [Injection Scopes](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/07-Integrations/02-Angular/07-Injection-Scopes.md)
 
 -------------------
 ## License
