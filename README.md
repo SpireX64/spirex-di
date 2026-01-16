@@ -116,6 +116,7 @@ Container is designed to be fully extensible and works seamlessly with additiona
 | `@spirex/di-dynamic` | **SpireX/DI Dynamic Modules** - allowing you to load parts of your container asynchronously at runtime. |
 | `@spirex/di-react` | **SpireX/DI for React** - provides a **fully typed, declarative, and scoped DI system** built on top of the **React Context API** and hooks. |
 | `@spirex/di-svelte` | **SpireX/DI for Svelte** - provides **Svelte** integration for injecting dependencies into components.|
+| `@spirex/di-angular-bridge` | Using **SpireX/DI** as a domain-level service container with standard **Angular DI** access. |
 | `@spirex/di-config` | **SpireX/DI Config** - provides a middleware that configures services right after they are created. |
 
 ## License

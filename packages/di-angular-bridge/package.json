@@ -14,7 +14,7 @@
         "email": "SpireX@outlook.com",
         "url": "https://github.com/SpireX64"
     },
-    "description": "",
+    "description": "Allows using SpireX/DI as a domain-level service container while accessing services via standard Angular DI API.",
     "keywords": [
         "di",
         "bridge",
