@@ -62,6 +62,7 @@ describe("Angular Bridge", () => {
             expect(bridge).instanceOf(Object);
             expect(bridge.tokens).instanceOf(Object);
             expect(bridge.tokens).is.frozen;
+            expect(bridge.tokens).toHaveProperty("ScopeContext");
             expect(bridge.providersForRoot).instanceOf(Function);
             expect(bridge.providersForScope).instanceOf(Function);
         });
@@ -79,7 +80,7 @@ describe("Angular Bridge", () => {
                 // Assert -----
                 expect(tokens).instanceOf(Object);
                 expect(tokens).is.frozen;
-                expect(tokens).is.empty;
+                expect(tokens).toHaveProperty("ScopeContext");
             });
 
             test("WHEN: Extract tokens", () => {
@@ -639,5 +640,32 @@ describe("Angular Bridge", () => {
             expect(values).toHaveLength(expectedValuesList.length);
             expect(values).toEqual(expect.arrayContaining(expectedValuesList));
         });
+
+        test("WHEN: Resolve current scope context", () => {
+            // Arrange --------
+            var scopeId = "TestScope"
+            var onScopeDispose = vi.fn()
+            var container = diBuilder()
+                .use({ onScopeDispose })
+                .use(AngularBridge())
+                .build()
+
+            var bridge = container.get('AngularBridge')
+
+            TestBed.configureTestingModule({
+                providers: bridge.providersForScope(scopeId),
+            })
+
+            // Act ------------
+            var context = TestBed.inject(bridge.tokens.ScopeContext);
+            context.dispose()
+
+            // Assert ---------
+            expect(context.current).toBe(scopeId)
+            expect(context.dispose).instanceOf(Function)
+            expect(onScopeDispose).toHaveBeenCalledOnce(
+                expect.objectContaining({ id: scopeId })
+            )
+        })
     });
 });
