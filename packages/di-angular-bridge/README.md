@@ -1,3 +1,8 @@
+![NPM Type Definitions](https://img.shields.io/npm/types/%40spirex%2Fdi-angular-bridge?style=for-the-badge)
+[![NPM Version](https://img.shields.io/npm/v/%40spirex%2Fdi-angular-bridge?style=for-the-badge)](https://www.npmjs.com/package/@spirex/di-angular-bridge)
+[![Codecov](https://img.shields.io/codecov/c/github/spirex64/spirex-di?token=VXQZK5WDSY&flag=di-angular-bridge&style=for-the-badge)](https://codecov.io/github/SpireX64/spirex-di)
+![GitHub License](https://img.shields.io/github/license/spirex64/spirex-di?style=for-the-badge)
+
 # SpireX/DI Bridge for Angular
 `@spirex/di-angular-bridge`
 
