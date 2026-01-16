@@ -1,0 +1,85 @@
+{
+    "name": "@spirex/di-angular-bridge",
+    "version": "1.0.0",
+    "license": "MIT",
+    "private": false,
+    "homepage": "https://github.com/SpireX64/spirex-di",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/SpireX64/spirex-di.git",
+        "directory": "packages/di-angular-bridge"
+    },
+    "author": {
+        "name": "Artem Sobolenkov (SpireX)",
+        "email": "SpireX@outlook.com",
+        "url": "https://github.com/SpireX64"
+    },
+    "description": "Allows using SpireX/DI as a domain-level service container while accessing services via standard Angular DI API.",
+    "keywords": [
+        "di",
+        "bridge",
+        "angular",
+        "ioc",
+        "injection",
+        "injector",
+        "container",
+        "dependency injection",
+        "dependency inversion",
+        "inversion of control",
+        "flexible",
+        "modern",
+        "modular",
+        "type-safe",
+        "fail-fast",
+        "typescript",
+        "javascript",
+        "spirex"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "require": {
+                "default": "./dist/index.cjs"
+            },
+            "default": {
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vitest run --config ./vitest.config.mjs",
+        "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+        "build": "rollup --config --environment NODE_ENV:development",
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "clean": "rimraf dist coverage"
+    },
+    "peerDependencies": {
+        "@angular/core": "^12",
+        "@spirex/di": "^1.1"
+    },
+    "peerDependenciesMeta": {
+        "@spirex/di": {
+            "optional": false
+        }
+    },
+    "devDependencies": {
+        "@angular/compiler": "12",
+        "@angular/common": "12",
+        "@angular/core": "12",
+        "@angular/platform-browser": "12",
+        "@angular/platform-browser-dynamic": "12",
+        "@spirex/di": "*",
+        "@types/jest": "*",
+        "@vitest/coverage-istanbul": "*",
+        "eslint": "*",
+        "prettier": "*",
+        "rollup": "*",
+        "rollup-plugin-copy": "*",
+        "rollup-plugin-terser": "*",
+        "rxjs": "^6.5.3",
+        "vitest": "*",
+        "zone.js": "~0.11.4"
+    }
+}
