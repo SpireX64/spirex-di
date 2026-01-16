@@ -72,6 +72,7 @@ export function AngularBridge() {
         name: AngularBridge.name,
         onPreBuild: (builder) => {
             var tokens = {}
+            builder.bindFactory('ScopeContext', (_, ctx) => ctx, { lifecycle: 'scope' })
             collectTypesDataFromBuilder(builder).forEach((info, type) => {
                 var primaryToken = createToken(type);
                 var primaryMultiToken = createToken(type, true)
@@ -95,13 +96,14 @@ export function AngularBridge() {
             })
 
             builder
-                .bindFactory('AngularBridge', r => {
+                .bindFactory('AngularBridge', (r) => {
                     return { 
-                        tokens: Object.freeze(tokens),
+                        tokens: Object.freeze(tokens), 
                         providersForRoot: () => r.getAll(ngProvider),
                         providersForScope: (id) => r.scope(id, { isolated: true }).getAll(ngProvider, ngScoped),
                     }
                 })
+                
         },
     };
 }

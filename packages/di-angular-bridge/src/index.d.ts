@@ -1,13 +1,19 @@
 import type { InjectionToken, FactoryProvider } from "@angular/core";
-import type { IContainerMiddleware, TTypeMapBase } from "@spirex/di";
+import type {
+    IContainerMiddleware,
+    TTypeMapBase,
+    IScopeContext,
+} from "@spirex/di";
 
 /**
  * A read-only mapping from SpireX/DI TypeMap to corresponding Angular InjectionTokens.
  * @template TypeMap - The type map of the DI container.
  */
-export type TokensTypeMap<TypeMap extends TTypeMapBase> = Readonly<{
-    [K in keyof TypeMap]: InjectionToken<TypeMap[K]>;
-}>;
+export type TokensTypeMap<TypeMap extends TTypeMapBase> = Readonly<
+    {
+        [K in keyof TypeMap]: InjectionToken<TypeMap[K]>;
+    } & { ScopeContext: InjectionToken<IScopeContext> }
+>;
 
 /**
  * Represents the Angular integration bridge for a SpireX/DI container.

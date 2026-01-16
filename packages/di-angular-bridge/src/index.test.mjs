@@ -608,8 +608,6 @@ describe("Angular Bridge", () => {
             expect(values).toEqual(expect.arrayContaining(expectedValuesList));
         });
 
-
-
         test("WHEN: Resolve all instances of named type", () => {
             // Arrange --------
             var typeKey = "typeKey";
