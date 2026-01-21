@@ -3,6 +3,12 @@ var ID_SEP = "$";
 
 var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
+var findInSet = (set, fn) => {
+    for (var el of set) {
+        if (fn(el)) return el;
+    }
+};
+
 function chainToString(chain, key) {
     var sep = " -> ";
     if (!chain.length) return key;
@@ -121,7 +127,7 @@ function createContainerBlueprint() {
 
     // region: PUBLIC METHODS
     function hasMod(module) {
-        return modules.has(module);
+        return !!findInSet(modules, (m) => m.id === module.id);
     }
 
     function addMod(module) {
@@ -129,7 +135,11 @@ function createContainerBlueprint() {
     }
 
     function hasMw(middleware) {
-        return middlewares.has(middleware);
+        return !!findInSet(
+            middlewares,
+            (m) =>
+                m === middleware || (middleware.name && m.name === middleware.name),
+        );
     }
 
     function addMw(middleware) {
@@ -890,8 +900,10 @@ export function diBuilder(builderOptions = {}) {
     }
 
     function use(middleware) {
-        blueprint.addMw(middleware);
-        if (middleware.onUse) middleware.onUse(this);
+        if (!blueprint.hasMw(middleware)) {
+            blueprint.addMw(middleware);
+            if (middleware.onUse) middleware.onUse(this);
+        }
         return this;
     }
 

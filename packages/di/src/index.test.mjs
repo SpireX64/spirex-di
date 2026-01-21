@@ -3508,6 +3508,30 @@ describe("Container Scope", () => {
             expect(inst).toBe(expectedInst);
         });
 
+        test("WHEN: add middlewares with same name", () => {
+            // Arrange --------
+            var middlewareName = 'Foo'
+
+            var onUse1 = vi.fn()
+            var middleware1 = { name: middlewareName, onUse: onUse1 }
+
+            var onUse2 = vi.fn()
+            var middleware2 = { name: middlewareName, onUse: onUse2 }
+
+            var builder = diBuilder()
+
+            // Act --------------
+            builder
+                .use(middleware1)
+                .use(middleware2)
+
+            // Arrange ----------
+            expect(builder.hasMiddleware(middleware1)).is.true
+            expect(builder.hasMiddleware(middleware2)).is.true // By Name
+            expect(onUse1).toHaveBeenCalledOnce()
+            expect(onUse2).not.toHaveBeenCalled()
+        })
+
         describe("onRequest", () => {
             test("WHEN: Listen instance requests", () => {
                 // Arrange -------
