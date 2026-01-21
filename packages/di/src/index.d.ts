@@ -1080,11 +1080,19 @@ export type TModuleDeclaration = {
      * Finalizes a static module definition using the provided delegate.
      *
      * @template TypeMap The type map representing the types the module provides.
+     * @template InternalTypeMap (optional) The type map representing the internal types of the module
      * @param delegate The function that defines bindings for the module.
      * @returns The static module definition.
      */
-    create<TypeMap extends TTypeMapBase>(
-        delegate: DIModuleDelegate<TypeMap>,
+    create<
+        TypeMap extends TTypeMapBase,
+        InternalTypeMap extends TTypeMapBase = object,
+    >(
+        delegate: DIModuleDelegate<
+            object extends InternalTypeMap
+                ? TypeMap
+                : Prettify<InternalTypeMap & TypeMap>
+        >,
     ): DIStaticModule<TypeMap>;
 };
 
@@ -1259,4 +1267,7 @@ export type TypeMapFilterByExactType<TypeMap extends TTypeMapBase, T> = {
         : never]: TypeMap[K];
 };
 
-export type TypeMapOmit<TypeMap extends TTypeMapBase, Keys extends keyof TypeMap> = Omit<TypeMap, Keys>
+export type TypeMapOmit<
+    TypeMap extends TTypeMapBase,
+    Keys extends keyof TypeMap,
+> = Omit<TypeMap, Keys>;
