@@ -498,25 +498,25 @@ export interface IContainerMiddleware<
     name?: string;
 
     /** Triggered when this middleware is added into the container builder */
-    onUse?: TContainerBuilderMiddlewareOnUse<TypeMap>;
+    onUse?: TContainerBuilderMiddlewareOnUse<TypeMap & MiddlewareTypeMap>;
 
     /** Triggered when a new type entry is being bound */
-    onBind?: TContainerBuilderMiddlewareOnBind<TypeMap>;
+    onBind?: TContainerBuilderMiddlewareOnBind<TypeMap & MiddlewareTypeMap>;
 
     /** A hook that runs before the container is built. */
-    onPreBuild?: TContainerMiddlewareOnPreBuild<TypeMap>;
+    onPreBuild?: TContainerMiddlewareOnPreBuild<TypeMap & MiddlewareTypeMap>;
 
     /** A hook that runs after the container is fully built. */
-    onPostBuild?: TContainerMiddlewareOnPostBuild<TypeMap>;
+    onPostBuild?: TContainerMiddlewareOnPostBuild<TypeMap & MiddlewareTypeMap>;
 
     /** Triggered whenever a instance is requested from the container. */
-    onRequest?: TContainerMiddlewareOnRequest<TypeMap>;
+    onRequest?: TContainerMiddlewareOnRequest<TypeMap & MiddlewareTypeMap>;
 
     /** Triggered after an instance is created, but before it is cached in a scope cache */
-    onActivated?: TContainerMiddlewareOnActivated<TypeMap>;
+    onActivated?: TContainerMiddlewareOnActivated<TypeMap & MiddlewareTypeMap>;
 
     /** Triggered after the instance has been fully resolved, but before it is returned to the requester */
-    onResolve?: TContainerMiddlewareOnResolve<TypeMap>;
+    onResolve?: TContainerMiddlewareOnResolve<TypeMap & MiddlewareTypeMap>;
 
     /**
      * Called when a new child scope is opened.
@@ -524,7 +524,7 @@ export interface IContainerMiddleware<
      * This hook runs immediately after the child scope is created,
      * and before any instances are resolved within it.
      */
-    onScopeOpen?: TContainerMiddlewareOnScope<TypeMap>;
+    onScopeOpen?: TContainerMiddlewareOnScope<TypeMap & MiddlewareTypeMap>;
 
     /**
      * Called when a scope is about to be disposed.
@@ -533,7 +533,7 @@ export interface IContainerMiddleware<
      * but before the current scope disposes its own instances and is marked as closed.
      * This hook is also called for the root scope when it is disposed.
      */
-    onScopeDispose?: TContainerMiddlewareOnScope<TypeMap>;
+    onScopeDispose?: TContainerMiddlewareOnScope<TypeMap & MiddlewareTypeMap>;
 }
 
 /**
@@ -1258,3 +1258,5 @@ export type TypeMapFilterByExactType<TypeMap extends TTypeMapBase, T> = {
             : never
         : never]: TypeMap[K];
 };
+
+export type TypeMapOmit<TypeMap extends TTypeMapBase, Keys extends keyof TypeMap> = Omit<TypeMap, Keys>
