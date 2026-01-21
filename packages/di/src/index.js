@@ -28,6 +28,8 @@ export var DIErrors = Object.freeze({
 
     MissingRequiredTypeError: (type) => `Required type "${type}" is not bound.`,
 
+    UndefinedInstance: (type) => `Cannot bind undefined to type "${type}".`,
+
     AliasCycle: (alias, aliasChain) =>
         `Alias resolution cycle detected: ${chainToString(aliasChain, alias)}`,
 
@@ -110,7 +112,9 @@ function createContainerBlueprint() {
 
     function types() {
         if (!typesEnum)
-            typesEnum = Object.freeze(Object.fromEntries([...entries.keys()].map(k => [k, k])))
+            typesEnum = Object.freeze(
+                Object.fromEntries([...entries.keys()].map((k) => [k, k])),
+            );
 
         return typesEnum;
     }
@@ -458,7 +462,7 @@ function createRootContainerScope(blueprint) {
         var instance;
 
         // Return the directly bound instance, if any (from bindInstance)
-        if (entry.instance) instance = entry.instance;
+        if ("instance" in entry) instance = entry.instance;
         else if (
             scope[$parent] &&
             (entry.lifecycle === "singleton" || entry.lifecycle === "lazy")
@@ -473,13 +477,14 @@ function createRootContainerScope(blueprint) {
             var nearestAllowedParent = undefined;
             for (
                 var parent = scope;
-                parent && !instance;
+                parent && instance === undefined;
                 parent = parent[$parent]
             ) {
                 if (!allowedScopes || allowedScopes.includes(parent.id)) {
                     // Save nearest allowed scope
                     nearestAllowedParent ||= parent;
-                    instance = parent[$locals].get(entry);
+                    var locals = parent[$locals];
+                    if (locals.has(entry)) instance = locals.get(entry);
                 }
                 if (parent.isolated) break;
             }
@@ -498,10 +503,10 @@ function createRootContainerScope(blueprint) {
             }
         }
 
-        if (!instance) {
+        if (instance === undefined) {
             // Attempt to get cached instance from current scope
             instance = scope[$locals].get(entry);
-            if (!instance && !noActivate) {
+            if (instance === undefined && !noActivate) {
                 if (entry.withScope)
                     scope = scope.scope(entry.type, entry.withScope);
 
@@ -513,9 +518,9 @@ function createRootContainerScope(blueprint) {
             }
         }
 
-        return (
-            instance && blueprint.callMw("onResolve", 1, entry, instance, scope)
-        );
+        return instance === undefined
+            ? undefined
+            : blueprint.callMw("onResolve", 1, entry, instance, scope);
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
@@ -783,6 +788,8 @@ export function diBuilder(builderOptions = {}) {
     function bindInstance(type, instance, options = {}) {
         var { name, ifConflict, allowedScopes, meta } = options;
         var $id = makeEntryId(type, name);
+        if (instance === undefined)
+            throw TypeError(DIErrors.UndefinedInstance($id));
         if (verifyBinding($id, ifConflict)) return this;
 
         blueprint.addTypeEntry(
@@ -803,7 +810,14 @@ export function diBuilder(builderOptions = {}) {
     }
 
     function bindFactory(type, factory, options = {}) {
-        var { name, ifConflict, lifecycle = defaultLifecycle, withScope, allowedScopes, meta } = options
+        var {
+            name,
+            ifConflict,
+            lifecycle = defaultLifecycle,
+            withScope,
+            allowedScopes,
+            meta,
+        } = options;
         var $id = makeEntryId(type, name);
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
         if (factory.inject) factory.inject.forEach((it) => requireType(it));
