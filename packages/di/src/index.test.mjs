@@ -304,6 +304,19 @@ describe("Container Builder", () => {
                 expect(instanceEntry.meta).to.be.undefined;
             });
 
+            test("WHEN: binding 'undefined' value", () => {
+                // Arrange ---------
+                var typeKey = 'typeKey'
+                var builder = diBuilder()
+
+                // Act -------------
+                var error = catchError(() => builder.bindInstance(typeKey, undefined))
+
+                // Arrange ---------
+                expect(error).instanceOf(TypeError)
+                expect(builder.has(typeKey)).is.false
+            })
+
             test("WHEN binding instance to the type with name", () => {
                 // Arrange ----
                 var typeKey = "typeKey";
@@ -1819,7 +1832,7 @@ describe("Container Builder", () => {
                 });
 
                 // Act -----------
-                var error = catchError(() => builder.bindInstance(typeKey));
+                var error = catchError(() => builder.bindInstance(typeKey, 42));
 
                 // Assert --------
                 expect(error).toBeDefined();
@@ -2554,6 +2567,64 @@ describe("Container Scope", () => {
                     DIErrors.TypeBindingNotFound(typeKey),
                 );
             });
+
+            test.each([
+                null,
+                false,
+                '',
+                +0,
+                -0,
+                0n,
+                NaN,
+            ])("WHEN: Get falsy value (%s) via instance binding from container", (falsyValue) => {
+                // Arrange -------
+                var typeKey = 'falsy'
+                var container = diBuilder()
+                    .bindInstance(typeKey, falsyValue)
+                    .build()
+
+                // Act -----------
+                var value = container.get(typeKey);
+
+                // Assert --------
+                expect(value).toBe(falsyValue);
+            })
+
+            test.each([
+                null,
+                false,
+                '',
+                +0,
+                -0,
+                0n,
+                NaN,
+            ])("WHEN: Get falsy value (%s) via factory binding from container", (falsyValue) => {
+                // Arrange -------
+                var typeKey = 'falsy'
+                var container = diBuilder()
+                    .bindFactory(typeKey, () => falsyValue)
+                    .build()
+
+                // Act -----------
+                var value = container.get(typeKey);
+
+                // Assert --------
+                expect(value).toBe(falsyValue);
+            })
+
+            test("WHEN: Get 'undefined' value via factory binding", () => {
+                // Arrange -------
+                var typeKey = 'typeKey'
+                var container = diBuilder()
+                    .bindFactory(typeKey, noop)
+                    .build()
+
+                // Act --------
+                var value = container.get(typeKey);
+
+                // Assert -----
+                expect(value).is.undefined;
+            })
 
             test("WHEN get not bound type instance with name", () => {
                 // Arrange --------
