@@ -77,9 +77,7 @@ export var DIErrors = Object.freeze({
  * @param name - Optional name for the binding (used for named bindings).
  * @return A unique string identifier for the binding.
  */
-function makeEntryId(type, name) {
-    return name ? type + ID_SEP + name : type;
-}
+var makeEntryId = (type, name) => name ? type + ID_SEP + name : type;
 
 function isTypeEntry(mayBeTypeEntry) {
     return (
@@ -1003,6 +1001,17 @@ export function staticModule(id) {
                 id,
                 delegate,
                 type: "static",
+            }),
+        group: (...modules) =>
+            Object.freeze({
+                id,
+                modules: Object.freeze(modules),
+                type: "group",
+                delegate: (binder) => {
+                    for (var module of modules) {
+                        binder.include(module);
+                    }
+                },
             }),
     };
 }

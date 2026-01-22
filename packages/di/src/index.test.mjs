@@ -4678,4 +4678,90 @@ describe("Container Module", () => {
         expect(myModule.delegate).toBe(delegate);
         expect(delegate).not.toHaveBeenCalled();
     });
+
+    describe("Grouping", () => {
+        test("WHEN: Group of modules", () => {
+            // Arrange --------
+            var groupID = 'AB'
+
+            var delegate = vi.fn()
+            var moduleA = staticModule('A').create(delegate);
+            var moduleB = staticModule('B').create(delegate);
+
+            // Act ------------
+            var group = staticModule(groupID).group(moduleA, moduleB);
+
+            // Assert ---------
+            expect(group).instanceOf(Object);
+            expect(group).is.frozen;
+            expect(group.id).eq(groupID);
+            expect(group.type).eq('group');
+            expect(group.modules).instanceOf(Array)
+            expect(group.modules).is.frozen;
+            expect(group.modules).toContainEqual(moduleA)
+            expect(group.modules).toContainEqual(moduleB)
+            expect(group.delegate).instanceOf(Function)
+            expect(delegate).not.toHaveBeenCalled()
+        })
+
+        test("WHEN: Include modules group into builder", () => {
+            // Arrange ---------
+            var typeA = 'typeA'
+            var delegateA = vi.fn(binder => binder.bindInstance(typeA, 11))
+            var moduleA = staticModule('A').create(delegateA);
+
+            var typeB = 'typeB'
+            var delegateB = vi.fn(binder => binder.bindInstance(typeB, 22))
+            var moduleB = staticModule('B').create(delegateB);
+            var group = staticModule('AB').group(moduleA, moduleB);
+
+            var builder = diBuilder()
+
+            // Act -------------
+            builder.include(group)
+
+            var entryA = builder.findEntry(typeA)
+            var entryB = builder.findEntry(typeB)
+
+            // Assert ----------
+            expect(builder.hasModule(group)).is.true
+            expect(builder.hasModule(moduleA)).is.true
+            expect(builder.hasModule(moduleB)).is.true
+
+            expect(delegateA).toHaveBeenCalledOnce(builder)
+            expect(delegateB).toHaveBeenCalledOnce(builder)
+
+            expect(entryA).instanceOf(Object)
+            expect(entryA.module).eq(moduleA)
+
+            expect(entryB).instanceOf(Object)
+            expect(entryB.module).eq(moduleB)
+        })
+
+        test('WHEN: Add group into another group', () => {
+            // Arrange -----------
+            var delegateA = vi.fn()
+            var moduleA = staticModule('A').create(delegateA)
+            var delegateB = vi.fn()
+            var moduleB = staticModule('B').create(delegateB)
+
+            var group1 = staticModule('group1').group(moduleA)
+
+            var builder = diBuilder()
+            
+            // Act ---------------
+            var group2 = staticModule('group2').group(group1, moduleB)
+
+            builder.include(group2)
+
+            // Assert ------------
+            expect(builder.hasModule(moduleA)).is.true
+            expect(builder.hasModule(moduleB)).is.true
+            expect(builder.hasModule(group1)).is.true
+            expect(builder.hasModule(group2)).is.true
+
+            expect(delegateA).toHaveBeenCalledOnce()
+            expect(delegateB).toHaveBeenCalledOnce()
+        })
+    })
 });

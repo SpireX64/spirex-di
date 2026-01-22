@@ -1,4 +1,9 @@
 type Prettify<T> = { [K in keyof T]: T[K] } & {};
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+    k: infer I,
+) => void
+    ? I
+    : never;
 
 /**
  * A map of string keys to types used in the DI container.
@@ -726,6 +731,18 @@ export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
 };
 
 /**
+ * Group of DI Modules
+ * @template TypeMap The map of types this group will provide.
+ */
+export type DIGroupModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
+    /** The kind of module — always "group" */
+    readonly type: "group";
+
+    /** List of the grouped modules */
+    readonly modules: readonly DIModule<AnyTypeMap>[];
+}
+
+/**
  * An interface that provides access to the container's type resolution mechanism.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
@@ -1094,6 +1111,17 @@ export type TModuleDeclaration = {
                 : Prettify<InternalTypeMap & TypeMap>
         >,
     ): DIStaticModule<TypeMap>;
+
+    /** 
+     * Groups multiple DI modules into a single composite module.
+     * 
+     * @template Modules A tuple of modules to be grouped.
+     * @param modules - List of modules to combine into a group.
+     * @returns A group module exposing the intersection of all grouped module types.
+     */
+    group<Modules extends readonly DIModule<any>[]>(
+        ...modules: Modules
+    ): DIGroupModule<Prettify<UnionToIntersection<TypeMapOf<Modules[number]>>>>;
 };
 
 /**
