@@ -21,6 +21,25 @@ export type TTypesEnum<TypeMap extends TTypeMapBase> = Readonly<{
     [T in keyof TypeMap]: T;
 }>;
 
+/** Reference to a specific binding in the container or module */
+export type TBindingRef<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = {
+    /**
+     * The type token (key) for the binding entry.
+     * Represents the service or type that is being bound in the container.
+     */
+    readonly type: T;
+
+    /**
+     * An optional name for the binding entry, used for named bindings.
+     * If provided, this value helps to distinguish between different bindings of the same type.
+     * If the binding does not have a name, this field will be `undefined`.
+     */
+    readonly name: string | undefined;
+}
+
 /**
  * Defines the lifecycle for a binding in the container.
  *
@@ -218,24 +237,12 @@ export type TAliasBindingOptions = TBindingOptions & {
 export type TTypeEntryBase<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
-> = {
+> = TBindingRef<TypeMap, T> & {
     /**
      * A unique identifier for the binding entry.
      * This ID is used internally to distinguish between different bindings of the same type.
      * */
     readonly $id: string;
-    /**
-     * The type token (key) for the binding entry.
-     * Represents the service or type that is being bound in the container.
-     * */
-    readonly type: T;
-
-    /**
-     * An optional name for the binding entry, used for named bindings.
-     * If provided, this value helps to distinguish between different bindings of the same type.
-     * If the binding does not have a name, this field will be `undefined`.
-     */
-    readonly name: string | undefined;
 
     /**
      * The module that owns this binding, if any.
@@ -364,7 +371,7 @@ export type TContainerBuilderMiddlewareOnUse<
 > = (builder: IContainerBuilder<TypeMap>) => void;
 
 /**
- * A middleware function that intercepts type binding during container building.
+ * A middleware function that intercepts type binding during container configuration.
  * Can be used to transform or validate the entry.
  *
  * @param entry - The current type entry that is about to be added to the container.
@@ -378,6 +385,22 @@ export type TContainerBuilderMiddlewareOnBind<
     originEntry: TTypeEntry<TypeMap, keyof TypeMap>,
     builder: IContainerBuilder<TypeMap>,
 ) => TTypeEntry<TypeMap, keyof TypeMap>;
+
+/**
+ * A middleware function that intercepts alias binding during container configuration.
+ * Can be used to validate, track, or restrict alias registrations.
+ *
+ * @param alias - The alias reference that is about to be registered.
+ * @param origin - The original binding reference the alias points to.
+ * @param builder - The container builder instance.
+ */
+export type TContainerBuilderMiddlewareOnBindAlias<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (
+    alias: TBindingRef<TypeMap, keyof TypeMap>,
+    origin: TBindingRef<TypeMap, keyof TypeMap>,
+    builder: IContainerBuilder<TypeMap>,
+) => void
 
 /**
  * A middleware function that triggered whenever a instance is requested from the container.
@@ -507,6 +530,9 @@ export interface IContainerMiddleware<
 
     /** Triggered when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind<TypeMap & MiddlewareTypeMap>;
+
+    /** Triggered when a new type alias is being bound */
+    onBindAlias?: TContainerBuilderMiddlewareOnBindAlias<TypeMap & MiddlewareTypeMap>;
 
     /** A hook that runs before the container is built. */
     onPreBuild?: TContainerMiddlewareOnPreBuild<TypeMap & MiddlewareTypeMap>;

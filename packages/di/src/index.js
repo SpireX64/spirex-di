@@ -883,11 +883,15 @@ export function diBuilder(builderOptions = {}) {
     }
 
     function bindAlias(type, originType, options) {
-        var $aliasId = makeEntryId(type, options && options.name);
+        var name = options && options.name
+        var originName = options && options.originName
+
+        var $aliasId = makeEntryId(type, name);
         var ifConflict = options && options.ifConflict;
 
         if (verifyBinding($aliasId, ifConflict)) return this;
 
+        blueprint.callMw('onBindAlias', -1, { type, name }, { type: originType, name: originName }, this)
         blueprint.addAlias(
             $aliasId,
             originType,

@@ -3532,6 +3532,84 @@ describe("Container Scope", () => {
             expect(onUse2).not.toHaveBeenCalled()
         })
 
+        describe("onBindAlias", () => {
+            test("WHEN: Apply onBindAlias middleware to builder", () => {
+                // Arrange --------------
+                var onBindAlias = vi.fn()
+                var builder = diBuilder()
+
+                // Act ------------------
+                builder.use({ onBindAlias })
+
+                // Assert ---------------
+                expect(onBindAlias).not.toHaveBeenCalled()
+            })
+
+            test("WHEN: Binding instance or factory", () => {
+                // Arrange --------------
+                var onBindAlias = vi.fn()
+                var builder = diBuilder()
+                    .use({ onBindAlias })
+
+                // Act ------------------
+                builder
+                    .bindInstance("valueKey", 42)
+                    .bindFactory("factoryKey", noop)
+
+                // Assert ---------------
+                expect(onBindAlias).not.toHaveBeenCalled()
+            })
+
+            test("WHEN: Bind alias", () => {
+                // Arrange ---------
+                var typeKey = "typeKey"
+                var aliasKey = "aliasKey"
+
+                var onBindAlias = vi.fn()
+
+                var builder = diBuilder()
+                    .use({ onBindAlias })
+                    .bindInstance(typeKey, 42)
+
+                // Act -------------
+                builder
+                    .bindAlias(aliasKey, typeKey)
+
+                // Assert ----------
+                expect(onBindAlias).toHaveBeenCalledExactlyOnceWith(
+                    expect.objectContaining({ type: aliasKey }),
+                    expect.objectContaining({ type: typeKey }),
+                    builder,
+                )
+            })
+
+            test("WHEN: Bind named alias", () => {
+                // Arrange ----------
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+
+                var aliasKey = "aliasKey";
+                var aliasName = "aliasName";
+
+                var onBindAlias = vi.fn()
+
+                var builder = diBuilder()
+                    .use({ onBindAlias })
+                    .bindInstance(typeKey, 42, { name: typeName })
+
+                // Act --------------
+                builder
+                    .bindAlias(aliasKey, typeKey, { name: aliasName, originName: typeName })
+
+                // Assert -----------
+                expect(onBindAlias).toHaveBeenCalledExactlyOnceWith(
+                    expect.objectContaining({ type: aliasKey, name: aliasName }),
+                    expect.objectContaining({ type: typeKey, name: typeName }),
+                    builder,
+                )
+            })
+        })
+
         describe("onRequest", () => {
             test("WHEN: Listen instance requests", () => {
                 // Arrange -------
