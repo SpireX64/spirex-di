@@ -306,16 +306,18 @@ describe("Container Builder", () => {
 
             test("WHEN: binding 'undefined' value", () => {
                 // Arrange ---------
-                var typeKey = 'typeKey'
-                var builder = diBuilder()
+                var typeKey = "typeKey";
+                var builder = diBuilder();
 
                 // Act -------------
-                var error = catchError(() => builder.bindInstance(typeKey, undefined))
+                var error = catchError(() =>
+                    builder.bindInstance(typeKey, undefined),
+                );
 
                 // Arrange ---------
-                expect(error).instanceOf(TypeError)
-                expect(builder.has(typeKey)).is.false
-            })
+                expect(error).instanceOf(TypeError);
+                expect(builder.has(typeKey)).is.false;
+            });
 
             test("WHEN binding instance to the type with name", () => {
                 // Arrange ----
@@ -2568,63 +2570,51 @@ describe("Container Scope", () => {
                 );
             });
 
-            test.each([
-                null,
-                false,
-                '',
-                +0,
-                -0,
-                0n,
-                NaN,
-            ])("WHEN: Get falsy value (%s) via instance binding from container", (falsyValue) => {
-                // Arrange -------
-                var typeKey = 'falsy'
-                var container = diBuilder()
-                    .bindInstance(typeKey, falsyValue)
-                    .build()
+            test.each([null, false, "", +0, -0, 0n, NaN])(
+                "WHEN: Get falsy value (%s) via instance binding from container",
+                (falsyValue) => {
+                    // Arrange -------
+                    var typeKey = "falsy";
+                    var container = diBuilder()
+                        .bindInstance(typeKey, falsyValue)
+                        .build();
 
-                // Act -----------
-                var value = container.get(typeKey);
+                    // Act -----------
+                    var value = container.get(typeKey);
 
-                // Assert --------
-                expect(value).toBe(falsyValue);
-            })
+                    // Assert --------
+                    expect(value).toBe(falsyValue);
+                },
+            );
 
-            test.each([
-                null,
-                false,
-                '',
-                +0,
-                -0,
-                0n,
-                NaN,
-            ])("WHEN: Get falsy value (%s) via factory binding from container", (falsyValue) => {
-                // Arrange -------
-                var typeKey = 'falsy'
-                var container = diBuilder()
-                    .bindFactory(typeKey, () => falsyValue)
-                    .build()
+            test.each([null, false, "", +0, -0, 0n, NaN])(
+                "WHEN: Get falsy value (%s) via factory binding from container",
+                (falsyValue) => {
+                    // Arrange -------
+                    var typeKey = "falsy";
+                    var container = diBuilder()
+                        .bindFactory(typeKey, () => falsyValue)
+                        .build();
 
-                // Act -----------
-                var value = container.get(typeKey);
+                    // Act -----------
+                    var value = container.get(typeKey);
 
-                // Assert --------
-                expect(value).toBe(falsyValue);
-            })
+                    // Assert --------
+                    expect(value).toBe(falsyValue);
+                },
+            );
 
             test("WHEN: Get 'undefined' value via factory binding", () => {
                 // Arrange -------
-                var typeKey = 'typeKey'
-                var container = diBuilder()
-                    .bindFactory(typeKey, noop)
-                    .build()
+                var typeKey = "typeKey";
+                var container = diBuilder().bindFactory(typeKey, noop).build();
 
                 // Act --------
                 var value = container.get(typeKey);
 
                 // Assert -----
                 expect(value).is.undefined;
-            })
+            });
 
             test("WHEN get not bound type instance with name", () => {
                 // Arrange --------
@@ -3510,78 +3500,74 @@ describe("Container Scope", () => {
 
         test("WHEN: add middlewares with same name", () => {
             // Arrange --------
-            var middlewareName = 'Foo'
+            var middlewareName = "Foo";
 
-            var onUse1 = vi.fn()
-            var middleware1 = { name: middlewareName, onUse: onUse1 }
+            var onUse1 = vi.fn();
+            var middleware1 = { name: middlewareName, onUse: onUse1 };
 
-            var onUse2 = vi.fn()
-            var middleware2 = { name: middlewareName, onUse: onUse2 }
+            var onUse2 = vi.fn();
+            var middleware2 = { name: middlewareName, onUse: onUse2 };
 
-            var builder = diBuilder()
+            var builder = diBuilder();
 
             // Act --------------
-            builder
-                .use(middleware1)
-                .use(middleware2)
+            builder.use(middleware1).use(middleware2);
 
             // Arrange ----------
-            expect(builder.hasMiddleware(middleware1)).is.true
-            expect(builder.hasMiddleware(middleware2)).is.true // By Name
-            expect(onUse1).toHaveBeenCalledOnce()
-            expect(onUse2).not.toHaveBeenCalled()
-        })
+            expect(builder.hasMiddleware(middleware1)).is.true;
+            expect(builder.hasMiddleware(middleware2)).is.true; // By Name
+            expect(onUse1).toHaveBeenCalledOnce();
+            expect(onUse2).not.toHaveBeenCalled();
+        });
 
         describe("onBindAlias", () => {
             test("WHEN: Apply onBindAlias middleware to builder", () => {
                 // Arrange --------------
-                var onBindAlias = vi.fn()
-                var builder = diBuilder()
+                var onBindAlias = vi.fn();
+                var builder = diBuilder();
 
                 // Act ------------------
-                builder.use({ onBindAlias })
+                builder.use({ onBindAlias });
 
                 // Assert ---------------
-                expect(onBindAlias).not.toHaveBeenCalled()
-            })
+                expect(onBindAlias).not.toHaveBeenCalled();
+            });
 
             test("WHEN: Binding instance or factory", () => {
                 // Arrange --------------
-                var onBindAlias = vi.fn()
-                var builder = diBuilder()
-                    .use({ onBindAlias })
+                var onBindAlias = vi.fn();
+                var builder = diBuilder().use({ onBindAlias });
 
                 // Act ------------------
                 builder
                     .bindInstance("valueKey", 42)
-                    .bindFactory("factoryKey", noop)
+                    .bindFactory("factoryKey", noop);
 
                 // Assert ---------------
-                expect(onBindAlias).not.toHaveBeenCalled()
-            })
+                expect(onBindAlias).not.toHaveBeenCalled();
+            });
 
             test("WHEN: Bind alias", () => {
                 // Arrange ---------
-                var typeKey = "typeKey"
-                var aliasKey = "aliasKey"
+                var typeKey = "typeKey";
+                var aliasKey = "aliasKey";
 
-                var onBindAlias = vi.fn()
+                var onBindAlias = vi.fn();
 
                 var builder = diBuilder()
                     .use({ onBindAlias })
-                    .bindInstance(typeKey, 42)
+                    .bindInstance(typeKey, 42);
 
                 // Act -------------
-                builder
-                    .bindAlias(aliasKey, typeKey)
+                builder.bindAlias(aliasKey, typeKey);
 
                 // Assert ----------
                 expect(onBindAlias).toHaveBeenCalledExactlyOnceWith(
                     expect.objectContaining({ type: aliasKey }),
                     expect.objectContaining({ type: typeKey }),
                     builder,
-                )
-            })
+                );
+            });
 
             test("WHEN: Bind named alias", () => {
                 // Arrange ----------
@@ -3591,24 +3577,29 @@ describe("Container Scope", () => {
                 var aliasKey = "aliasKey";
                 var aliasName = "aliasName";
 
-                var onBindAlias = vi.fn()
+                var onBindAlias = vi.fn();
 
                 var builder = diBuilder()
                     .use({ onBindAlias })
-                    .bindInstance(typeKey, 42, { name: typeName })
+                    .bindInstance(typeKey, 42, { name: typeName });
 
                 // Act --------------
-                builder
-                    .bindAlias(aliasKey, typeKey, { name: aliasName, originName: typeName })
+                builder.bindAlias(aliasKey, typeKey, {
+                    name: aliasName,
+                    originName: typeName,
+                });
 
                 // Assert -----------
                 expect(onBindAlias).toHaveBeenCalledExactlyOnceWith(
-                    expect.objectContaining({ type: aliasKey, name: aliasName }),
+                    expect.objectContaining({
+                        type: aliasKey,
+                        name: aliasName,
+                    }),
                     expect.objectContaining({ type: typeKey, name: typeName }),
                     builder,
-                )
-            })
-        })
+                );
+            });
+        });
 
         describe("onRequest", () => {
             test("WHEN: Listen instance requests", () => {
@@ -4760,11 +4751,11 @@ describe("Container Module", () => {
     describe("Grouping", () => {
         test("WHEN: Group of modules", () => {
             // Arrange --------
-            var groupID = 'AB'
+            var groupID = "AB";
 
-            var delegate = vi.fn()
-            var moduleA = staticModule('A').create(delegate);
-            var moduleB = staticModule('B').create(delegate);
+            var delegate = vi.fn();
+            var moduleA = staticModule("A").create(delegate);
+            var moduleB = staticModule("B").create(delegate);
 
             // Act ------------
             var group = staticModule(groupID).group(moduleA, moduleB);
@@ -4773,73 +4764,73 @@ describe("Container Module", () => {
             expect(group).instanceOf(Object);
             expect(group).is.frozen;
             expect(group.id).eq(groupID);
-            expect(group.type).eq('group');
-            expect(group.modules).instanceOf(Array)
+            expect(group.type).eq("group");
+            expect(group.modules).instanceOf(Array);
             expect(group.modules).is.frozen;
-            expect(group.modules).toContainEqual(moduleA)
-            expect(group.modules).toContainEqual(moduleB)
-            expect(group.delegate).instanceOf(Function)
-            expect(delegate).not.toHaveBeenCalled()
-        })
+            expect(group.modules).toContainEqual(moduleA);
+            expect(group.modules).toContainEqual(moduleB);
+            expect(group.delegate).instanceOf(Function);
+            expect(delegate).not.toHaveBeenCalled();
+        });
 
         test("WHEN: Include modules group into builder", () => {
             // Arrange ---------
-            var typeA = 'typeA'
-            var delegateA = vi.fn(binder => binder.bindInstance(typeA, 11))
-            var moduleA = staticModule('A').create(delegateA);
+            var typeA = "typeA";
+            var delegateA = vi.fn((binder) => binder.bindInstance(typeA, 11));
+            var moduleA = staticModule("A").create(delegateA);
 
-            var typeB = 'typeB'
-            var delegateB = vi.fn(binder => binder.bindInstance(typeB, 22))
-            var moduleB = staticModule('B').create(delegateB);
-            var group = staticModule('AB').group(moduleA, moduleB);
+            var typeB = "typeB";
+            var delegateB = vi.fn((binder) => binder.bindInstance(typeB, 22));
+            var moduleB = staticModule("B").create(delegateB);
+            var group = staticModule("AB").group(moduleA, moduleB);
 
-            var builder = diBuilder()
+            var builder = diBuilder();
 
             // Act -------------
-            builder.include(group)
+            builder.include(group);
 
-            var entryA = builder.findEntry(typeA)
-            var entryB = builder.findEntry(typeB)
+            var entryA = builder.findEntry(typeA);
+            var entryB = builder.findEntry(typeB);
 
             // Assert ----------
-            expect(builder.hasModule(group)).is.true
-            expect(builder.hasModule(moduleA)).is.true
-            expect(builder.hasModule(moduleB)).is.true
+            expect(builder.hasModule(group)).is.true;
+            expect(builder.hasModule(moduleA)).is.true;
+            expect(builder.hasModule(moduleB)).is.true;
 
-            expect(delegateA).toHaveBeenCalledOnce(builder)
-            expect(delegateB).toHaveBeenCalledOnce(builder)
+            expect(delegateA).toHaveBeenCalledOnce(builder);
+            expect(delegateB).toHaveBeenCalledOnce(builder);
 
-            expect(entryA).instanceOf(Object)
-            expect(entryA.module).eq(moduleA)
+            expect(entryA).instanceOf(Object);
+            expect(entryA.module).eq(moduleA);
 
-            expect(entryB).instanceOf(Object)
-            expect(entryB.module).eq(moduleB)
-        })
+            expect(entryB).instanceOf(Object);
+            expect(entryB.module).eq(moduleB);
+        });
 
-        test('WHEN: Add group into another group', () => {
+        test("WHEN: Add group into another group", () => {
             // Arrange -----------
-            var delegateA = vi.fn()
-            var moduleA = staticModule('A').create(delegateA)
-            var delegateB = vi.fn()
-            var moduleB = staticModule('B').create(delegateB)
+            var delegateA = vi.fn();
+            var moduleA = staticModule("A").create(delegateA);
+            var delegateB = vi.fn();
+            var moduleB = staticModule("B").create(delegateB);
 
-            var group1 = staticModule('group1').group(moduleA)
+            var group1 = staticModule("group1").group(moduleA);
 
-            var builder = diBuilder()
-            
+            var builder = diBuilder();
+
             // Act ---------------
-            var group2 = staticModule('group2').group(group1, moduleB)
+            var group2 = staticModule("group2").group(group1, moduleB);
 
-            builder.include(group2)
+            builder.include(group2);
 
             // Assert ------------
-            expect(builder.hasModule(moduleA)).is.true
-            expect(builder.hasModule(moduleB)).is.true
-            expect(builder.hasModule(group1)).is.true
-            expect(builder.hasModule(group2)).is.true
+            expect(builder.hasModule(moduleA)).is.true;
+            expect(builder.hasModule(moduleB)).is.true;
+            expect(builder.hasModule(group1)).is.true;
+            expect(builder.hasModule(group2)).is.true;
 
-            expect(delegateA).toHaveBeenCalledOnce()
-            expect(delegateB).toHaveBeenCalledOnce()
-        })
-    })
+            expect(delegateA).toHaveBeenCalledOnce();
+            expect(delegateB).toHaveBeenCalledOnce();
+        });
+    });
 });

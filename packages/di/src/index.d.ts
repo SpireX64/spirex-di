@@ -21,7 +21,10 @@ export type TTypesEnum<TypeMap extends TTypeMapBase> = Readonly<{
     [T in keyof TypeMap]: T;
 }>;
 
-/** Reference to a specific binding in the container or module */
+/**
+ * Reference to a specific binding in the container or module
+ * @since 1.2.0
+ */
 export type TBindingRef<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
@@ -38,7 +41,7 @@ export type TBindingRef<
      * If the binding does not have a name, this field will be `undefined`.
      */
     readonly name: string | undefined;
-}
+};
 
 /**
  * Defines the lifecycle for a binding in the container.
@@ -74,6 +77,20 @@ export interface ITypeEntryMetaData<
 }
 
 export type TProvider<T> = () => T;
+export type TPredicate<T> = (item: T) => boolean | undefined | void;
+
+/**
+ * Predicate function used match binding references.
+ *
+ * @template TypeMap A map of container types used for strict typing.
+ * @param reference An immutable object contains type and name of binding.
+ * @returns `true` if the type entry matches the predicate condition, otherwise `false`.
+ *
+ * @since 1.2.0
+ */
+export type TBindingRefPredicate<TypeMap extends TTypeMapBase> = TPredicate<
+    TBindingRef<TypeMap, keyof TypeMap>
+>;
 
 /**
  * Predicate function used to filter or match type bindings.
@@ -87,9 +104,9 @@ export type TProvider<T> = () => T;
  *
  * @since 1.1.0
  */
-export type TTypeEntryPredicate<TypeMap extends TTypeMapBase> = (
-    typeEntry: TTypeEntry<TypeMap, keyof TypeMap>,
-) => boolean;
+export type TTypeEntryPredicate<TypeMap extends TTypeMapBase> = TPredicate<
+    TTypeEntry<TypeMap, keyof TypeMap>
+>;
 
 /**
  * A factory function that produces an instance of a type from the container.
@@ -393,6 +410,8 @@ export type TContainerBuilderMiddlewareOnBind<
  * @param alias - The alias reference that is about to be registered.
  * @param origin - The original binding reference the alias points to.
  * @param builder - The container builder instance.
+ *
+ * @since 1.2.0
  */
 export type TContainerBuilderMiddlewareOnBindAlias<
     TypeMap extends TTypeMapBase = AnyTypeMap,
@@ -400,7 +419,7 @@ export type TContainerBuilderMiddlewareOnBindAlias<
     alias: TBindingRef<TypeMap, keyof TypeMap>,
     origin: TBindingRef<TypeMap, keyof TypeMap>,
     builder: IContainerBuilder<TypeMap>,
-) => void
+) => void;
 
 /**
  * A middleware function that triggered whenever a instance is requested from the container.
@@ -483,6 +502,8 @@ export type TContainerMiddlewareOnResolve<
  *
  * @template TypeMap - The type map defining all bindings in the container.
  * @param builder - Reference to the container builder being configured.
+ *
+ * @since 1.1.0
  */
 export type TContainerMiddlewareOnPreBuild<
     TypeMap extends TTypeMapBase = AnyTypeMap,
@@ -496,6 +517,8 @@ export type TContainerMiddlewareOnPreBuild<
  *
  * @template TypeMap - The type map defining all bindings in the container.
  * @param root - Reference to the built container (root scope).
+ *
+ * @since 1.1.0
  */
 export type TContainerMiddlewareOnPostBuild<
     TypeMap extends TTypeMapBase = AnyTypeMap,
@@ -532,12 +555,20 @@ export interface IContainerMiddleware<
     onBind?: TContainerBuilderMiddlewareOnBind<TypeMap & MiddlewareTypeMap>;
 
     /** Triggered when a new type alias is being bound */
-    onBindAlias?: TContainerBuilderMiddlewareOnBindAlias<TypeMap & MiddlewareTypeMap>;
+    onBindAlias?: TContainerBuilderMiddlewareOnBindAlias<
+        TypeMap & MiddlewareTypeMap
+    >;
 
-    /** A hook that runs before the container is built. */
+    /**
+     * A hook that runs before the container is built
+     * @since 1.1.0
+     */
     onPreBuild?: TContainerMiddlewareOnPreBuild<TypeMap & MiddlewareTypeMap>;
 
-    /** A hook that runs after the container is fully built. */
+    /**
+     * A hook that runs after the container is fully built
+     * @since 1.1.0
+     */
     onPostBuild?: TContainerMiddlewareOnPostBuild<TypeMap & MiddlewareTypeMap>;
 
     /** Triggered whenever a instance is requested from the container. */
@@ -766,7 +797,7 @@ export type DIGroupModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
 
     /** List of the grouped modules */
     readonly modules: readonly DIModule<AnyTypeMap>[];
-}
+};
 
 /**
  * An interface that provides access to the container's type resolution mechanism.
@@ -1059,6 +1090,18 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
     ): Readonly<TTypeEntry<TypeMap, keyof TypeMap>>[];
 
     /**
+     * Finds the first alias binding that matches the given predicate.
+     *
+     * @param predicate - A function used to test alias bindings.
+     * @returns The matching alias reference, or `undefined` if none is found.
+     *
+     * @since 1.2.0
+     */
+    findAlias(
+        predicate: TBindingRefPredicate<TypeMap>,
+    ): TBindingRef<TypeMap, keyof TypeMap>;
+
+    /**
      * Returns the origin type reference that an alias points to, if any.
      * @param type - The alias type key.
      * @param name - Optional alias name (for named bindings).
@@ -1138,12 +1181,14 @@ export type TModuleDeclaration = {
         >,
     ): DIStaticModule<TypeMap>;
 
-    /** 
+    /**
      * Groups multiple DI modules into a single composite module.
-     * 
+     *
      * @template Modules A tuple of modules to be grouped.
      * @param modules - List of modules to combine into a group.
      * @returns A group module exposing the intersection of all grouped module types.
+     *
+     * @since 1.2.0
      */
     group<Modules extends readonly DIModule<any>[]>(
         ...modules: Modules
@@ -1232,6 +1277,8 @@ export declare function factoryOf<
  * @param factoryFn      - A function that constructs the instance using dependencies.
  * @param inject         - The ordered list of dependency keys to resolve.
  * @returns A type-safe factory for the DI container binding.
+ *
+ * @since 1.1.0
  *
  * @example
  * function createService(repo: IRepository, logger: ILogger): MyService {

@@ -3,9 +3,30 @@ var ID_SEP = "$";
 
 var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
-var findInSet = (set, fn) => {
-    for (var el of set) {
-        if (fn(el)) return el;
+/**
+ * @template T
+ * @param {Set<T>} set
+ * @param {(item: T) => boolean} predicate
+ * @returns {T | undefined}
+ */
+var findInSet = (set, predicate) => {
+    for (var item of set) {
+        if (predicate(item)) return item;
+    }
+};
+
+/**
+ * @template T
+ * @param {Map<Set<T>>} mapSet
+ * @param {(item: T) => boolean} predicate
+ * @returns {T | undefined}
+ */
+var findInMapSet = (mapSet, predicate) => {
+    for (var valueOrSet of mapSet.values()) {
+        if (valueOrSet instanceof Set) {
+            var value = findInSet(valueOrSet, predicate);
+            if (value) return;
+        } else if (predicate(valueOrSet)) return valueOrSet;
     }
 };
 
@@ -73,15 +94,24 @@ export var DIErrors = Object.freeze({
  * The ID is used internally to distinguish bindings, including support for named bindings.
  * This ID is stored in the `$id` field of a binding entry and is used as the internal key.
  *
- * @param type - The type token of the binding.
- * @param name - Optional name for the binding (used for named bindings).
+ * @param {string} type - The type token of the binding.
+ * @param {string | undefined} [name] - Optional name for the binding (used for named bindings).
  * @return A unique string identifier for the binding.
  */
-var makeEntryId = (type, name) => name ? type + ID_SEP + name : type;
+var makeEntryId = (type, name) => (name ? type + ID_SEP + name : type);
+
+/**
+ * Split identifier on key and name
+ * @param {string} id
+ * @returns {{type: string, name?: string}}
+ */
+var splitEntryId = (id) => {
+    id = id.split(ID_SEP);
+    return { type: id[0], type: id[1] };
+};
 
 function isTypeEntry(mayBeTypeEntry) {
     return (
-        mayBeTypeEntry &&
         typeof mayBeTypeEntry === "object" &&
         "$id" in mayBeTypeEntry &&
         "type" in mayBeTypeEntry
@@ -136,7 +166,8 @@ function createContainerBlueprint() {
         return !!findInSet(
             middlewares,
             (m) =>
-                m === middleware || (middleware.name && m.name === middleware.name),
+                m === middleware ||
+                (middleware.name && m.name === middleware.name),
         );
     }
 
@@ -190,12 +221,9 @@ function createContainerBlueprint() {
             : Array.from(typeEntry);
     }
 
-    function forEach(delegate) {
-        for (var entryOrSet of entries.values()) {
-            if (!isTypeEntry(entryOrSet)) entryOrSet.forEach(delegate);
-            else if (delegate(entryOrSet)) return;
-        }
-    }
+    var forEach = findInMapSet.bind(null, entries);
+
+    var forEachAlias = findInMapSet.bind(null, aliases);
 
     function find(predicate) {
         var result;
@@ -351,6 +379,7 @@ function createContainerBlueprint() {
         findAlias,
         findAllEntries,
         forEach,
+        forEachAlias,
         find,
         findAll,
         getAliasOrigin,
@@ -883,15 +912,21 @@ export function diBuilder(builderOptions = {}) {
     }
 
     function bindAlias(type, originType, options) {
-        var name = options && options.name
-        var originName = options && options.originName
+        var name = options && options.name;
+        var originName = options && options.originName;
 
         var $aliasId = makeEntryId(type, name);
         var ifConflict = options && options.ifConflict;
 
         if (verifyBinding($aliasId, ifConflict)) return this;
 
-        blueprint.callMw('onBindAlias', -1, { type, name }, { type: originType, name: originName }, this)
+        blueprint.callMw(
+            "onBindAlias",
+            -1,
+            { type, name },
+            { type: originType, name: originName },
+            this,
+        );
         blueprint.addAlias(
             $aliasId,
             originType,
@@ -974,6 +1009,12 @@ export function diBuilder(builderOptions = {}) {
         return container;
     }
 
+    var findAlias = (predicate) => {
+        var alias = blueprint.forEachAlias((aliasId) =>
+            predicate(splitEntryId(aliasId)),
+        );
+        return alias && splitEntryId(alias);
+    };
     // endregion PUBLIC METHODS
 
     return {
@@ -985,6 +1026,7 @@ export function diBuilder(builderOptions = {}) {
         find: blueprint.find,
         findAll: blueprint.findAll,
         getAliasOrigin: blueprint.getAliasOrigin,
+        findAlias,
         requireType,
         injectInto,
         bindInstance,
