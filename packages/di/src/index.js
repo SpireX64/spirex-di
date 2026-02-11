@@ -2,6 +2,12 @@
 var ID_SEP = "$";
 
 var hasSymbolDispose = typeof Symbol.dispose === "symbol";
+/**
+ * Returns last array element
+ * @param {Array<T>} array
+ * @returns {T | undefined}
+ */
+var lastOf = (array) => array[array.length - 1];
 
 /**
  * @template T
@@ -110,13 +116,8 @@ var splitEntryId = (id) => {
     return { type: id[0], type: id[1] };
 };
 
-function isTypeEntry(mayBeTypeEntry) {
-    return (
-        typeof mayBeTypeEntry === "object" &&
-        "$id" in mayBeTypeEntry &&
-        "type" in mayBeTypeEntry
-    );
-}
+var ErrorResolveInternalType = (module, entryType, chain) =>
+    `Access to type "${entryType}" is not allowed outside of "${module}" module. (${chainToString(chain, entryType)})`;
 
 /* istanbul ignore next */
 function phantomProxy(provider) {
@@ -442,6 +443,10 @@ function createRootContainerScope(blueprint) {
     // to detect circular dependencies during instance creation
     var activationStack = [];
 
+    // The resolution stack is used to determine request chain.
+    // It works with already created instances.
+    var resolutionStack = [];
+
     /**
      * Activates (creates) an instance for a given type entry.
      *
@@ -497,6 +502,25 @@ function createRootContainerScope(blueprint) {
 
     function getInstance(scope, entry, noThrow, noActivate) {
         var instance;
+
+        // Check for internal module type.
+        // Singletons can be created
+        if (entry.module && entry.internal) {
+            var topEntry = lastOf(activationStack);
+            if (!topEntry || topEntry.module !== entry.module) {
+                if (noThrow) return undefined;
+                else
+                    throw Error(
+                        ErrorResolveInternalType(
+                            entry.module.id,
+                            entry.$id,
+                            activationStack.map((it) => it.$id),
+                        ),
+                    );
+            }
+        }
+
+        resolutionStack.push(entry);
 
         // Return the directly bound instance, if any (from bindInstance)
         if ("instance" in entry) instance = entry.instance;

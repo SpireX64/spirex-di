@@ -219,6 +219,12 @@ export type TTypeBindingOptions<
      * If defined, the instance will only be created or accessed within the specified scopes.
      */
     allowedScopes?: string[] | undefined;
+
+    /** 
+     * Marks the binding as internal to its module.
+     * Internal bindings cannot be resolved outside of the module boundary at runtime.
+     */
+    internal?: boolean;
 };
 
 /** Options for configuring a factory-based binding. */

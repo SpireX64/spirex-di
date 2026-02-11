@@ -4748,6 +4748,189 @@ describe("Container Module", () => {
         expect(delegate).not.toHaveBeenCalled();
     });
 
+    describe("Module Internal Types", () => {
+        test("WHEN: Bind internal instance type by builder", () => {
+            // Arrange --------
+            var typeKey = 'typeKey'
+            var builder = diBuilder()
+
+            // Act ------------
+            builder.bindInstance(typeKey, 42, { internal: true })
+
+            var entry = builder.findEntry(typeKey)
+
+            // Assert ---------
+            expect(entry.internal).is.true;
+        })
+
+        test("WHEN: Bind internal factory type by builder", () => {
+            // Arrange --------
+            var typeKey = 'typeKey'
+            var builder = diBuilder()
+            var factory = vi.fn()
+
+            // Act ------------
+            builder.bindFactory(typeKey, factory, { internal: true })
+
+            var entry = builder.findEntry(typeKey)
+
+            // Assert ---------
+            expect(entry.internal).is.true;
+            expect(factory).not.toHaveBeenCalled();
+        })
+
+        test("WHEN: Bind internal instance type by module", () => {
+            // Arrange --------
+            var typeKey = 'typeKey'
+            var builder = diBuilder()
+
+            // Act ------------
+            var module = staticModule("TestModule").create(binder => {
+                binder.bindInstance(typeKey, 42, { internal: true })
+            })
+
+            builder.include(module)
+
+            var entry = builder.findEntry(typeKey)
+
+            // Assert ---------
+            expect(entry.module).toBe(module)
+            expect(entry.internal).is.true;
+        })
+
+        test("WHEN: Bind internal factory type by module", () => {
+            // Arrange --------
+            var typeKey = 'typeKey'
+            var builder = diBuilder()
+            var factory = vi.fn()
+
+            // Act ------------
+            var module = staticModule("TestModule").create(binder => {
+                binder.bindFactory(typeKey, factory, { internal: true })
+            })
+
+            builder.include(module)
+
+            var entry = builder.findEntry(typeKey)
+
+            // Assert ---------
+            expect(entry.module).toBe(module)
+            expect(entry.internal).is.true;
+            expect(factory).not.toHaveBeenCalled();
+        })
+
+        test("WHEN: Internal type singleton activation", () => {
+            // Arrange --------
+            var typeKey = 'typeKey'
+            var factory = vi.fn()
+
+            var module = staticModule("TestModule").create(binder => {
+                binder.bindFactory(typeKey, factory, { internal: true })
+            })
+            var builder = diBuilder().include(module)
+
+            // Act ------------
+            builder.build()
+
+            // Assert ---------
+            // No error thrown on activation
+            expect(factory).toHaveBeenCalled()
+        })
+
+        test("WHEN: Resolve internal type from container", () => {
+            // Arrange -------
+            var typeKey = 'typeKey'
+            var typeValue = Symbol()
+            var factory = vi.fn(() => typeValue)
+
+            var container = diBuilder()
+                .bindFactory(typeKey, factory, { internal: true })
+                .build()
+
+            // Act -----------
+            var value = container.get(typeKey)
+
+            // Assert --------
+            // No error thrown
+            expect(value).toBe(typeValue)
+        })
+
+        test("WHEN: Resolve internal type from container type", () => {
+            // Arrange ----------
+            var typeKey = 'typeKey'
+            var typeValue = Symbol()
+
+            var containerType = "cType"
+
+            var factory = vi.fn(() => typeValue)
+            var module = staticModule('TestModule').create(binder => {
+                binder.bindFactory(typeKey, factory, { internal: true, lifecycle: 'lazy' })
+            })
+
+            var container = diBuilder()
+                .include(module)
+                .bindFactory(containerType, r => r.get(typeKey), { lifecycle: 'lazy'})
+                .build()
+
+            // Act --------------
+            var error = catchError( () => container.get(containerType) )
+
+            // Assert -----------
+            expect(error).instanceOf(Error)
+            expect(factory).not.toHaveBeenCalled()
+        })
+
+        test("WHEN: Resolve internal type as maybe from container type", () => {
+            // Arrange ----------
+            var typeKey = 'typeKey'
+            var typeValue = Symbol()
+
+            var containerType = "cType"
+
+            var factory = vi.fn(() => typeValue)
+            var module = staticModule('TestModule').create(binder => {
+                binder.bindFactory(typeKey, factory, { internal: true, lifecycle: 'lazy' })
+            })
+
+            var container = diBuilder()
+                .include(module)
+                .bindFactory(containerType, r => r.maybe(typeKey), { lifecycle: 'lazy'})
+                .build()
+
+            // Act --------------
+            var value = container.get(containerType)
+
+            // Assert -----------
+            // No error thrown, but returns undefined
+            expect(value).toBeUndefined()
+        })
+
+        test("WHEN: Resolve internal type from module type", () => {
+            // Arrange --------
+            var typeKeyA = 'typeKeyA'
+            var typeAValue = Symbol()
+            var typeKeyB = 'typeKeyB'
+            var typeBFactory = vi.fn(r => r.get(typeKeyA))
+
+            var module = staticModule("TestModule").create(binder => {
+                binder
+                    .bindInstance(typeKeyA, typeAValue, { internal: true })
+                    .bindFactory(typeKeyB, typeBFactory, { lifecycle: 'lazy' })
+            })
+
+            var container = diBuilder()
+                .include(module)
+                .build()
+
+            // Act ------------
+            var value = container.get(typeKeyB)
+
+            // Assert ---------
+            expect(typeBFactory).toHaveBeenCalledOnce()
+            expect(value).toBe(typeAValue)
+        })
+    })
+
     describe("Grouping", () => {
         test("WHEN: Group of modules", () => {
             // Arrange --------
