@@ -1,5 +1,7 @@
 /** A char used to separate the type and name in the unique ID of a binding */
 var ID_SEP = "$";
+var STRATEGY_APPEND = "append";
+var LC_SINGLETON = "singleton";
 
 var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
@@ -10,7 +12,8 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
  * @param {Array<T>} array
  * @returns {T | undefined}
  */
-var lastOf = (array) => array[array.length - 1];
+var len = (x) => x.length
+var lastOf = (array) => array[len(array) - 1];
 var listContains = (array, element) => array.includes(element);
 var readOnly = Object.freeze;
 var isArray = Array.isArray;
@@ -51,8 +54,8 @@ var findInMapSet = (mapSet, predicate) => {
 
 function chainToString(chain, key) {
     var sep = " -> ";
-    if (!chain.length) return key;
-    if (chain.length <= 2) return key + sep + key;
+    if (!len(chain)) return key;
+    if (len(chain) <= 2) return key + sep + key;
     return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
 }
 
@@ -88,39 +91,41 @@ var isTypeEntry = (mayBeTypeEntry) =>
 // #region Errors
 
 var ErrorBindingConflict = (type) =>
-    `Binding conflict. The type '${type}' is already bound.`;
+    `Binding exists: '${type}'`;
 var ErrorMissingRequiredType = (type) =>
-    `Required type "${type}" is not bound.`;
+    `Missing binding: "${type}"`;
 var ErrorUndefinedInstance = (type) =>
-    `Cannot bind undefined to type "${type}".`;
+    `Undefined bind: "${type}"`;
 var ErrorResolveInternalType = (module, entryType, chain) =>
-    `Access to type "${entryType}" is not allowed outside of "${module}" module. (${chainToString(chain, entryType)})`;
+    `Type "${entryType}" is not accessible outside "${module}" module (${chainToString(chain, entryType)})`;
 var ErrorAliasCycle = (alias, aliasChain) =>
-    `Alias cycle detected: ${chainToString(aliasChain, alias)}`;
+    `Alias cycle: ${chainToString(aliasChain, alias)}`;
 var ErrorAliasMissingRef = (aliasId, originId) =>
-    `Alias "${aliasId}" refers to non-existent type binding "${originId}".`;
+    `Alias "${aliasId}" refers to missing binding "${originId}"`;
 var ErrorMiddlewareEntryTypeMismatch = (
     middlewareName,
     newEntryId,
     originEntryId,
 ) =>
-    `Middleware "${middlewareName || "unnamed"}" altered the entry type: Expected '${originEntryId}', but received '${newEntryId}`;
+    `Middleware "${middlewareName || "unnamed"}" changed entry type: expected '${originEntryId}', got '${newEntryId}'`;
 var ErrorTypeBindingNotFound = (type, name) =>
-    `Type binding ${type}${name ? ` with name "${name}` : ""} not found.`;
+    `Binding not found: ${type}${name ? `("${name}")` : ""}`;
 var ErrorDependenciesCycle = (entryType, chain) =>
-    `A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainToString(chain, entryType)})`;
+    `Dependency cycle: '${entryType}' (${chainToString(chain, entryType)})`;
 var ErrorMixedLifecycleBindings = (type, lifecycleA, lifecycleB) =>
-    `Mixed lifecycle bindings detected for type "${type}": ${lifecycleA}, ${lifecycleB}`;
+    `Lifecycle conflict: "${type}" ${lifecycleA}/${lifecycleB}`;
 var ErrorSealedScope = (sealedScope, childScope) =>
-    `Cannot create child scope "${childScope}" from sealed scope "${sealedScope}"`;
+    `Cannot create "${childScope}" from sealed scope "${sealedScope}"`;
+var ErrorScopeViolation = (scope, type) =>
+    `Type "${type}" not accessible in scope "${scope}"`;
 var ErrorInstanceAccessAfterDispose = (type, scopeId, scopeHierarchy) =>
-    `Cannot resolve type '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`;
+    `Cannot resolve '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}""`;
 var ErrorChildScopeCreationAfterDispose = (
     childScopeId,
     scopeId,
     scopeHierarchy,
 ) =>
-    `Cannot create a child scope "${childScopeId}" from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`;
+    `Scope disposed: "${childScopeId}" @ "${chainToString(scopeHierarchy, scopeId)}"`;
 
 // #endregion
 
@@ -416,7 +421,7 @@ function createRootContainerScope(blueprint) {
         // Root scope has empty ID and is ignored.
         if (parent) {
             path.push(scopeId);
-            while (parent && parent.id.length > 0) {
+            while (parent && parent.id !== '') {
                 path.push(parent.id);
                 parent = parent[$parent];
             }
@@ -526,7 +531,7 @@ function createRootContainerScope(blueprint) {
         if ("instance" in entry) instance = entry.instance;
         else if (
             scope[$parent] &&
-            (entry.lifecycle === "singleton" || entry.lifecycle === "lazy")
+            (entry.lifecycle === LC_SINGLETON || entry.lifecycle === "lazy")
         )
             // Direct singleton access from the root
             instance = getInstance(scope[$root], entry, noThrow);
@@ -552,6 +557,7 @@ function createRootContainerScope(blueprint) {
 
             if (allowedScopes) {
                 if (!nearestAllowedParent) {
+                    resolutionStack.pop();
                     if (noThrow) return instance;
                     else
                         throw new Error(
@@ -591,7 +597,15 @@ function createRootContainerScope(blueprint) {
 
     function onRequestMiddleware(scope, entry, type, name) {
         return (
-            blueprint.callMw("onRequest", 0, entry, scope, type, name, resolutionStack) || entry
+            blueprint.callMw(
+                "onRequest",
+                0,
+                entry,
+                scope,
+                type,
+                name,
+                resolutionStack.slice(),
+            ) || entry
         );
     }
 
@@ -751,7 +765,7 @@ function createRootContainerScope(blueprint) {
             // Has factory function
             typeEntry.factory &&
             // It is singleton binding
-            typeEntry.lifecycle === "singleton" &&
+            typeEntry.lifecycle === LC_SINGLETON &&
             // Not activated yet
             !rootScope[$locals].has(typeEntry)
         ) {
@@ -768,7 +782,7 @@ function createRootContainerScope(blueprint) {
 export function diBuilder(builderOptions = {}) {
     var {
         /** The default lifecycle to use when a binding does not explicitly define one. */
-        lifecycle: defaultLifecycle = "singleton",
+        lifecycle: defaultLifecycle = LC_SINGLETON,
         /** The default conflict resolution strategy to use for bindings. */
         ifConflict: defaultConflictResolve = "throw",
     } = builderOptions;
@@ -815,7 +829,7 @@ export function diBuilder(builderOptions = {}) {
             // Skip if either binding is an instance (have no lifecycle)
             if (
                 !isAlias &&
-                strategy === "append" &&
+                strategy === STRATEGY_APPEND &&
                 lifecycle &&
                 existEntry.lifecycle &&
                 existEntry.lifecycle !== lifecycle
@@ -855,7 +869,7 @@ export function diBuilder(builderOptions = {}) {
                 instance,
                 module: lastOf(moduleStack),
             },
-            ifConflict === "append",
+            ifConflict === STRATEGY_APPEND,
         );
         return this;
     }
@@ -883,7 +897,7 @@ export function diBuilder(builderOptions = {}) {
                 lifecycle,
                 module: lastOf(moduleStack),
             },
-            ifConflict === "append",
+            ifConflict === STRATEGY_APPEND,
         );
         return this;
     }
@@ -911,7 +925,7 @@ export function diBuilder(builderOptions = {}) {
                 name,
                 module: lastOf(moduleStack),
             },
-            ifConflict === "append",
+            ifConflict === STRATEGY_APPEND,
         );
         hasSomeSafeFactory = true;
         return this;
@@ -940,7 +954,7 @@ export function diBuilder(builderOptions = {}) {
             $aliasId,
             originType,
             originName,
-            ifConflict === "append",
+            ifConflict === STRATEGY_APPEND,
         );
         return this;
     }
@@ -1060,7 +1074,7 @@ export function staticModule(id) {
                 delegate,
                 type: "static",
             }),
-        group: (...modules) =>
+        compose: (...modules) =>
             readOnly({
                 id,
                 modules: readOnly(modules),
@@ -1079,7 +1093,7 @@ export function factoryOf(Class, inject) {
     var isFactory = isArray(inject);
 
     inject = inject || Class.inject;
-    var hasDeps = isArray(inject) && inject.length > 0;
+    var hasDeps = isArray(inject) && len(inject);
 
     var factory;
     if (isFactory) factory = (r) => Class(...mapInject(r, inject));
