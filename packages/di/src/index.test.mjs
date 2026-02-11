@@ -272,6 +272,207 @@ describe("Container Builder", () => {
                 expect(result).toHaveLength(0);
             });
         });
+
+        describe("findAlias", () => {
+            test("WHEN: walk through builder without aliases", () => {
+                // Arrange -------
+                var predicate = vi.fn()
+                var builder = diBuilder()
+
+                // Act -----------
+                var result = builder.findAlias(predicate)
+
+                // Assert --------
+                expect(predicate).not.toHaveBeenCalled()
+                expect(result).toBeUndefined()
+            })
+
+            test("WHEN: walk through builder with one alias", () => {
+                // Arrange ---------
+                var typeKey = 'typeKey'
+                var aliasKey = 'aliasKey'
+
+                var builder = diBuilder()
+                    .bindInstance(typeKey, 42)
+                    .bindAlias(aliasKey, typeKey)
+
+                var predicate = vi.fn()
+
+                // Act -------------
+                var result = builder.findAlias(predicate)
+
+                // Assert ----------
+                expect(predicate).toHaveBeenCalledExactlyOnceWith(
+                    { type: aliasKey, name: undefined },
+                    { type: typeKey, name: undefined },
+                )
+                expect(result).toBeUndefined()
+            })
+
+            test("WHEN: walk through builder with many aliases", () => {
+                // Arrange ---------
+                var typeKey = 'typeKey'
+                var aliasKeyA = 'aliasKeyA'
+                var aliasKeyB = 'aliasKeyB'
+
+                var builder = diBuilder()
+                    .bindInstance(typeKey, 42)
+                    .bindAlias(aliasKeyA, typeKey)
+                    .bindAlias(aliasKeyB, typeKey)
+
+                var predicate = vi.fn()
+
+                // Act -------------
+                var result = builder.findAlias(predicate)
+
+                // Assert ----------
+                expect(predicate).toHaveBeenCalledWith(
+                    { type: aliasKeyA, name: undefined },
+                    { type: typeKey, name: undefined },
+                )
+                expect(predicate).toHaveBeenCalledWith(
+                    { type: aliasKeyB, name: undefined },
+                    { type: typeKey, name: undefined },
+                )
+                expect(result).toBeUndefined()
+            })
+
+            test("WHEN: walk through builder with named alias", () => {
+                // Arrange ---------
+                var typeKey = 'typeKey'
+                var aliasKey = 'aliasKey'
+                var aliasName = 'aliasName'
+
+                var builder = diBuilder()
+                    .bindInstance(typeKey, 42)
+                    .bindAlias(aliasKey, typeKey, { name: aliasName })
+
+                var predicate = vi.fn()
+
+                // Act -------------
+                var result = builder.findAlias(predicate)
+
+                // Assert ----------
+                expect(predicate).toHaveBeenCalledExactlyOnceWith(
+                    { type: aliasKey, name: aliasName },
+                    { type: typeKey, name: undefined },
+                )
+                expect(result).toBeUndefined()
+            })
+
+            test("WHEN: walk through builder with named alias to named type", () => {
+                // Arrange ---------
+                var typeKey = 'typeKey'
+                var typeName = 'typeName'
+                var aliasKey = 'aliasKey'
+                var aliasName = 'aliasName'
+
+                var builder = diBuilder()
+                    .bindInstance(typeKey, 42, { name: typeName })
+                    .bindAlias(aliasKey, typeKey, { name: aliasName, originName: typeName })
+
+                var predicate = vi.fn()
+
+                // Act -------------
+                var result = builder.findAlias(predicate)
+
+                // Assert ----------
+                expect(predicate).toHaveBeenCalledExactlyOnceWith(
+                    { type: aliasKey, name: aliasName },
+                    { type: typeKey, name: typeName },
+                )
+                expect(result).toBeUndefined()
+            })
+
+            test("WHEN: walk through builder with deep aliases", () => {
+                // Arrange ----------
+                var typeKey = 'typeKey'
+                var aliasKeyA = 'aliasA'
+                var aliasKeyB = 'aliasB'
+                var aliasKeyC = 'aliasC'
+
+                var builder = diBuilder()
+                    .bindInstance(typeKey, 42)
+                    .bindAlias(aliasKeyA, typeKey)
+                    .bindAlias(aliasKeyB, aliasKeyA)
+                    .bindAlias(aliasKeyC, aliasKeyB)
+
+                var predicate = vi.fn()
+
+                // Act --------
+                var result = builder.findAlias(predicate)
+
+                // Assert -----
+                expect(result).toBeUndefined()
+                expect(predicate).toHaveBeenCalledWith(
+                    {type: aliasKeyA, name: undefined },
+                    {type: typeKey, name: undefined },
+                )
+                expect(predicate).toHaveBeenCalledWith(
+                    {type: aliasKeyB, name: undefined },
+                    {type: aliasKeyA, name: undefined },
+                )
+                expect(predicate).toHaveBeenCalledWith(
+                    {type: aliasKeyC, name: undefined },
+                    {type: aliasKeyB, name: undefined },
+                )
+            })
+
+            test("WHEN: walk through aliases with multi binding", () => {
+                // Arrange --------
+                var typeKeyA = 'typeKeyA'
+                var typeKeyB = 'typeKeyB'
+                var aliasKeyA = 'aliasA'
+                var aliasKeyB = 'aliasB'
+
+                var builder = diBuilder()
+                    .bindInstance(typeKeyA, 11)
+                    .bindInstance(typeKeyB, 22)
+                    .bindAlias(aliasKeyA, typeKeyA, { ifConflict: 'append' })
+                    .bindAlias(aliasKeyA, typeKeyB, { ifConflict: 'append' })
+                    .bindAlias(aliasKeyB, aliasKeyA, { ifConflict: 'append' })
+
+                var predicate = vi.fn()
+
+                // Act -----------
+                var result = builder.findAlias(predicate)
+
+                // Assert --------
+                expect(predicate).toHaveBeenCalledWith(
+                    { type: aliasKeyA, name: undefined },
+                    { type: typeKeyA, name: undefined },
+                )
+                expect(predicate).toHaveBeenCalledWith(
+                    { type: aliasKeyA, name: undefined },
+                    { type: typeKeyB, name: undefined },
+                )
+                expect(predicate).toHaveBeenCalledWith(
+                    { type: aliasKeyB, name: undefined },
+                    { type: aliasKeyA, name: undefined },
+                )
+            })
+
+            test("WHEN: find alias by condition", () => {
+                // Arrange ---------
+                var typeKey = 'typeKey'
+                var aliasKeyA = 'aliasA'
+                var aliasKeyB = 'aliasB'
+
+                var builder = diBuilder()
+                    .bindInstance(typeKey, 42)
+                    .bindAlias(aliasKeyA, typeKey)
+                    .bindAlias(aliasKeyB, typeKey, { ifConflict: 'append' })
+                    .bindAlias(aliasKeyB, aliasKeyA, { ifConflict: 'append' })
+
+                // Act -----------
+                var result = builder.findAlias((_, target) => target.type !== typeKey)
+
+                // Assert --------
+                expect(result).not.toBeUndefined()
+                expect(result.type).toBe(aliasKeyB)
+                expect(result.name).toBeUndefined()
+            })
+        })
     });
 
     describe("Binding", () => {
