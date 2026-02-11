@@ -2,12 +2,24 @@
 var ID_SEP = "$";
 
 var hasSymbolDispose = typeof Symbol.dispose === "symbol";
+
+// #region Shortcuts
+
 /**
  * Returns last array element
  * @param {Array<T>} array
  * @returns {T | undefined}
  */
 var lastOf = (array) => array[array.length - 1];
+var listContains = (array, element) => array.includes(element);
+var readOnly = Object.freeze;
+var isArray = Array.isArray;
+var isFunc = (x) => typeof x === "function";
+var isStr = (x) => typeof x === "string";
+
+// #endregion
+
+// #region Utilities
 
 /**
  * @template T
@@ -22,17 +34,18 @@ var findInSet = (set, predicate) => {
 };
 
 /**
+ * @template K
  * @template T
- * @param {Map<Set<T>>} mapSet
- * @param {(item: T) => boolean} predicate
+ * @param {Map<K, T | Set<T>>} mapSet
+ * @param {(item: T, key: K) => boolean} predicate
  * @returns {T | undefined}
  */
 var findInMapSet = (mapSet, predicate) => {
-    for (var valueOrSet of mapSet.values()) {
+    for (var [key, valueOrSet] of mapSet.entries()) {
+        var predicateWithKey = (value) => predicate(value, key);
         if (valueOrSet instanceof Set) {
-            var value = findInSet(valueOrSet, predicate);
-            if (value) return;
-        } else if (predicate(valueOrSet)) return valueOrSet;
+            if (findInSet(valueOrSet, predicateWithKey)) return;
+        } else if (predicateWithKey(valueOrSet)) return valueOrSet;
     }
 };
 
@@ -42,57 +55,6 @@ function chainToString(chain, key) {
     if (chain.length <= 2) return key + sep + key;
     return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
 }
-
-/**
- * A centralized dictionary of all error messages.
- *
- * This object provides reusable and consistent error messages for common failure scenarios
- * Many messages are defined as functions to allow dynamic insertion of context-specific details
- * (e.g. type names or scope paths).
- *
- * All values are frozen to ensure immutability and prevent accidental modification at runtime.
- *
- * @example
- * throw new Error(DIErrors.BindingConflict('MyService'));
- */
-export var DIErrors = Object.freeze({
-    BindingConflict: (type) =>
-        `Binding conflict. The type '${type}' is already bound.`,
-
-    MissingRequiredTypeError: (type) => `Required type "${type}" is not bound.`,
-
-    UndefinedInstance: (type) => `Cannot bind undefined to type "${type}".`,
-
-    AliasCycle: (alias, aliasChain) =>
-        `Alias resolution cycle detected: ${chainToString(aliasChain, alias)}`,
-
-    AliasMissingRef: (aliasId, originId) =>
-        `Alias "${aliasId}" refers to non-existent type binding "${originId}".`,
-
-    MiddlewareEntryTypeMismatch: (middlewareName, newEntryId, originEntryId) =>
-        `Middleware "${middlewareName || "unnamed"}" altered the entry type: Expected '${originEntryId}', but received '${newEntryId}`,
-
-    TypeBindingNotFound: (type, name) =>
-        `Type binding ${type}${name ? ` with name "${name}` : ""} not found.`,
-
-    DependenciesCycle: (entryType, chain) =>
-        `Activation failed: A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainToString(chain, entryType)})`,
-
-    MixedLifecycleBindings: (type, lifecycleA, lifecycleB) =>
-        `Mixed lifecycle bindings detected for type "${type}": ${lifecycleA}, ${lifecycleB}`,
-
-    SealedScope: (sealedScope, childScope) =>
-        `Cannot create child scope "${childScope}" from sealed scope "${sealedScope}"`,
-
-    ScopeViolation: (scope, type) =>
-        `Access to type "${type}" is not allowed in scope "${scope}".`,
-
-    InstanceAccessAfterDispose: (type, scopeId, scopeHierarchy) =>
-        `Cannot resolve type '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`,
-
-    ChildScopeCreationAfterDispose: (childScopeId, scopeId, scopeHierarchy) =>
-        `Cannot create a child scope "${childScopeId}" from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`,
-});
 
 /**
  * Creates a unique identifier string for a binding entry based on its type and optional name.
@@ -113,11 +75,54 @@ var makeEntryId = (type, name) => (name ? type + ID_SEP + name : type);
  */
 var splitEntryId = (id) => {
     id = id.split(ID_SEP);
-    return { type: id[0], type: id[1] };
+    return { type: id[0], name: id[1] };
 };
 
+var isTypeEntry = (mayBeTypeEntry) =>
+    typeof mayBeTypeEntry === "object" &&
+    "$id" in mayBeTypeEntry &&
+    "type" in mayBeTypeEntry;
+
+// #endregion
+
+// #region Errors
+
+var ErrorBindingConflict = (type) =>
+    `Binding conflict. The type '${type}' is already bound.`;
+var ErrorMissingRequiredType = (type) =>
+    `Required type "${type}" is not bound.`;
+var ErrorUndefinedInstance = (type) =>
+    `Cannot bind undefined to type "${type}".`;
 var ErrorResolveInternalType = (module, entryType, chain) =>
     `Access to type "${entryType}" is not allowed outside of "${module}" module. (${chainToString(chain, entryType)})`;
+var ErrorAliasCycle = (alias, aliasChain) =>
+    `Alias cycle detected: ${chainToString(aliasChain, alias)}`;
+var ErrorAliasMissingRef = (aliasId, originId) =>
+    `Alias "${aliasId}" refers to non-existent type binding "${originId}".`;
+var ErrorMiddlewareEntryTypeMismatch = (
+    middlewareName,
+    newEntryId,
+    originEntryId,
+) =>
+    `Middleware "${middlewareName || "unnamed"}" altered the entry type: Expected '${originEntryId}', but received '${newEntryId}`;
+var ErrorTypeBindingNotFound = (type, name) =>
+    `Type binding ${type}${name ? ` with name "${name}` : ""} not found.`;
+var ErrorDependenciesCycle = (entryType, chain) =>
+    `A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainToString(chain, entryType)})`;
+var ErrorMixedLifecycleBindings = (type, lifecycleA, lifecycleB) =>
+    `Mixed lifecycle bindings detected for type "${type}": ${lifecycleA}, ${lifecycleB}`;
+var ErrorSealedScope = (sealedScope, childScope) =>
+    `Cannot create child scope "${childScope}" from sealed scope "${sealedScope}"`;
+var ErrorInstanceAccessAfterDispose = (type, scopeId, scopeHierarchy) =>
+    `Cannot resolve type '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`;
+var ErrorChildScopeCreationAfterDispose = (
+    childScopeId,
+    scopeId,
+    scopeHierarchy,
+) =>
+    `Cannot create a child scope "${childScopeId}" from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`;
+
+// #endregion
 
 /* istanbul ignore next */
 function phantomProxy(provider) {
@@ -139,7 +144,7 @@ function createContainerBlueprint() {
     /** Map of registered alias entries. */
     var aliases = new Map();
     /** Set of registered container middlewares. */
-    var middlewares = new Set();
+    var mws = new Set();
     /** Set of included modules. */
     var modules = new Set();
     /** Container type enumeration cache. */
@@ -147,14 +152,13 @@ function createContainerBlueprint() {
 
     function types() {
         if (!typesEnum)
-            typesEnum = Object.freeze(
+            typesEnum = readOnly(
                 Object.fromEntries([...entries.keys()].map((k) => [k, k])),
             );
 
         return typesEnum;
     }
 
-    // region: PUBLIC METHODS
     function hasMod(module) {
         return !!findInSet(modules, (m) => m.id === module.id);
     }
@@ -165,7 +169,7 @@ function createContainerBlueprint() {
 
     function hasMw(middleware) {
         return !!findInSet(
-            middlewares,
+            mws,
             (m) =>
                 m === middleware ||
                 (middleware.name && m.name === middleware.name),
@@ -173,14 +177,14 @@ function createContainerBlueprint() {
     }
 
     function addMw(middleware) {
-        middlewares.add(middleware);
+        mws.add(middleware);
     }
 
     function callMw(hookName, resultArgIndex, ...args) {
         var result = args[resultArgIndex];
-        for (var mv of middlewares) {
+        for (var mv of mws) {
             var hook = mv[hookName];
-            if (typeof hook === "function") {
+            if (isFunc(hook)) {
                 result = hook(...args);
                 if (resultArgIndex >= 0) args[resultArgIndex] = result;
             }
@@ -188,7 +192,7 @@ function createContainerBlueprint() {
         return result;
     }
 
-    function getAliasOrigin(type, name) {
+    function getAO(type, name) {
         var ref = aliases.get(makeEntryId(type, name));
         return ref instanceof Set ? Array.from(ref.values()) : ref;
     }
@@ -198,7 +202,8 @@ function createContainerBlueprint() {
         return entries.has(id) || aliases.has(id);
     }
 
-    function findEntry(type, name) {
+    /** Find first entry with given type and name */
+    function findE(type, name) {
         var binding = entries.get(makeEntryId(type, name));
         return !binding || isTypeEntry(binding)
             ? binding
@@ -208,12 +213,11 @@ function createContainerBlueprint() {
     function findAlias(type, name) {
         var $id = makeEntryId(type, name);
         var alias = aliases.get($id);
-        return !alias || typeof alias === "string"
-            ? alias
-            : alias.values().next().value;
+        return !alias || isStr(alias) ? alias : alias.values().next().value;
     }
 
-    function findAllEntries(type, name) {
+    /** Find all entries by type and name */
+    function findEs(type, name) {
         var typeEntry = entries.get(makeEntryId(type, name));
         if (!typeEntry) return [];
 
@@ -247,7 +251,7 @@ function createContainerBlueprint() {
             // No exist alias, or multibinding not enabled:
             // simply store the new alias by replacing any existing one
             aliases.set(aliasId, originId);
-        } else if (typeof existingAlias === "string") {
+        } else if (isStr(existingAlias)) {
             // Existing alias is a single reference
             // convert it to a Set and put both references into
             aliases.set(aliasId, new Set().add(existingAlias).add(originId));
@@ -276,7 +280,7 @@ function createContainerBlueprint() {
      */
     function addTypeEntry(builder, id, entry, multibinding) {
         var entryToBind = entry;
-        middlewares.forEach((middleware) => {
+        mws.forEach((middleware) => {
             if (!middleware.onBind) return;
 
             entryToBind = middleware.onBind(entryToBind, entry, builder);
@@ -287,7 +291,7 @@ function createContainerBlueprint() {
                 entryToBind.type !== entry.type
             )
                 throw new TypeError(
-                    DIErrors.MiddlewareEntryTypeMismatch(
+                    ErrorMiddlewareEntryTypeMismatch(
                         middleware.name,
                         entryToBind && entryToBind.$id,
                         entry.$id,
@@ -295,7 +299,7 @@ function createContainerBlueprint() {
                 );
         });
 
-        Object.freeze(entryToBind);
+        readOnly(entryToBind);
 
         var existingEntry = entries.get(id);
         if (!existingEntry || !multibinding) {
@@ -314,14 +318,14 @@ function createContainerBlueprint() {
     }
 
     function compileAliasRef(builder, aliasRef, stack) {
-        if (typeof aliasRef !== "string") {
+        if (!isStr(aliasRef)) {
             for (var ref of aliasRef) compileAliasRef(builder, ref, stack);
             return;
         }
 
-        if (stack.includes(aliasRef)) {
+        if (listContains(stack, aliasRef)) {
             stack.push(aliasRef);
-            throw new Error(DIErrors.AliasCycle(aliasRef, stack));
+            throw new Error(ErrorAliasCycle(aliasRef, stack));
         }
 
         var ref = aliases.get(aliasRef);
@@ -334,9 +338,7 @@ function createContainerBlueprint() {
 
         var typeEntry = entries.get(aliasRef);
         if (typeEntry === undefined)
-            throw new Error(
-                DIErrors.AliasMissingRef(stack[stack.length - 1], aliasRef),
-            );
+            throw new Error(ErrorAliasMissingRef(lastOf(stack), aliasRef));
 
         stack.push(aliasRef);
         for (var aliasId of stack) {
@@ -350,7 +352,7 @@ function createContainerBlueprint() {
         stack.pop();
     }
 
-    function compileAliases(builder) {
+    function cAlias(builder) {
         if (!aliases.size) return;
 
         var stack = [];
@@ -363,12 +365,10 @@ function createContainerBlueprint() {
         aliases.clear();
     }
 
-    // endregion: PUBLIC METHODS
-
     return {
         entries,
         aliases,
-        middlewares,
+        mws,
         types,
         has,
         hasMw,
@@ -376,17 +376,17 @@ function createContainerBlueprint() {
         callMw,
         hasMod,
         addMod,
-        findEntry,
+        findE,
         findAlias,
-        findAllEntries,
+        findEs,
         forEach,
         forEachAlias,
         find,
         findAll,
-        getAliasOrigin,
+        getAO,
         addAlias,
         addTypeEntry,
-        compileAliases,
+        cAlias,
     };
 }
 
@@ -399,11 +399,11 @@ function createFactoryScopeContext(scope) {
 }
 
 function createRootContainerScope(blueprint) {
-    var $root = Symbol("root");
-    var $parent = Symbol("parent");
-    var $scopes = Symbol("scopes");
-    var $locals = Symbol("locals");
-    var $state = Symbol("state");
+    var $root = Symbol("r");
+    var $parent = Symbol("p");
+    var $scopes = Symbol("s");
+    var $locals = Symbol("l");
+    var $state = Symbol("d");
 
     /**
      * Builds a scope path array from root (excluded) to current scope.
@@ -421,7 +421,7 @@ function createRootContainerScope(blueprint) {
                 parent = parent[$parent];
             }
         }
-        return Object.freeze(path.reverse());
+        return readOnly(path.reverse());
     }
 
     function createScopeObject(id, parent, options = {}) {
@@ -459,7 +459,7 @@ function createRootContainerScope(blueprint) {
      */
     function activateInstance(entry, scope) {
         // Check for circular dependency by verifying if the entry is already being activated
-        var hasDependencyCycle = activationStack.includes(entry);
+        var hasDependencyCycle = listContains(activationStack, entry);
 
         // Push the current entry to the activation stack
         activationStack.push(entry);
@@ -467,7 +467,7 @@ function createRootContainerScope(blueprint) {
         if (hasDependencyCycle) {
             // If a cycle is detected, throw a detailed error
             var error = new Error(
-                DIErrors.DependenciesCycle(
+                ErrorDependenciesCycle(
                     entry.$id,
                     activationStack.map((it) => it.$id),
                 ),
@@ -541,7 +541,7 @@ function createRootContainerScope(blueprint) {
                 parent && instance === undefined;
                 parent = parent[$parent]
             ) {
-                if (!allowedScopes || allowedScopes.includes(parent.id)) {
+                if (!allowedScopes || listContains(allowedScopes, parent.id)) {
                     // Save nearest allowed scope
                     nearestAllowedParent ||= parent;
                     var locals = parent[$locals];
@@ -555,7 +555,7 @@ function createRootContainerScope(blueprint) {
                     if (noThrow) return instance;
                     else
                         throw new Error(
-                            DIErrors.ScopeViolation(scope.id, entry.$id),
+                            ErrorScopeViolation(scope.id, entry.$id),
                         );
                 }
 
@@ -579,21 +579,26 @@ function createRootContainerScope(blueprint) {
             }
         }
 
-        return instance === undefined
-            ? undefined
-            : blueprint.callMw("onResolve", 1, entry, instance, scope);
+        return blueprint.callMw(
+            "onResolve",
+            1,
+            resolutionStack.pop(),
+            instance,
+            scope,
+            resolutionStack,
+        );
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
         return (
-            blueprint.callMw("onRequest", 0, entry, scope, type, name) || entry
+            blueprint.callMw("onRequest", 0, entry, scope, type, name, resolutionStack) || entry
         );
     }
 
     function assertScopeNotDisposedToResolve(type, name) {
         if (this[$state].disposed)
             throw new Error(
-                DIErrors.InstanceAccessAfterDispose(
+                ErrorInstanceAccessAfterDispose(
                     makeEntryId(type, name),
                     this.id,
                     this.path,
@@ -628,9 +633,8 @@ function createRootContainerScope(blueprint) {
 
         get(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
-            if (!entry)
-                throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            var entry = blueprint.findE(type, name);
+            if (!entry) throw new Error(ErrorTypeBindingNotFound(type, name));
 
             entry = onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
@@ -638,7 +642,7 @@ function createRootContainerScope(blueprint) {
 
         maybe(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
+            var entry = blueprint.findE(type, name);
             if (!entry) return undefined;
 
             entry = onRequestMiddleware(this, entry, type, name);
@@ -648,28 +652,28 @@ function createRootContainerScope(blueprint) {
         getAll(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
             return blueprint
-                .findAllEntries(type, name)
+                .findEs(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map((entry) => getInstance(this, entry, true));
         },
 
         providerOf(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
+            var entry = blueprint.findE(type, name);
             if (entry) return makeProviderFunc(this, entry);
-            throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound(type, name));
         },
 
         phantomOf(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
+            var entry = blueprint.findE(type, name);
             if (entry)
                 return (
                     getInstance(this, entry, true, true) ||
                     phantomProxy(makeProviderFunc(this, entry))
                 );
 
-            throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound(type, name));
         },
 
         hasChildScope(id) {
@@ -679,11 +683,7 @@ function createRootContainerScope(blueprint) {
         scope(id, options) {
             if (this[$state].disposed)
                 throw new Error(
-                    DIErrors.ChildScopeCreationAfterDispose(
-                        id,
-                        this.id,
-                        this.path,
-                    ),
+                    ErrorChildScopeCreationAfterDispose(id, this.id, this.path),
                 );
 
             // Walk up the scope hierarchy to find a scope with the matching ID.
@@ -692,14 +692,14 @@ function createRootContainerScope(blueprint) {
                 if (scope.id === id) return scope;
 
             // Disallow creating child scopes from sealed scope
-            if (this.sealed) throw new Error(DIErrors.SealedScope(this.id, id));
+            if (this.sealed) throw new Error(ErrorSealedScope(this.id, id));
 
             var scopesMap = this[$scopes];
 
             var scope = scopesMap.get(id);
             if (scope) return scope;
 
-            scope = Object.freeze(
+            scope = readOnly(
                 Object.setPrototypeOf(
                     createScopeObject(id, this, options),
                     Object.getPrototypeOf(this),
@@ -723,12 +723,9 @@ function createRootContainerScope(blueprint) {
 
             // Dispose local instances
             this[$locals].forEach((inst) => {
-                if (
-                    hasSymbolDispose &&
-                    typeof inst[Symbol.dispose] === "function"
-                )
+                if (hasSymbolDispose && isFunc(inst[Symbol.dispose]))
                     inst[Symbol.dispose]();
-                else if (typeof inst.dispose === "function") inst.dispose();
+                else if (isFunc(inst.dispose)) inst.dispose();
             });
             this[$locals].clear();
         },
@@ -738,11 +735,11 @@ function createRootContainerScope(blueprint) {
     if (hasSymbolDispose)
         scopePrototype[Symbol.dispose] = scopePrototype.dispose;
 
-    var rootScope = Object.freeze(
+    var rootScope = readOnly(
         Object.setPrototypeOf(
             createScopeObject(""),
             // Preventing illegal mutations of the scope prototype
-            Object.freeze(scopePrototype),
+            readOnly(scopePrototype),
         ),
     );
 
@@ -783,8 +780,6 @@ export function diBuilder(builderOptions = {}) {
     var externalInjections = [];
     var moduleStack = [];
 
-    // region INTERNAL METHODS
-
     /**
      * Verifies whether a binding for the given type already exists in the container,
      * and applies the specified conflict resolution strategy.
@@ -798,12 +793,12 @@ export function diBuilder(builderOptions = {}) {
      * @param lifecycle (Optional) factory binding lifecycle
      * @returns `true` if the binding should be skipped; `false` if it can proceed.
      *
-     * @throws {DIErrors.BindingConflict} If a binding conflict exists and the strategy is `"throw"` or undefined.
+     * @throws {ErrorBindingConflict} If a binding conflict exists and the strategy is `"throw"` or undefined.
      * @internal
      */
     function verifyBinding(id, strategy, lifecycle) {
         var isAlias = false;
-        var existEntry = blueprint.findEntry(id);
+        var existEntry = blueprint.findE(id);
         if (!existEntry) {
             existEntry = blueprint.findAlias(id);
             isAlias = true;
@@ -813,7 +808,7 @@ export function diBuilder(builderOptions = {}) {
             strategy ||= defaultConflictResolve;
             if (strategy === "keep") return true;
             if (!strategy || strategy === "throw")
-                throw new Error(DIErrors.BindingConflict(id));
+                throw new Error(ErrorBindingConflict(id));
 
             // Check lifecycle consistency
             // Only applies when appending to an existing binding
@@ -826,7 +821,7 @@ export function diBuilder(builderOptions = {}) {
                 existEntry.lifecycle !== lifecycle
             ) {
                 throw new Error(
-                    DIErrors.MixedLifecycleBindings(
+                    ErrorMixedLifecycleBindings(
                         id,
                         existEntry.lifecycle,
                         lifecycle,
@@ -837,33 +832,28 @@ export function diBuilder(builderOptions = {}) {
         return false;
     }
 
-    // endregion INTERNAL METHODS
-
-    // region PUBLIC METHODS
-
     function requireType(type, name) {
         requiredTypes.add(makeEntryId(type, name));
         return this;
     }
 
     function bindInstance(type, instance, options = {}) {
-        var { name, ifConflict, allowedScopes, meta } = options;
+        var { name, ifConflict, ...entryOptions } = options;
         var $id = makeEntryId(type, name);
         if (instance === undefined)
-            throw TypeError(DIErrors.UndefinedInstance($id));
+            throw TypeError(ErrorUndefinedInstance($id));
         if (verifyBinding($id, ifConflict)) return this;
 
         blueprint.addTypeEntry(
             this,
             $id,
             {
+                ...entryOptions,
                 $id,
                 type,
-                instance,
                 name,
-                module: moduleStack[moduleStack.length - 1],
-                allowedScopes,
-                meta,
+                instance,
+                module: lastOf(moduleStack),
             },
             ifConflict === "append",
         );
@@ -875,9 +865,7 @@ export function diBuilder(builderOptions = {}) {
             name,
             ifConflict,
             lifecycle = defaultLifecycle,
-            withScope,
-            allowedScopes,
-            meta,
+            ...entryOptions
         } = options;
         var $id = makeEntryId(type, name);
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
@@ -887,41 +875,41 @@ export function diBuilder(builderOptions = {}) {
             this,
             $id,
             {
+                ...entryOptions,
                 $id,
                 type,
+                name,
                 factory,
                 lifecycle,
-                name,
-                withScope,
-                module: moduleStack[moduleStack.length - 1],
-                allowedScopes,
-                meta,
+                module: lastOf(moduleStack),
             },
             ifConflict === "append",
         );
         return this;
     }
 
-    function bindSafeFactory(type, injector, factory, options) {
-        var $id = makeEntryId(type, options && options.name);
-        var ifConflict = options && options.ifConflict;
-        var lifecycle = (options && options.lifecycle) || defaultLifecycle;
-
+    function bindSafeFactory(type, injector, factory, options = {}) {
+        var {
+            name,
+            ifConflict = defaultConflictResolve,
+            lifecycle = defaultLifecycle,
+            ...entryOptions
+        } = options;
+        var $id = makeEntryId(type, name);
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
 
         blueprint.addTypeEntry(
             this,
             $id,
             {
+                ...entryOptions,
                 $id,
                 type,
                 injector,
                 factory,
                 lifecycle,
-                name: options && options.name,
-                module: moduleStack[moduleStack.length - 1],
-                allowedScopes: options && options.allowedScopes,
-                meta: options && options.meta,
+                name,
+                module: lastOf(moduleStack),
             },
             ifConflict === "append",
         );
@@ -935,12 +923,9 @@ export function diBuilder(builderOptions = {}) {
         return this;
     }
 
-    function bindAlias(type, originType, options) {
-        var name = options && options.name;
-        var originName = options && options.originName;
-
+    function bindAlias(type, originType, options = {}) {
+        var { name, originName, ifConflict = defaultConflictResolve } = options;
         var $aliasId = makeEntryId(type, name);
-        var ifConflict = options && options.ifConflict;
 
         if (verifyBinding($aliasId, ifConflict)) return this;
 
@@ -954,7 +939,7 @@ export function diBuilder(builderOptions = {}) {
         blueprint.addAlias(
             $aliasId,
             originType,
-            options && options.originName,
+            originName,
             ifConflict === "append",
         );
         return this;
@@ -981,10 +966,10 @@ export function diBuilder(builderOptions = {}) {
         return this;
     }
 
+    var markAsRequired = (type, name) => (requireType(type, name), {});
     function requireTypesFromSafeFactories() {
         if (!hasSomeSafeFactory) return;
 
-        var markAsRequired = (type, name) => (requireType(type, name), {});
         var dryRunScope = {
             get: markAsRequired,
             providerOf: markAsRequired,
@@ -993,8 +978,8 @@ export function diBuilder(builderOptions = {}) {
             getAll: () => [],
         };
 
-        blueprint.entries.forEach((entry) => {
-            if (typeof entry.injector === "function")
+        blueprint.forEach((entry) => {
+            if (isFunc(entry.injector))
                 try {
                     // Dry-run call to collect required types from safe factories.
                     // We only care about which types are accessed via `get(...)`.
@@ -1015,15 +1000,15 @@ export function diBuilder(builderOptions = {}) {
         blueprint.callMw("onPreBuild", -1, this);
 
         // Compile aliases
-        blueprint.compileAliases(this);
+        blueprint.cAlias(this);
 
         // Collect required types from safe factories
         requireTypesFromSafeFactories();
 
         // Required types verification
         requiredTypes.forEach(($id) => {
-            if (!blueprint.entries.has($id))
-                throw new Error(DIErrors.MissingRequiredTypeError($id));
+            if (!blueprint.has($id))
+                throw new Error(ErrorMissingRequiredType($id));
         });
 
         var container = createRootContainerScope(blueprint);
@@ -1034,22 +1019,25 @@ export function diBuilder(builderOptions = {}) {
     }
 
     var findAlias = (predicate) => {
-        var alias = blueprint.forEachAlias((aliasId) =>
-            predicate(splitEntryId(aliasId)),
+        var alias;
+        blueprint.forEachAlias(
+            (originId, aliasId) =>
+                (alias =
+                    predicate(splitEntryId(aliasId), splitEntryId(originId)) &&
+                    aliasId),
         );
-        return alias && splitEntryId(alias);
+        return alias ? splitEntryId(alias) : undefined;
     };
-    // endregion PUBLIC METHODS
 
     return {
         has: blueprint.has,
         hasModule: blueprint.hasMod,
         hasMiddleware: blueprint.hasMw,
-        findEntry: blueprint.findEntry,
-        findAllEntries: blueprint.findAllEntries,
+        findEntry: blueprint.findE,
+        findAllEntries: blueprint.findEs,
         find: blueprint.find,
         findAll: blueprint.findAll,
-        getAliasOrigin: blueprint.getAliasOrigin,
+        getAliasOrigin: blueprint.getAO,
         findAlias,
         requireType,
         injectInto,
@@ -1067,15 +1055,15 @@ export function diBuilder(builderOptions = {}) {
 export function staticModule(id) {
     return {
         create: (delegate) =>
-            Object.freeze({
+            readOnly({
                 id,
                 delegate,
                 type: "static",
             }),
         group: (...modules) =>
-            Object.freeze({
+            readOnly({
                 id,
-                modules: Object.freeze(modules),
+                modules: readOnly(modules),
                 type: "group",
                 delegate: (binder) => {
                     for (var module of modules) {
@@ -1088,10 +1076,10 @@ export function staticModule(id) {
 
 var mapInject = (r, i) => i.map((t) => r.get(t));
 export function factoryOf(Class, inject) {
-    var isFactory = Array.isArray(inject);
+    var isFactory = isArray(inject);
 
     inject = inject || Class.inject;
-    var hasDeps = Array.isArray(inject) && inject.length > 0;
+    var hasDeps = isArray(inject) && inject.length > 0;
 
     var factory;
     if (isFactory) factory = (r) => Class(...mapInject(r, inject));
