@@ -275,203 +275,208 @@ describe("Container Builder", () => {
         describe("findAlias", () => {
             test("WHEN: walk through builder without aliases", () => {
                 // Arrange -------
-                var predicate = vi.fn()
-                var builder = diBuilder()
+                var predicate = vi.fn();
+                var builder = diBuilder();
 
                 // Act -----------
-                var result = builder.findAlias(predicate)
+                var result = builder.findAlias(predicate);
 
                 // Assert --------
-                expect(predicate).not.toHaveBeenCalled()
-                expect(result).toBeUndefined()
-            })
+                expect(predicate).not.toHaveBeenCalled();
+                expect(result).toBeUndefined();
+            });
 
             test("WHEN: walk through builder with one alias", () => {
                 // Arrange ---------
-                var typeKey = 'typeKey'
-                var aliasKey = 'aliasKey'
+                var typeKey = "typeKey";
+                var aliasKey = "aliasKey";
 
                 var builder = diBuilder()
                     .bindInstance(typeKey, 42)
-                    .bindAlias(aliasKey, typeKey)
+                    .bindAlias(aliasKey, typeKey);
 
-                var predicate = vi.fn()
+                var predicate = vi.fn();
 
                 // Act -------------
-                var result = builder.findAlias(predicate)
+                var result = builder.findAlias(predicate);
 
                 // Assert ----------
                 expect(predicate).toHaveBeenCalledExactlyOnceWith(
                     { type: aliasKey, name: undefined },
                     { type: typeKey, name: undefined },
-                )
-                expect(result).toBeUndefined()
-            })
+                );
+                expect(result).toBeUndefined();
+            });
 
             test("WHEN: walk through builder with many aliases", () => {
                 // Arrange ---------
-                var typeKey = 'typeKey'
-                var aliasKeyA = 'aliasKeyA'
-                var aliasKeyB = 'aliasKeyB'
+                var typeKey = "typeKey";
+                var aliasKeyA = "aliasKeyA";
+                var aliasKeyB = "aliasKeyB";
 
                 var builder = diBuilder()
                     .bindInstance(typeKey, 42)
                     .bindAlias(aliasKeyA, typeKey)
-                    .bindAlias(aliasKeyB, typeKey)
+                    .bindAlias(aliasKeyB, typeKey);
 
-                var predicate = vi.fn()
+                var predicate = vi.fn();
 
                 // Act -------------
-                var result = builder.findAlias(predicate)
+                var result = builder.findAlias(predicate);
 
                 // Assert ----------
                 expect(predicate).toHaveBeenCalledWith(
                     { type: aliasKeyA, name: undefined },
                     { type: typeKey, name: undefined },
-                )
+                );
                 expect(predicate).toHaveBeenCalledWith(
                     { type: aliasKeyB, name: undefined },
                     { type: typeKey, name: undefined },
-                )
-                expect(result).toBeUndefined()
-            })
+                );
+                expect(result).toBeUndefined();
+            });
 
             test("WHEN: walk through builder with named alias", () => {
                 // Arrange ---------
-                var typeKey = 'typeKey'
-                var aliasKey = 'aliasKey'
-                var aliasName = 'aliasName'
+                var typeKey = "typeKey";
+                var aliasKey = "aliasKey";
+                var aliasName = "aliasName";
 
                 var builder = diBuilder()
                     .bindInstance(typeKey, 42)
-                    .bindAlias(aliasKey, typeKey, { name: aliasName })
+                    .bindAlias(aliasKey, typeKey, { name: aliasName });
 
-                var predicate = vi.fn()
+                var predicate = vi.fn();
 
                 // Act -------------
-                var result = builder.findAlias(predicate)
+                var result = builder.findAlias(predicate);
 
                 // Assert ----------
                 expect(predicate).toHaveBeenCalledExactlyOnceWith(
                     { type: aliasKey, name: aliasName },
                     { type: typeKey, name: undefined },
-                )
-                expect(result).toBeUndefined()
-            })
+                );
+                expect(result).toBeUndefined();
+            });
 
             test("WHEN: walk through builder with named alias to named type", () => {
                 // Arrange ---------
-                var typeKey = 'typeKey'
-                var typeName = 'typeName'
-                var aliasKey = 'aliasKey'
-                var aliasName = 'aliasName'
+                var typeKey = "typeKey";
+                var typeName = "typeName";
+                var aliasKey = "aliasKey";
+                var aliasName = "aliasName";
 
                 var builder = diBuilder()
                     .bindInstance(typeKey, 42, { name: typeName })
-                    .bindAlias(aliasKey, typeKey, { name: aliasName, originName: typeName })
+                    .bindAlias(aliasKey, typeKey, {
+                        name: aliasName,
+                        originName: typeName,
+                    });
 
-                var predicate = vi.fn()
+                var predicate = vi.fn();
 
                 // Act -------------
-                var result = builder.findAlias(predicate)
+                var result = builder.findAlias(predicate);
 
                 // Assert ----------
                 expect(predicate).toHaveBeenCalledExactlyOnceWith(
                     { type: aliasKey, name: aliasName },
                     { type: typeKey, name: typeName },
-                )
-                expect(result).toBeUndefined()
-            })
+                );
+                expect(result).toBeUndefined();
+            });
 
             test("WHEN: walk through builder with deep aliases", () => {
                 // Arrange ----------
-                var typeKey = 'typeKey'
-                var aliasKeyA = 'aliasA'
-                var aliasKeyB = 'aliasB'
-                var aliasKeyC = 'aliasC'
+                var typeKey = "typeKey";
+                var aliasKeyA = "aliasA";
+                var aliasKeyB = "aliasB";
+                var aliasKeyC = "aliasC";
 
                 var builder = diBuilder()
                     .bindInstance(typeKey, 42)
                     .bindAlias(aliasKeyA, typeKey)
                     .bindAlias(aliasKeyB, aliasKeyA)
-                    .bindAlias(aliasKeyC, aliasKeyB)
+                    .bindAlias(aliasKeyC, aliasKeyB);
 
-                var predicate = vi.fn()
+                var predicate = vi.fn();
 
                 // Act --------
-                var result = builder.findAlias(predicate)
+                var result = builder.findAlias(predicate);
 
                 // Assert -----
-                expect(result).toBeUndefined()
+                expect(result).toBeUndefined();
                 expect(predicate).toHaveBeenCalledWith(
-                    {type: aliasKeyA, name: undefined },
-                    {type: typeKey, name: undefined },
-                )
+                    { type: aliasKeyA, name: undefined },
+                    { type: typeKey, name: undefined },
+                );
                 expect(predicate).toHaveBeenCalledWith(
-                    {type: aliasKeyB, name: undefined },
-                    {type: aliasKeyA, name: undefined },
-                )
+                    { type: aliasKeyB, name: undefined },
+                    { type: aliasKeyA, name: undefined },
+                );
                 expect(predicate).toHaveBeenCalledWith(
-                    {type: aliasKeyC, name: undefined },
-                    {type: aliasKeyB, name: undefined },
-                )
-            })
+                    { type: aliasKeyC, name: undefined },
+                    { type: aliasKeyB, name: undefined },
+                );
+            });
 
             test("WHEN: walk through aliases with multi binding", () => {
                 // Arrange --------
-                var typeKeyA = 'typeKeyA'
-                var typeKeyB = 'typeKeyB'
-                var aliasKeyA = 'aliasA'
-                var aliasKeyB = 'aliasB'
+                var typeKeyA = "typeKeyA";
+                var typeKeyB = "typeKeyB";
+                var aliasKeyA = "aliasA";
+                var aliasKeyB = "aliasB";
 
                 var builder = diBuilder()
                     .bindInstance(typeKeyA, 11)
                     .bindInstance(typeKeyB, 22)
-                    .bindAlias(aliasKeyA, typeKeyA, { ifConflict: 'append' })
-                    .bindAlias(aliasKeyA, typeKeyB, { ifConflict: 'append' })
-                    .bindAlias(aliasKeyB, aliasKeyA, { ifConflict: 'append' })
+                    .bindAlias(aliasKeyA, typeKeyA, { ifConflict: "append" })
+                    .bindAlias(aliasKeyA, typeKeyB, { ifConflict: "append" })
+                    .bindAlias(aliasKeyB, aliasKeyA, { ifConflict: "append" });
 
-                var predicate = vi.fn()
+                var predicate = vi.fn();
 
                 // Act -----------
-                var result = builder.findAlias(predicate)
+                var result = builder.findAlias(predicate);
 
                 // Assert --------
                 expect(predicate).toHaveBeenCalledWith(
                     { type: aliasKeyA, name: undefined },
                     { type: typeKeyA, name: undefined },
-                )
+                );
                 expect(predicate).toHaveBeenCalledWith(
                     { type: aliasKeyA, name: undefined },
                     { type: typeKeyB, name: undefined },
-                )
+                );
                 expect(predicate).toHaveBeenCalledWith(
                     { type: aliasKeyB, name: undefined },
                     { type: aliasKeyA, name: undefined },
-                )
-            })
+                );
+            });
 
             test("WHEN: find alias by condition", () => {
                 // Arrange ---------
-                var typeKey = 'typeKey'
-                var aliasKeyA = 'aliasA'
-                var aliasKeyB = 'aliasB'
+                var typeKey = "typeKey";
+                var aliasKeyA = "aliasA";
+                var aliasKeyB = "aliasB";
 
                 var builder = diBuilder()
                     .bindInstance(typeKey, 42)
                     .bindAlias(aliasKeyA, typeKey)
-                    .bindAlias(aliasKeyB, typeKey, { ifConflict: 'append' })
-                    .bindAlias(aliasKeyB, aliasKeyA, { ifConflict: 'append' })
+                    .bindAlias(aliasKeyB, typeKey, { ifConflict: "append" })
+                    .bindAlias(aliasKeyB, aliasKeyA, { ifConflict: "append" });
 
                 // Act -----------
-                var result = builder.findAlias((_, target) => target.type !== typeKey)
+                var result = builder.findAlias(
+                    (_, target) => target.type !== typeKey,
+                );
 
                 // Assert --------
-                expect(result).not.toBeUndefined()
-                expect(result.type).toBe(aliasKeyB)
-                expect(result.name).toBeUndefined()
-            })
-        })
+                expect(result).not.toBeUndefined();
+                expect(result.type).toBe(aliasKeyB);
+                expect(result.name).toBeUndefined();
+            });
+        });
     });
 
     describe("Binding", () => {
@@ -603,8 +608,7 @@ describe("Container Builder", () => {
                     var entry = builder.findEntry(typeKey);
 
                     // Assert --------
-                    expect(err).to.not.be.undefined;
-                    expect(err.message).to.contains("Binding conflict");
+                    expect(err).instanceOf(Error);
                     expect(err.message).to.contains(typeKey);
 
                     expect(entry).not.to.be.undefined;
@@ -1011,8 +1015,7 @@ describe("Container Builder", () => {
                     var entry = builder.findEntry(typeKey);
 
                     // Assert --------
-                    expect(err).to.not.be.undefined;
-                    expect(err.message).to.contains("Binding conflict");
+                    expect(err).instanceOf(Error);
                     expect(err.message).to.contains(typeKey);
 
                     expect(entry).not.to.be.undefined;
@@ -1194,7 +1197,7 @@ describe("Container Builder", () => {
 
                     // Assert ------
                     // Throws error on attempt to bind
-                    expect(error).instanceOf(Error)
+                    expect(error).instanceOf(Error);
                 });
             });
 
@@ -1372,8 +1375,7 @@ describe("Container Builder", () => {
                     var entry = builder.findEntry(typeKey);
 
                     // Assert --------
-                    expect(err).to.not.be.undefined;
-                    expect(err.message).to.contains("Binding conflict");
+                    expect(err).instanceOf(Error);
                     expect(err.message).to.contains(typeKey);
 
                     expect(entry).not.to.be.undefined;
@@ -2019,7 +2021,7 @@ describe("Container Builder", () => {
                 var error = catchError(() => builder.bindInstance(typeKey, 42));
 
                 // Assert --------
-                expect(error).instanceOf(Error)
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN try to return not a type entry object", () => {
@@ -3747,6 +3749,7 @@ describe("Container Scope", () => {
                     container,
                     typeKey,
                     undefined,
+                    [],
                 );
                 expect(onRequestHandler).toHaveBeenNthCalledWith(
                     2,
@@ -3754,6 +3757,7 @@ describe("Container Scope", () => {
                     container,
                     typeKey,
                     undefined,
+                    [],
                 );
             });
 
@@ -3793,6 +3797,64 @@ describe("Container Scope", () => {
                     container,
                     typeKey,
                     typeName,
+                    [],
+                );
+            });
+
+            test("WHEN: Type request trace via resolution stack ", () => {
+                // Arrange ---------
+                var typeKeyA = "typeKeyA";
+                var typeKeyB = "typeKeyB";
+                var typeKeyC = "typeKeyC";
+                var onRequest = vi.fn((...args) =>
+                    console.log("Test-OnRequest", args),
+                );
+                var builder = diBuilder()
+                    .use({ onRequest })
+                    .bindInstance(typeKeyA, 42)
+                    .bindFactory(typeKeyB, (r) => r.get(typeKeyA) * 2, {
+                        lifecycle: "lazy",
+                    })
+                    .bindFactory(typeKeyC, (r) => r.get(typeKeyB) + 10, {
+                        lifecycle: "lazy",
+                    });
+
+                var typeEntryA = builder.findEntry(typeKeyA);
+                var typeEntryB = builder.findEntry(typeKeyB);
+                var typeEntryC = builder.findEntry(typeKeyC);
+
+                var container = builder.build();
+
+                // Act -------------
+                container.get(typeKeyC);
+
+                // Assert ----------
+
+                expect(onRequest).toHaveBeenNthCalledWith(
+                    1,
+                    typeEntryC,
+                    container,
+                    typeKeyC,
+                    undefined,
+                    [],
+                );
+
+                expect(onRequest).toHaveBeenNthCalledWith(
+                    2,
+                    typeEntryB,
+                    container,
+                    typeKeyB,
+                    undefined,
+                    expect.arrayContaining([typeEntryC]),
+                );
+
+                expect(onRequest).toHaveBeenNthCalledWith(
+                    3,
+                    typeEntryA,
+                    container,
+                    typeKeyA,
+                    undefined,
+                    expect.arrayContaining([typeEntryC, typeEntryB]),
                 );
             });
         });
@@ -3821,6 +3883,7 @@ describe("Container Scope", () => {
                     typeEntry,
                     typeValue,
                     container,
+                    [],
                 );
             });
 
@@ -3849,6 +3912,7 @@ describe("Container Scope", () => {
                     typeEntry,
                     typeValue,
                     container,
+                    [],
                 );
                 expect(onResolveHandler).toHaveReturnedWith(value);
             });
@@ -3884,6 +3948,7 @@ describe("Container Scope", () => {
                     entry,
                     typeValue,
                     container,
+                    [],
                 );
                 expect(firstOnResolveHandler).toHaveReturnedWith(typeValue + 1);
 
@@ -3891,6 +3956,7 @@ describe("Container Scope", () => {
                     entry,
                     typeValue + 1,
                     container,
+                    [],
                 );
                 expect(secondOnResolveHandler).toHaveReturnedWith(value);
             });
@@ -4836,185 +4902,193 @@ describe("Container Module", () => {
     describe("Module Internal Types", () => {
         test("WHEN: Bind internal instance type by builder", () => {
             // Arrange --------
-            var typeKey = 'typeKey'
-            var builder = diBuilder()
+            var typeKey = "typeKey";
+            var builder = diBuilder();
 
             // Act ------------
-            builder.bindInstance(typeKey, 42, { internal: true })
+            builder.bindInstance(typeKey, 42, { internal: true });
 
-            var entry = builder.findEntry(typeKey)
+            var entry = builder.findEntry(typeKey);
 
             // Assert ---------
             expect(entry.internal).is.true;
-        })
+        });
 
         test("WHEN: Bind internal factory type by builder", () => {
             // Arrange --------
-            var typeKey = 'typeKey'
-            var builder = diBuilder()
-            var factory = vi.fn()
+            var typeKey = "typeKey";
+            var builder = diBuilder();
+            var factory = vi.fn();
 
             // Act ------------
-            builder.bindFactory(typeKey, factory, { internal: true })
+            builder.bindFactory(typeKey, factory, { internal: true });
 
-            var entry = builder.findEntry(typeKey)
+            var entry = builder.findEntry(typeKey);
 
             // Assert ---------
             expect(entry.internal).is.true;
             expect(factory).not.toHaveBeenCalled();
-        })
+        });
 
         test("WHEN: Bind internal instance type by module", () => {
             // Arrange --------
-            var typeKey = 'typeKey'
-            var builder = diBuilder()
+            var typeKey = "typeKey";
+            var builder = diBuilder();
 
             // Act ------------
-            var module = staticModule("TestModule").create(binder => {
-                binder.bindInstance(typeKey, 42, { internal: true })
-            })
+            var module = staticModule("TestModule").create((binder) => {
+                binder.bindInstance(typeKey, 42, { internal: true });
+            });
 
-            builder.include(module)
+            builder.include(module);
 
-            var entry = builder.findEntry(typeKey)
+            var entry = builder.findEntry(typeKey);
 
             // Assert ---------
-            expect(entry.module).toBe(module)
+            expect(entry.module).toBe(module);
             expect(entry.internal).is.true;
-        })
+        });
 
         test("WHEN: Bind internal factory type by module", () => {
             // Arrange --------
-            var typeKey = 'typeKey'
-            var builder = diBuilder()
-            var factory = vi.fn()
+            var typeKey = "typeKey";
+            var builder = diBuilder();
+            var factory = vi.fn();
 
             // Act ------------
-            var module = staticModule("TestModule").create(binder => {
-                binder.bindFactory(typeKey, factory, { internal: true })
-            })
+            var module = staticModule("TestModule").create((binder) => {
+                binder.bindFactory(typeKey, factory, { internal: true });
+            });
 
-            builder.include(module)
+            builder.include(module);
 
-            var entry = builder.findEntry(typeKey)
+            var entry = builder.findEntry(typeKey);
 
             // Assert ---------
-            expect(entry.module).toBe(module)
+            expect(entry.module).toBe(module);
             expect(entry.internal).is.true;
             expect(factory).not.toHaveBeenCalled();
-        })
+        });
 
         test("WHEN: Internal type singleton activation", () => {
             // Arrange --------
-            var typeKey = 'typeKey'
-            var factory = vi.fn()
+            var typeKey = "typeKey";
+            var factory = vi.fn();
 
-            var module = staticModule("TestModule").create(binder => {
-                binder.bindFactory(typeKey, factory, { internal: true })
-            })
-            var builder = diBuilder().include(module)
+            var module = staticModule("TestModule").create((binder) => {
+                binder.bindFactory(typeKey, factory, { internal: true });
+            });
+            var builder = diBuilder().include(module);
 
             // Act ------------
-            builder.build()
+            builder.build();
 
             // Assert ---------
             // No error thrown on activation
-            expect(factory).toHaveBeenCalled()
-        })
+            expect(factory).toHaveBeenCalled();
+        });
 
         test("WHEN: Resolve internal type from container", () => {
             // Arrange -------
-            var typeKey = 'typeKey'
-            var typeValue = Symbol()
-            var factory = vi.fn(() => typeValue)
+            var typeKey = "typeKey";
+            var typeValue = Symbol();
+            var factory = vi.fn(() => typeValue);
 
             var container = diBuilder()
                 .bindFactory(typeKey, factory, { internal: true })
-                .build()
+                .build();
 
             // Act -----------
-            var value = container.get(typeKey)
+            var value = container.get(typeKey);
 
             // Assert --------
             // No error thrown
-            expect(value).toBe(typeValue)
-        })
+            expect(value).toBe(typeValue);
+        });
 
         test("WHEN: Resolve internal type from container type", () => {
             // Arrange ----------
-            var typeKey = 'typeKey'
-            var typeValue = Symbol()
+            var typeKey = "typeKey";
+            var typeValue = Symbol();
 
-            var containerType = "cType"
+            var containerType = "cType";
 
-            var factory = vi.fn(() => typeValue)
-            var module = staticModule('TestModule').create(binder => {
-                binder.bindFactory(typeKey, factory, { internal: true, lifecycle: 'lazy' })
-            })
+            var factory = vi.fn(() => typeValue);
+            var module = staticModule("TestModule").create((binder) => {
+                binder.bindFactory(typeKey, factory, {
+                    internal: true,
+                    lifecycle: "lazy",
+                });
+            });
 
             var container = diBuilder()
                 .include(module)
-                .bindFactory(containerType, r => r.get(typeKey), { lifecycle: 'lazy'})
-                .build()
+                .bindFactory(containerType, (r) => r.get(typeKey), {
+                    lifecycle: "lazy",
+                })
+                .build();
 
             // Act --------------
-            var error = catchError( () => container.get(containerType) )
+            var error = catchError(() => container.get(containerType));
 
             // Assert -----------
-            expect(error).instanceOf(Error)
-            expect(factory).not.toHaveBeenCalled()
-        })
+            expect(error).instanceOf(Error);
+            expect(factory).not.toHaveBeenCalled();
+        });
 
         test("WHEN: Resolve internal type as maybe from container type", () => {
             // Arrange ----------
-            var typeKey = 'typeKey'
-            var typeValue = Symbol()
+            var typeKey = "typeKey";
+            var typeValue = Symbol();
 
-            var containerType = "cType"
+            var containerType = "cType";
 
-            var factory = vi.fn(() => typeValue)
-            var module = staticModule('TestModule').create(binder => {
-                binder.bindFactory(typeKey, factory, { internal: true, lifecycle: 'lazy' })
-            })
+            var factory = vi.fn(() => typeValue);
+            var module = staticModule("TestModule").create((binder) => {
+                binder.bindFactory(typeKey, factory, {
+                    internal: true,
+                    lifecycle: "lazy",
+                });
+            });
 
             var container = diBuilder()
                 .include(module)
-                .bindFactory(containerType, r => r.maybe(typeKey), { lifecycle: 'lazy'})
-                .build()
+                .bindFactory(containerType, (r) => r.maybe(typeKey), {
+                    lifecycle: "lazy",
+                })
+                .build();
 
             // Act --------------
-            var value = container.get(containerType)
+            var value = container.get(containerType);
 
             // Assert -----------
             // No error thrown, but returns undefined
-            expect(value).toBeUndefined()
-        })
+            expect(value).toBeUndefined();
+        });
 
         test("WHEN: Resolve internal type from module type", () => {
             // Arrange --------
-            var typeKeyA = 'typeKeyA'
-            var typeAValue = Symbol()
-            var typeKeyB = 'typeKeyB'
-            var typeBFactory = vi.fn(r => r.get(typeKeyA))
+            var typeKeyA = "typeKeyA";
+            var typeAValue = Symbol();
+            var typeKeyB = "typeKeyB";
+            var typeBFactory = vi.fn((r) => r.get(typeKeyA));
 
-            var module = staticModule("TestModule").create(binder => {
+            var module = staticModule("TestModule").create((binder) => {
                 binder
                     .bindInstance(typeKeyA, typeAValue, { internal: true })
-                    .bindFactory(typeKeyB, typeBFactory, { lifecycle: 'lazy' })
-            })
+                    .bindFactory(typeKeyB, typeBFactory, { lifecycle: "lazy" });
+            });
 
-            var container = diBuilder()
-                .include(module)
-                .build()
+            var container = diBuilder().include(module).build();
 
             // Act ------------
-            var value = container.get(typeKeyB)
+            var value = container.get(typeKeyB);
 
             // Assert ---------
-            expect(typeBFactory).toHaveBeenCalledOnce()
-            expect(value).toBe(typeAValue)
-        })
-    })
+            expect(typeBFactory).toHaveBeenCalledOnce();
+            expect(value).toBe(typeAValue);
+        });
+    });
 
     describe("Grouping", () => {
         test("WHEN: Group of modules", () => {
@@ -5026,7 +5100,7 @@ describe("Container Module", () => {
             var moduleB = staticModule("B").create(delegate);
 
             // Act ------------
-            var group = staticModule(groupID).group(moduleA, moduleB);
+            var group = staticModule(groupID).compose(moduleA, moduleB);
 
             // Assert ---------
             expect(group).instanceOf(Object);
@@ -5050,7 +5124,7 @@ describe("Container Module", () => {
             var typeB = "typeB";
             var delegateB = vi.fn((binder) => binder.bindInstance(typeB, 22));
             var moduleB = staticModule("B").create(delegateB);
-            var group = staticModule("AB").group(moduleA, moduleB);
+            var group = staticModule("AB").compose(moduleA, moduleB);
 
             var builder = diBuilder();
 
@@ -5082,12 +5156,12 @@ describe("Container Module", () => {
             var delegateB = vi.fn();
             var moduleB = staticModule("B").create(delegateB);
 
-            var group1 = staticModule("group1").group(moduleA);
+            var group1 = staticModule("group1").compose(moduleA);
 
             var builder = diBuilder();
 
             // Act ---------------
-            var group2 = staticModule("group2").group(group1, moduleB);
+            var group2 = staticModule("group2").compose(group1, moduleB);
 
             builder.include(group2);
 
