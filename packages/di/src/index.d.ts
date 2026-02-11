@@ -189,6 +189,9 @@ export type TScopeOptions = {
      * Instances will not be shared or inherited from parent scopes.
      */
     isolated?: boolean;
+
+    /** Optional contextual data associated with this scope */
+    data?: any
 };
 
 /**
@@ -796,14 +799,14 @@ export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
 };
 
 /**
- * Group of DI Modules
- * @template TypeMap The map of types this group will provide.
+ * Composition module of DI Modules
+ * @template TypeMap The map of types this composition will provide.
  */
-export type DIGroupModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
+export type DICompositionModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
     /** The kind of module — always "group" */
     readonly type: "group";
 
-    /** List of the grouped modules */
+    /** List of the composed modules */
     readonly modules: readonly DIModule<AnyTypeMap>[];
 };
 
@@ -935,6 +938,9 @@ export interface IScopeContext extends IDisposable {
     /** Scope hierarchy */
     readonly path: readonly string[];
 
+    /** Read-only optional contextual data associated with current scope. */
+    readonly data?: unknown
+
     /**
      * Closes the current scope and cleans up all local instances.
      *
@@ -983,6 +989,9 @@ export interface IContainerScope<TypeMap extends TTypeMapBase>
      * to resolve instances or create child scopes.
      */
     readonly isDisposed: boolean;
+
+    /** Read-only optional contextual data associated with this scope */
+    readonly data?: unknown;
 
     /**
      * Checks if the current scope has a direct child scope with the specified ID.
@@ -1200,7 +1209,7 @@ export type TModuleDeclaration = {
      */
     compose<Modules extends readonly DIModule<any>[]>(
         ...modules: Modules
-    ): DIGroupModule<Prettify<UnionToIntersection<TypeMapOf<Modules[number]>>>>;
+    ): DICompositionModule<Prettify<UnionToIntersection<TypeMapOf<Modules[number]>>>>;
 };
 
 /**

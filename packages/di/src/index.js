@@ -399,11 +399,12 @@ function createFactoryScopeContext(scope) {
     return {
         current: scope.id,
         path: scope.path,
+        data: scope.data,
         dispose: scope.dispose.bind(scope),
     };
 }
 
-function createRootContainerScope(blueprint) {
+function createRootContainerScope(blueprint, rootData) {
     var $root = Symbol("r");
     var $parent = Symbol("p");
     var $scopes = Symbol("s");
@@ -430,9 +431,10 @@ function createRootContainerScope(blueprint) {
     }
 
     function createScopeObject(id, parent, options = {}) {
-        var { sealed = false, isolated = false } = options;
+        var { sealed = false, isolated = false, data } = options;
         return {
             id,
+            data,
             sealed,
             isolated,
             path: makeScopePath(id, parent),
@@ -751,7 +753,7 @@ function createRootContainerScope(blueprint) {
 
     var rootScope = readOnly(
         Object.setPrototypeOf(
-            createScopeObject(""),
+            createScopeObject("", undefined, { data: rootData }),
             // Preventing illegal mutations of the scope prototype
             readOnly(scopePrototype),
         ),
@@ -785,6 +787,7 @@ export function diBuilder(builderOptions = {}) {
         lifecycle: defaultLifecycle = LC_SINGLETON,
         /** The default conflict resolution strategy to use for bindings. */
         ifConflict: defaultConflictResolve = "throw",
+        data,
     } = builderOptions;
 
     var blueprint = createContainerBlueprint();
@@ -1025,7 +1028,7 @@ export function diBuilder(builderOptions = {}) {
                 throw new Error(ErrorMissingRequiredType($id));
         });
 
-        var container = createRootContainerScope(blueprint);
+        var container = createRootContainerScope(blueprint, data);
         externalInjections.forEach((delegate) => delegate(container));
         blueprint.callMw("onPostBuild", -1, container);
         blueprint = null; // Dispose builder
@@ -1044,6 +1047,7 @@ export function diBuilder(builderOptions = {}) {
     };
 
     return {
+        data,
         has: blueprint.has,
         hasModule: blueprint.hasMod,
         hasMiddleware: blueprint.hasMw,

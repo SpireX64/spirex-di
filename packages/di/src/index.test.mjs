@@ -37,6 +37,19 @@ describe("Container Builder", () => {
 
             // Assert ----------------
             expect(builder).instanceOf(Object);
+            expect(builder.data).toBeUndefined();
+        });
+
+        test("WHEN: Pass root scope data into builder options", () => {
+            // Arrange ---------
+            var data = 42;
+
+            // Act -------------
+            var builder = diBuilder({ data });
+
+            // Assert ----------
+            expect(builder).instanceOf(Object);
+            expect(builder.data).toBe(data);
         });
     });
 
@@ -2234,6 +2247,18 @@ describe("Container Builder", () => {
             expect(container.isDisposed).is.false;
         });
 
+        test("WHEN: Get root scope data from container", () => {
+            // Arrange ---------
+            var expectedData = "foo";
+            var container = diBuilder({ data: expectedData }).build();
+
+            // Act --------
+            var rootData = container.data;
+
+            // Arrange ----
+            expect(rootData).toBe(expectedData);
+        });
+
         describe("Aliases building", () => {
             describe("Verify alias origin type exist", () => {
                 test("WHEN alias origin type is exists", () => {
@@ -4149,11 +4174,32 @@ describe("Container Scope", () => {
                 expect(Object.getPrototypeOf(childScope)).toBe(
                     Object.getPrototypeOf(container),
                 );
+                expect(childScope.data).is.undefined;
                 expect(childScope.sealed).is.false;
                 expect(childScope.isolated).is.false;
                 expect(childScope.isDisposed).is.false;
 
                 expect(onScopeOpen).toHaveBeenCalledExactlyOnceWith(childScope);
+            });
+
+            test("WHEN: Create child scope with data", () => {
+                // Arrange -------
+                var scopeId = "child";
+                var scopeData = 42;
+                var container = diBuilder().build();
+
+                // Act -----------
+                const childScope = container.scope(scopeId, { data: scopeData });
+
+                // Assert --------
+                expect(container.hasChildScope(scopeId)).is.true;
+                expect(Object.getPrototypeOf(childScope)).toBe(
+                    Object.getPrototypeOf(container),
+                );
+                expect(childScope.data).toBe(scopeData);
+                expect(childScope.sealed).is.false;
+                expect(childScope.isolated).is.false;
+                expect(childScope.isDisposed).is.false;
             });
 
             test("WHEN: Get child scope twice with same id", () => {
@@ -4879,6 +4925,28 @@ describe("Container Scope", () => {
 
             // Assert ------
             expect(error).instanceOf(Error);
+        });
+
+        test("WHEN: Receive scope's data inside scoped factory", () => {
+            // Arrange ----------
+            var typeKey = "typeKey";
+
+            var scopeId = "child";
+            var scopeData = "data";
+
+            var container = diBuilder()
+                .bindFactory(typeKey, (_, ctx) => ctx.data, {
+                    lifecycle: "scope",
+                })
+                .build();
+
+            var childScope = container.scope(scopeId, { data: scopeData });
+
+            // Act --------------
+            var inst = childScope.get(typeKey);
+
+            // Assert -----------
+            expect(inst).toBe(scopeData);
         });
     });
 });
