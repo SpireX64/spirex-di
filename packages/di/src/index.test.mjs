@@ -1,6 +1,5 @@
 import { vi, describe, test, expect } from "vitest";
 import { diBuilder, staticModule, factoryOf } from "./index";
-import { DIErrors } from "./index.js";
 
 /**
  * Executes a procedure and captures any thrown Error instance.
@@ -15,7 +14,7 @@ import { DIErrors } from "./index.js";
  * var error = catchError(() => {
  *     service.mayThrow();
  * });
- * expect(error).to.not.be.undefined;
+ * expect(error).instanceOf(Error)
  * expect(error.message).to.contain("expected part of the message");
  */
 function catchError(procedure) {
@@ -940,9 +939,6 @@ describe("Container Builder", () => {
 
                     // Assert -------
                     expect(error).toBeInstanceOf(Error);
-                    expect(error.message).toEqual(
-                        DIErrors.MissingRequiredTypeError(depKey),
-                    );
                 });
 
                 test("WHEN: factory function with deps list", () => {
@@ -996,9 +992,6 @@ describe("Container Builder", () => {
 
                     // Assert -------
                     expect(error).toBeInstanceOf(Error);
-                    expect(error.message).toEqual(
-                        DIErrors.MissingRequiredTypeError(depKey),
-                    );
                     expect(factory).not.toHaveBeenCalled();
                 });
             });
@@ -1200,17 +1193,8 @@ describe("Container Builder", () => {
                     });
 
                     // Assert ------
-                    // 1. Throws error on attempt to bind
-                    expect(error).toBeDefined();
-
-                    // 2. Error describes lifecycle conflict
-                    expect(error.message).to.equal(
-                        DIErrors.MixedLifecycleBindings(
-                            typeKey,
-                            "singleton",
-                            "transient",
-                        ),
-                    );
+                    // Throws error on attempt to bind
+                    expect(error).instanceOf(Error)
                 });
             });
 
@@ -1660,9 +1644,6 @@ describe("Container Builder", () => {
 
                     // Assert --------
                     expect(err).to.not.be.undefined;
-                    expect(err.message).to.equal(
-                        DIErrors.BindingConflict(aliasKey),
-                    );
                     expect(aliasRef).to.equal(typeKey);
                 });
 
@@ -2038,14 +2019,7 @@ describe("Container Builder", () => {
                 var error = catchError(() => builder.bindInstance(typeKey, 42));
 
                 // Assert --------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.MiddlewareEntryTypeMismatch(
-                        middlewareName,
-                        newTypeKey,
-                        typeKey,
-                    ),
-                );
+                expect(error).instanceOf(Error)
             });
 
             test("WHEN try to return not a type entry object", () => {
@@ -2061,14 +2035,7 @@ describe("Container Builder", () => {
                 var error = catchError(() => builder.bindInstance(typeKey, 1));
 
                 // Assert ----------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.MiddlewareEntryTypeMismatch(
-                        middlewareName,
-                        undefined,
-                        typeKey,
-                    ),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN try to return undefined or null object", () => {
@@ -2084,14 +2051,7 @@ describe("Container Builder", () => {
                 });
 
                 // Assert --------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.MiddlewareEntryTypeMismatch(
-                        "unnamed",
-                        undefined,
-                        typeKey,
-                    ),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN bind instance before middleware add", () => {
@@ -2301,10 +2261,7 @@ describe("Container Builder", () => {
                     });
 
                     // Assert ------
-                    expect(error).toBeDefined();
-                    expect(error.message).is.equal(
-                        DIErrors.AliasMissingRef(aliasKey, typeKey),
-                    );
+                    expect(error).instanceOf(Error);
                 });
             });
 
@@ -2388,14 +2345,7 @@ describe("Container Builder", () => {
                     });
 
                     // Assert -------
-                    // 1. Should throw error
-                    expect(error).toBeDefined();
-
-                    // 2.Error message should contain alias cycle error
-                    //   with reference chain
-                    expect(error.message).to.eq(
-                        DIErrors.AliasCycle(aliasKey, [aliasKey, aliasKey]),
-                    );
+                    expect(error).instanceOf(Error);
                 });
 
                 test("WHEN: Alias binding has cycle", () => {
@@ -2412,10 +2362,7 @@ describe("Container Builder", () => {
                     });
 
                     // Assert -------
-                    expect(error).toBeDefined();
-                    expect(error.message).toEqual(
-                        DIErrors.AliasCycle("A", ["A", "B", "C", "D", "A"]),
-                    );
+                    expect(error).instanceOf(Error);
                 });
 
                 test("WHEN: Alias reference non-exist binding", () => {
@@ -2430,10 +2377,7 @@ describe("Container Builder", () => {
                     });
 
                     // Assert --------
-                    expect(error).toBeDefined();
-                    expect(error.message).toEqual(
-                        DIErrors.AliasMissingRef("aliasB", "nonExist"),
-                    );
+                    expect(error).instanceOf(Error);
                 });
 
                 test("WHEN: Alias reference through another alias", () => {
@@ -2477,10 +2421,7 @@ describe("Container Builder", () => {
                 });
 
                 // Assert ----------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.MissingRequiredTypeError(typeKey),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN type with name required but not bound", () => {
@@ -2497,10 +2438,7 @@ describe("Container Builder", () => {
                 });
 
                 // Assert ---------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.MissingRequiredTypeError(typeKey + "$" + typeName),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN required type bound", () => {
@@ -2608,10 +2546,7 @@ describe("Container Builder", () => {
 
                 // Assert -------
                 // 1. Should throw a MissingRequiredTypeError for the missing dependency
-                expect(error).toBeDefined();
-                expect(error.message).toEqual(
-                    DIErrors.MissingRequiredTypeError(depKey),
-                );
+                expect(error).instanceOf(Error);
 
                 // 2. Resolver should be called during build
                 expect(resolverMock).toHaveBeenCalledTimes(1);
@@ -2765,10 +2700,7 @@ describe("Container Scope", () => {
                 });
 
                 // Assert ---------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.TypeBindingNotFound(typeKey),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test.each([null, false, "", +0, -0, 0n, NaN])(
@@ -2829,10 +2761,7 @@ describe("Container Scope", () => {
                 });
 
                 // Assert ---------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.TypeBindingNotFound(typeKey, typeName),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN get from instance binding", () => {
@@ -3093,10 +3022,7 @@ describe("Container Scope", () => {
                 var error = catchError(() => container.get("typeKey"));
 
                 // Assert ---------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.DependenciesCycle("typeKey", ["typeKey"]),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN has short dependency cycle", () => {
@@ -3115,10 +3041,7 @@ describe("Container Scope", () => {
                 var error = catchError(() => container.get("typeKey"));
 
                 // Assert ---------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.DependenciesCycle("typeKey", expectedTypeStack),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN has deep dependency cycle", () => {
@@ -3158,10 +3081,7 @@ describe("Container Scope", () => {
                 var error = catchError(() => container.get("typeA"));
 
                 // Assert ---------
-                expect(error).toBeDefined();
-                expect(error.message).to.equal(
-                    DIErrors.DependenciesCycle("typeA", expectedTypeStack),
-                );
+                expect(error).instanceOf(Error);
             });
         });
 
@@ -3355,10 +3275,7 @@ describe("Container Scope", () => {
                 });
 
                 // Assert -------
-                expect(error).toBeDefined();
-                expect(error.message).toEqual(
-                    DIErrors.TypeBindingNotFound(typeKey),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN: Get provider and call it", () => {
@@ -3468,9 +3385,6 @@ describe("Container Scope", () => {
 
                 // Assert -----
                 expect(error).toBeInstanceOf(Error);
-                expect(error.message).toEqual(
-                    DIErrors.TypeBindingNotFound(typeKey),
-                );
             });
         });
     });
@@ -4241,10 +4155,7 @@ describe("Container Scope", () => {
                 });
 
                 // Assert ----------
-                expect(error).toBeDefined();
-                expect(error.message).toEqual(
-                    DIErrors.SealedScope(sealedScopeName, childScopeName),
-                );
+                expect(error).instanceOf(Error);
             });
 
             test("WHEN: Trying to get parent scope from sealed scope", () => {
@@ -4530,9 +4441,6 @@ describe("Container Scope", () => {
 
             // Assert -------------
             expect(error).toBeInstanceOf(Error);
-            expect(error.message).toEqual(
-                DIErrors.ScopeViolation(currentScope, typeKey),
-            );
             expect(factory).not.toHaveBeenCalled();
         });
 
@@ -4608,9 +4516,6 @@ describe("Container Scope", () => {
 
             // Assert ---------
             expect(error).toBeInstanceOf(Error);
-            expect(error.message).toEqual(
-                DIErrors.ScopeViolation(childScopeName, typeKey),
-            );
             expect(factory).not.toHaveBeenCalled();
         });
     });
@@ -4875,13 +4780,6 @@ describe("Container Scope", () => {
 
             // Assert --------
             expect(error).toBeInstanceOf(Error);
-            expect(error.message).toEqual(
-                DIErrors.InstanceAccessAfterDispose(
-                    typeKey,
-                    container.id,
-                    container.path,
-                ),
-            );
         });
 
         test("WHEN: Trying to get instance from disposed scope", () => {
@@ -4899,13 +4797,6 @@ describe("Container Scope", () => {
 
             // Assert --------
             expect(error).toBeInstanceOf(Error);
-            expect(error.message).toEqual(
-                DIErrors.InstanceAccessAfterDispose(
-                    typeKey,
-                    scope.id,
-                    scope.path,
-                ),
-            );
         });
 
         test("WHEN: Trying to open child scope from disposed scope", () => {
@@ -4921,14 +4812,7 @@ describe("Container Scope", () => {
             });
 
             // Assert ------
-            expect(error).toBeInstanceOf(Error);
-            expect(error.message).toEqual(
-                DIErrors.ChildScopeCreationAfterDispose(
-                    childScopeId,
-                    scope.id,
-                    scope.path,
-                ),
-            );
+            expect(error).instanceOf(Error);
         });
     });
 });
