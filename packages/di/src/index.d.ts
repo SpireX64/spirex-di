@@ -449,6 +449,7 @@ export type TContainerMiddlewareOnRequest<
     scope: IContainerScope<TypeMap>,
     type: keyof TypeMap,
     name: string | undefined,
+    stack: readonly TTypeEntry<TypeMap, keyof TypeMap>[],
 ) => void | never;
 
 /**
@@ -498,6 +499,7 @@ export type TContainerMiddlewareOnResolve<
     entry: TTypeEntry<TypeMap, keyof TypeMap>,
     instance: {},
     scope: IContainerScope<TypeMap>,
+    stack: readonly TTypeEntry<TypeMap, keyof TypeMap>[],
 ) => {};
 
 /**
@@ -1196,7 +1198,7 @@ export type TModuleDeclaration = {
      *
      * @since 1.2.0
      */
-    group<Modules extends readonly DIModule<any>[]>(
+    compose<Modules extends readonly DIModule<any>[]>(
         ...modules: Modules
     ): DIGroupModule<Prettify<UnionToIntersection<TypeMapOf<Modules[number]>>>>;
 };
