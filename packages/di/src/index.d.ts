@@ -190,8 +190,11 @@ export type TScopeOptions = {
      */
     isolated?: boolean;
 
-    /** Optional contextual data associated with this scope */
-    data?: any
+    /**
+     * Optional contextual data associated with this scope
+     * @since 1.2.0
+     */
+    data?: any;
 };
 
 /**
@@ -223,9 +226,10 @@ export type TTypeBindingOptions<
      */
     allowedScopes?: string[] | undefined;
 
-    /** 
+    /**
      * Marks the binding as internal to its module.
      * Internal bindings cannot be resolved outside of the module boundary at runtime.
+     * @since 1.2.0
      */
     internal?: boolean;
 };
@@ -565,7 +569,10 @@ export interface IContainerMiddleware<
     /** Triggered when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind<TypeMap & MiddlewareTypeMap>;
 
-    /** Triggered when a new type alias is being bound */
+    /**
+     * Triggered when a new type alias is being bound
+     * @since 1.2.0
+     */
     onBindAlias?: TContainerBuilderMiddlewareOnBindAlias<
         TypeMap & MiddlewareTypeMap
     >;
@@ -801,14 +808,16 @@ export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
 /**
  * Composition module of DI Modules
  * @template TypeMap The map of types this composition will provide.
+ * @since 1.2.0
  */
-export type DICompositionModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
-    /** The kind of module — always "group" */
-    readonly type: "group";
+export type DICompositionModule<TypeMap extends TTypeMapBase> =
+    DIModule<TypeMap> & {
+        /** The kind of module — always "group" */
+        readonly type: "group";
 
-    /** List of the composed modules */
-    readonly modules: readonly DIModule<AnyTypeMap>[];
-};
+        /** List of the composed modules */
+        readonly modules: readonly DIModule<AnyTypeMap>[];
+    };
 
 /**
  * An interface that provides access to the container's type resolution mechanism.
@@ -939,7 +948,7 @@ export interface IScopeContext extends IDisposable {
     readonly path: readonly string[];
 
     /** Read-only optional contextual data associated with current scope. */
-    readonly data?: unknown
+    readonly data?: unknown;
 
     /**
      * Closes the current scope and cleans up all local instances.
@@ -1209,7 +1218,9 @@ export type TModuleDeclaration = {
      */
     compose<Modules extends readonly DIModule<any>[]>(
         ...modules: Modules
-    ): DICompositionModule<Prettify<UnionToIntersection<TypeMapOf<Modules[number]>>>>;
+    ): DICompositionModule<
+        Prettify<UnionToIntersection<TypeMapOf<Modules[number]>>>
+    >;
 };
 
 /**
