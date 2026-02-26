@@ -327,7 +327,7 @@ export type TFactoryTypeEntry<
     readonly instance: undefined;
 
     /** Lifecycle of the binding */
-    readonly lifecycle: keyof TLifecycle;
+    readonly lifecycle: TLifecycle;
 };
 
 /**
@@ -349,7 +349,7 @@ export type TSafeFactoryEntry<
     readonly factory: TTypeSafeFactory<Deps, TypeMap[T]>;
 
     /** Lifecycle of the binding */
-    readonly lifecycle: keyof TLifecycle;
+    readonly lifecycle: TLifecycle;
 
     /** Always `undefined` to indicate it's not an instance entry. */
     readonly instance: undefined;
@@ -389,7 +389,7 @@ export type TInjectIntoDelegate<TypeMap extends TTypeMapBase> = (
 ) => void;
 
 /**
- * A middleware function that called when the middleware
+ * A middleware function that is called when the middleware
  * is added into the container builder.
  *
  * This is executed immediately and only once per `.use()` call.
@@ -435,7 +435,7 @@ export type TContainerBuilderMiddlewareOnBindAlias<
 ) => void;
 
 /**
- * A middleware function that triggered whenever a instance is requested from the container.
+ * A middleware function that is triggered whenever an instance is requested from the container.
  *
  * This allows intercepting or rejecting requests before instance resolution begins.
  * Can be useful for access control, logging, instrumentation, or short-circuiting logic.
@@ -457,10 +457,10 @@ export type TContainerMiddlewareOnRequest<
     type: keyof TypeMap,
     name: string | undefined,
     stack: readonly TTypeEntry<TypeMap, keyof TypeMap>[],
-) => void | never;
+) => TTypeEntry<TypeMap, keyof TypeMap> | undefined | void;
 
 /**
- * A middleware function that triggered after an instance is created,
+ * A middleware function that is triggered after an instance is created,
  * but before it is returned to the requester.
  *
  * @note
@@ -487,7 +487,7 @@ export type TContainerMiddlewareOnActivated<
 ) => {};
 
 /**
- * A middleware function that triggered **after** the instance has been fully resolved.
+ * A middleware function that is triggered **after** the instance has been fully resolved.
  *
  * This is the final stage before the instance is returned to the caller.
  *
@@ -812,8 +812,8 @@ export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
  */
 export type DICompositionModule<TypeMap extends TTypeMapBase> =
     DIModule<TypeMap> & {
-        /** The kind of module — always "group" */
-        readonly type: "group";
+        /** The kind of module — always "compose" */
+        readonly type: "compose";
 
         /** List of the composed modules */
         readonly modules: readonly DIModule<AnyTypeMap>[];
@@ -873,7 +873,7 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
     /**
      * Retrieves all instances registered for the given type and name.
      *
-     * Does not throws when no bindings are found
+     * Does not throw when no bindings are found
      * and instead returns an empty array.
      *
      * @param type - The type key to resolve instances for.
@@ -1064,7 +1064,7 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
 
     /**
      * Finds a registered entry (instance or factory) by its type token.
-     * The returned entry is frozen and can't to be mutated.
+     * The returned entry is frozen and cannot be mutated.
      * @param type - The type token to search for.
      * @param name - Optional name qualifier.
      *
@@ -1125,7 +1125,7 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
      */
     findAlias(
         predicate: TBindingRefPredicate<TypeMap>,
-    ): TBindingRef<TypeMap, keyof TypeMap>;
+    ): TBindingRef<TypeMap, keyof TypeMap> | undefined;
 
     /**
      * Returns the origin type reference that an alias points to, if any.
@@ -1185,6 +1185,9 @@ export type TContainerBuilderOptions = {
 
     /** Default conflict resolution strategy when a binding for the same type already exists. */
     ifConflict?: TTypesBindingResolveStrategy;
+
+    /** Additional data to be stored in the root scope. */
+    data?: any;
 };
 
 export type TModuleDeclaration = {
@@ -1303,7 +1306,7 @@ export declare function factoryOf<
  * @template InjectTuple - A tuple of keys from `TypeMap` specifying the injection order.
  *
  * @param factoryFn      - A function that constructs the instance using dependencies.
- * @param inject         - The ordered list of dependency keys to resolve.
+ * @param injectTuple    - The ordered list of dependency keys to resolve.
  * @returns A type-safe factory for the DI container binding.
  *
  * @since 1.1.0
