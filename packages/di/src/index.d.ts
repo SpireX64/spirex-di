@@ -1,4 +1,9 @@
 type Prettify<T> = { [K in keyof T]: T[K] } & {};
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+    k: infer I,
+) => void
+    ? I
+    : never;
 
 /**
  * A map of string keys to types used in the DI container.
@@ -15,6 +20,28 @@ export type TTypeMapBase = object;
 export type TTypesEnum<TypeMap extends TTypeMapBase> = Readonly<{
     [T in keyof TypeMap]: T;
 }>;
+
+/**
+ * Reference to a specific binding in the container or module
+ * @since 1.2.0
+ */
+export type TBindingRef<
+    TypeMap extends TTypeMapBase,
+    T extends keyof TypeMap,
+> = {
+    /**
+     * The type token (key) for the binding entry.
+     * Represents the service or type that is being bound in the container.
+     */
+    readonly type: T;
+
+    /**
+     * An optional name for the binding entry, used for named bindings.
+     * If provided, this value helps to distinguish between different bindings of the same type.
+     * If the binding does not have a name, this field will be `undefined`.
+     */
+    readonly name: string | undefined;
+};
 
 /**
  * Defines the lifecycle for a binding in the container.
@@ -50,6 +77,20 @@ export interface ITypeEntryMetaData<
 }
 
 export type TProvider<T> = () => T;
+export type TPredicate<T> = (item: T) => boolean | undefined | void;
+
+/**
+ * Predicate function used match binding references.
+ *
+ * @template TypeMap A map of container types used for strict typing.
+ * @param reference An immutable object contains type and name of binding.
+ * @returns `true` if the type entry matches the predicate condition, otherwise `false`.
+ *
+ * @since 1.2.0
+ */
+export type TBindingRefPredicate<TypeMap extends TTypeMapBase> = TPredicate<
+    TBindingRef<TypeMap, keyof TypeMap>
+>;
 
 /**
  * Predicate function used to filter or match type bindings.
@@ -63,9 +104,9 @@ export type TProvider<T> = () => T;
  *
  * @since 1.1.0
  */
-export type TTypeEntryPredicate<TypeMap extends TTypeMapBase> = (
-    typeEntry: TTypeEntry<TypeMap, keyof TypeMap>,
-) => boolean;
+export type TTypeEntryPredicate<TypeMap extends TTypeMapBase> = TPredicate<
+    TTypeEntry<TypeMap, keyof TypeMap>
+>;
 
 /**
  * A factory function that produces an instance of a type from the container.
@@ -148,6 +189,12 @@ export type TScopeOptions = {
      * Instances will not be shared or inherited from parent scopes.
      */
     isolated?: boolean;
+
+    /**
+     * Optional contextual data associated with this scope
+     * @since 1.2.0
+     */
+    data?: any;
 };
 
 /**
@@ -178,6 +225,13 @@ export type TTypeBindingOptions<
      * If defined, the instance will only be created or accessed within the specified scopes.
      */
     allowedScopes?: string[] | undefined;
+
+    /**
+     * Marks the binding as internal to its module.
+     * Internal bindings cannot be resolved outside of the module boundary at runtime.
+     * @since 1.2.0
+     */
+    internal?: boolean;
 };
 
 /** Options for configuring a factory-based binding. */
@@ -213,24 +267,12 @@ export type TAliasBindingOptions = TBindingOptions & {
 export type TTypeEntryBase<
     TypeMap extends TTypeMapBase,
     T extends keyof TypeMap,
-> = {
+> = TBindingRef<TypeMap, T> & {
     /**
      * A unique identifier for the binding entry.
      * This ID is used internally to distinguish between different bindings of the same type.
      * */
     readonly $id: string;
-    /**
-     * The type token (key) for the binding entry.
-     * Represents the service or type that is being bound in the container.
-     * */
-    readonly type: T;
-
-    /**
-     * An optional name for the binding entry, used for named bindings.
-     * If provided, this value helps to distinguish between different bindings of the same type.
-     * If the binding does not have a name, this field will be `undefined`.
-     */
-    readonly name: string | undefined;
 
     /**
      * The module that owns this binding, if any.
@@ -285,7 +327,7 @@ export type TFactoryTypeEntry<
     readonly instance: undefined;
 
     /** Lifecycle of the binding */
-    readonly lifecycle: keyof TLifecycle;
+    readonly lifecycle: TLifecycle;
 };
 
 /**
@@ -307,7 +349,7 @@ export type TSafeFactoryEntry<
     readonly factory: TTypeSafeFactory<Deps, TypeMap[T]>;
 
     /** Lifecycle of the binding */
-    readonly lifecycle: keyof TLifecycle;
+    readonly lifecycle: TLifecycle;
 
     /** Always `undefined` to indicate it's not an instance entry. */
     readonly instance: undefined;
@@ -347,7 +389,7 @@ export type TInjectIntoDelegate<TypeMap extends TTypeMapBase> = (
 ) => void;
 
 /**
- * A middleware function that called when the middleware
+ * A middleware function that is called when the middleware
  * is added into the container builder.
  *
  * This is executed immediately and only once per `.use()` call.
@@ -359,7 +401,7 @@ export type TContainerBuilderMiddlewareOnUse<
 > = (builder: IContainerBuilder<TypeMap>) => void;
 
 /**
- * A middleware function that intercepts type binding during container building.
+ * A middleware function that intercepts type binding during container configuration.
  * Can be used to transform or validate the entry.
  *
  * @param entry - The current type entry that is about to be added to the container.
@@ -375,7 +417,25 @@ export type TContainerBuilderMiddlewareOnBind<
 ) => TTypeEntry<TypeMap, keyof TypeMap>;
 
 /**
- * A middleware function that triggered whenever a instance is requested from the container.
+ * A middleware function that intercepts alias binding during container configuration.
+ * Can be used to validate, track, or restrict alias registrations.
+ *
+ * @param alias - The alias reference that is about to be registered.
+ * @param origin - The original binding reference the alias points to.
+ * @param builder - The container builder instance.
+ *
+ * @since 1.2.0
+ */
+export type TContainerBuilderMiddlewareOnBindAlias<
+    TypeMap extends TTypeMapBase = AnyTypeMap,
+> = (
+    alias: TBindingRef<TypeMap, keyof TypeMap>,
+    origin: TBindingRef<TypeMap, keyof TypeMap>,
+    builder: IContainerBuilder<TypeMap>,
+) => void;
+
+/**
+ * A middleware function that is triggered whenever an instance is requested from the container.
  *
  * This allows intercepting or rejecting requests before instance resolution begins.
  * Can be useful for access control, logging, instrumentation, or short-circuiting logic.
@@ -396,10 +456,11 @@ export type TContainerMiddlewareOnRequest<
     scope: IContainerScope<TypeMap>,
     type: keyof TypeMap,
     name: string | undefined,
-) => void | never;
+    stack: readonly TTypeEntry<TypeMap, keyof TypeMap>[],
+) => TTypeEntry<TypeMap, keyof TypeMap> | undefined | void;
 
 /**
- * A middleware function that triggered after an instance is created,
+ * A middleware function that is triggered after an instance is created,
  * but before it is returned to the requester.
  *
  * @note
@@ -426,7 +487,7 @@ export type TContainerMiddlewareOnActivated<
 ) => {};
 
 /**
- * A middleware function that triggered **after** the instance has been fully resolved.
+ * A middleware function that is triggered **after** the instance has been fully resolved.
  *
  * This is the final stage before the instance is returned to the caller.
  *
@@ -445,6 +506,7 @@ export type TContainerMiddlewareOnResolve<
     entry: TTypeEntry<TypeMap, keyof TypeMap>,
     instance: {},
     scope: IContainerScope<TypeMap>,
+    stack: readonly TTypeEntry<TypeMap, keyof TypeMap>[],
 ) => {};
 
 /**
@@ -455,6 +517,8 @@ export type TContainerMiddlewareOnResolve<
  *
  * @template TypeMap - The type map defining all bindings in the container.
  * @param builder - Reference to the container builder being configured.
+ *
+ * @since 1.1.0
  */
 export type TContainerMiddlewareOnPreBuild<
     TypeMap extends TTypeMapBase = AnyTypeMap,
@@ -468,6 +532,8 @@ export type TContainerMiddlewareOnPreBuild<
  *
  * @template TypeMap - The type map defining all bindings in the container.
  * @param root - Reference to the built container (root scope).
+ *
+ * @since 1.1.0
  */
 export type TContainerMiddlewareOnPostBuild<
     TypeMap extends TTypeMapBase = AnyTypeMap,
@@ -503,10 +569,24 @@ export interface IContainerMiddleware<
     /** Triggered when a new type entry is being bound */
     onBind?: TContainerBuilderMiddlewareOnBind<TypeMap & MiddlewareTypeMap>;
 
-    /** A hook that runs before the container is built. */
+    /**
+     * Triggered when a new type alias is being bound
+     * @since 1.2.0
+     */
+    onBindAlias?: TContainerBuilderMiddlewareOnBindAlias<
+        TypeMap & MiddlewareTypeMap
+    >;
+
+    /**
+     * A hook that runs before the container is built
+     * @since 1.1.0
+     */
     onPreBuild?: TContainerMiddlewareOnPreBuild<TypeMap & MiddlewareTypeMap>;
 
-    /** A hook that runs after the container is fully built. */
+    /**
+     * A hook that runs after the container is fully built
+     * @since 1.1.0
+     */
     onPostBuild?: TContainerMiddlewareOnPostBuild<TypeMap & MiddlewareTypeMap>;
 
     /** Triggered whenever a instance is requested from the container. */
@@ -726,6 +806,20 @@ export type DIStaticModule<TypeMap extends TTypeMapBase> = DIModule<TypeMap> & {
 };
 
 /**
+ * Composition module of DI Modules
+ * @template TypeMap The map of types this composition will provide.
+ * @since 1.2.0
+ */
+export type DICompositionModule<TypeMap extends TTypeMapBase> =
+    DIModule<TypeMap> & {
+        /** The kind of module — always "compose" */
+        readonly type: "compose";
+
+        /** List of the composed modules */
+        readonly modules: readonly DIModule<AnyTypeMap>[];
+    };
+
+/**
  * An interface that provides access to the container's type resolution mechanism.
  *
  * @typeParam TypeMap - A mapping of tokens to their corresponding instance types.
@@ -779,7 +873,7 @@ export interface ITypesResolver<TypeMap extends TTypeMapBase> {
     /**
      * Retrieves all instances registered for the given type and name.
      *
-     * Does not throws when no bindings are found
+     * Does not throw when no bindings are found
      * and instead returns an empty array.
      *
      * @param type - The type key to resolve instances for.
@@ -853,6 +947,9 @@ export interface IScopeContext extends IDisposable {
     /** Scope hierarchy */
     readonly path: readonly string[];
 
+    /** Read-only optional contextual data associated with current scope. */
+    readonly data?: unknown;
+
     /**
      * Closes the current scope and cleans up all local instances.
      *
@@ -901,6 +998,9 @@ export interface IContainerScope<TypeMap extends TTypeMapBase>
      * to resolve instances or create child scopes.
      */
     readonly isDisposed: boolean;
+
+    /** Read-only optional contextual data associated with this scope */
+    readonly data?: unknown;
 
     /**
      * Checks if the current scope has a direct child scope with the specified ID.
@@ -964,7 +1064,7 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
 
     /**
      * Finds a registered entry (instance or factory) by its type token.
-     * The returned entry is frozen and can't to be mutated.
+     * The returned entry is frozen and cannot be mutated.
      * @param type - The type token to search for.
      * @param name - Optional name qualifier.
      *
@@ -1014,6 +1114,18 @@ export interface IContainerBuilder<TypeMap extends TTypeMapBase>
     findAll(
         predicate: TTypeEntryPredicate<TypeMap>,
     ): Readonly<TTypeEntry<TypeMap, keyof TypeMap>>[];
+
+    /**
+     * Finds the first alias binding that matches the given predicate.
+     *
+     * @param predicate - A function used to test alias bindings.
+     * @returns The matching alias reference, or `undefined` if none is found.
+     *
+     * @since 1.2.0
+     */
+    findAlias(
+        predicate: TBindingRefPredicate<TypeMap>,
+    ): TBindingRef<TypeMap, keyof TypeMap> | undefined;
 
     /**
      * Returns the origin type reference that an alias points to, if any.
@@ -1073,6 +1185,9 @@ export type TContainerBuilderOptions = {
 
     /** Default conflict resolution strategy when a binding for the same type already exists. */
     ifConflict?: TTypesBindingResolveStrategy;
+
+    /** Additional data to be stored in the root scope. */
+    data?: any;
 };
 
 export type TModuleDeclaration = {
@@ -1080,12 +1195,35 @@ export type TModuleDeclaration = {
      * Finalizes a static module definition using the provided delegate.
      *
      * @template TypeMap The type map representing the types the module provides.
+     * @template InternalTypeMap (optional) The type map representing the internal types of the module
      * @param delegate The function that defines bindings for the module.
      * @returns The static module definition.
      */
-    create<TypeMap extends TTypeMapBase>(
-        delegate: DIModuleDelegate<TypeMap>,
+    create<
+        TypeMap extends TTypeMapBase,
+        InternalTypeMap extends TTypeMapBase = object,
+    >(
+        delegate: DIModuleDelegate<
+            object extends InternalTypeMap
+                ? TypeMap
+                : Prettify<InternalTypeMap & TypeMap>
+        >,
     ): DIStaticModule<TypeMap>;
+
+    /**
+     * Groups multiple DI modules into a single composite module.
+     *
+     * @template Modules A tuple of modules to be grouped.
+     * @param modules - List of modules to combine into a group.
+     * @returns A group module exposing the intersection of all grouped module types.
+     *
+     * @since 1.2.0
+     */
+    compose<Modules extends readonly DIModule<any>[]>(
+        ...modules: Modules
+    ): DICompositionModule<
+        Prettify<UnionToIntersection<TypeMapOf<Modules[number]>>>
+    >;
 };
 
 /**
@@ -1168,8 +1306,10 @@ export declare function factoryOf<
  * @template InjectTuple - A tuple of keys from `TypeMap` specifying the injection order.
  *
  * @param factoryFn      - A function that constructs the instance using dependencies.
- * @param inject         - The ordered list of dependency keys to resolve.
+ * @param injectTuple    - The ordered list of dependency keys to resolve.
  * @returns A type-safe factory for the DI container binding.
+ *
+ * @since 1.1.0
  *
  * @example
  * function createService(repo: IRepository, logger: ILogger): MyService {
@@ -1259,4 +1399,7 @@ export type TypeMapFilterByExactType<TypeMap extends TTypeMapBase, T> = {
         : never]: TypeMap[K];
 };
 
-export type TypeMapOmit<TypeMap extends TTypeMapBase, Keys extends keyof TypeMap> = Omit<TypeMap, Keys>
+export type TypeMapOmit<
+    TypeMap extends TTypeMapBase,
+    Keys extends keyof TypeMap,
+> = Omit<TypeMap, Keys>;

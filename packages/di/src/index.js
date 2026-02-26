@@ -1,65 +1,65 @@
 /** A char used to separate the type and name in the unique ID of a binding */
 var ID_SEP = "$";
+var STRATEGY_APPEND = "append";
+var LC_SINGLETON = "singleton";
 
 var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
-function chainToString(chain, key) {
-    var sep = " -> ";
-    if (!chain.length) return key;
-    if (chain.length <= 2) return key + sep + key;
-    return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
-}
+// #region Shortcuts
 
 /**
- * A centralized dictionary of all error messages.
- *
- * This object provides reusable and consistent error messages for common failure scenarios
- * Many messages are defined as functions to allow dynamic insertion of context-specific details
- * (e.g. type names or scope paths).
- *
- * All values are frozen to ensure immutability and prevent accidental modification at runtime.
- *
- * @example
- * throw new Error(DIErrors.BindingConflict('MyService'));
+ * Returns last array element
+ * @param {Array<T>} array
+ * @returns {T | undefined}
  */
-export var DIErrors = Object.freeze({
-    BindingConflict: (type) =>
-        `Binding conflict. The type '${type}' is already bound.`,
+var len = (x) => x.length
+var lastOf = (array) => array[len(array) - 1];
+var listContains = (array, element) => array.includes(element);
+var readOnly = Object.freeze;
+var isArray = Array.isArray;
+var isFunc = (x) => typeof x === "function";
+var isStr = (x) => typeof x === "string";
 
-    MissingRequiredTypeError: (type) => `Required type "${type}" is not bound.`,
+// #endregion
 
-    UndefinedInstance: (type) => `Cannot bind undefined to type "${type}".`,
+// #region Utilities
 
-    AliasCycle: (alias, aliasChain) =>
-        `Alias resolution cycle detected: ${chainToString(aliasChain, alias)}`,
+/**
+ * @template T
+ * @param {Set<T>} set
+ * @param {(item: T) => boolean} predicate
+ * @returns {T | undefined}
+ */
+var findInSet = (set, predicate) => {
+    for (var item of set) {
+        if (predicate(item)) return item;
+    }
+};
 
-    AliasMissingRef: (aliasId, originId) =>
-        `Alias "${aliasId}" refers to non-existent type binding "${originId}".`,
+/**
+ * @template K
+ * @template T
+ * @param {Map<K, T | Set<T>>} mapSet
+ * @param {(item: T, key: K) => boolean} predicate
+ * @returns {T | undefined}
+ */
+var findInMapSet = (mapSet, predicate) => {
+    var result;
+    for (var [key, valueOrSet] of mapSet.entries()) {
+        var predicateWithKey = (value) => predicate(value, key);
+        if (valueOrSet instanceof Set) {
+            result = findInSet(valueOrSet, predicateWithKey);
+        } else if (predicateWithKey(valueOrSet)) result = valueOrSet;
+        if (result) return result;
+    }
+};
 
-    MiddlewareEntryTypeMismatch: (middlewareName, newEntryId, originEntryId) =>
-        `Middleware "${middlewareName || "unnamed"}" altered the entry type: Expected '${originEntryId}', but received '${newEntryId}`,
-
-    TypeBindingNotFound: (type, name) =>
-        `Type binding ${type}${name ? ` with name "${name}` : ""} not found.`,
-
-    DependenciesCycle: (entryType, chain) =>
-        `Activation failed: A cyclic dependency was detected while resolving type '${entryType}' (Activation chain: ${chainToString(chain, entryType)})`,
-
-    MixedLifecycleBindings: (type, lifecycleA, lifecycleB) =>
-        `Mixed lifecycle bindings detected for type "${type}": ${lifecycleA}, ${lifecycleB}`,
-
-    SealedScope: (sealedScope, childScope) =>
-        `Cannot create child scope "${childScope}" from sealed scope "${sealedScope}"`,
-
-    ScopeViolation: (scope, type) =>
-        `Access to type "${type}" is not allowed in scope "${scope}".`,
-
-    InstanceAccessAfterDispose: (type, scopeId, scopeHierarchy) =>
-        `Cannot resolve type '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`,
-
-    ChildScopeCreationAfterDispose: (childScopeId, scopeId, scopeHierarchy) =>
-        `Cannot create a child scope "${childScopeId}" from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`,
-});
+function chainToString(chain, key) {
+    var sep = " -> ";
+    if (!len(chain)) return key;
+    if (len(chain) <= 2) return key + sep + key;
+    return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
+}
 
 /**
  * Creates a unique identifier string for a binding entry based on its type and optional name.
@@ -67,22 +67,69 @@ export var DIErrors = Object.freeze({
  * The ID is used internally to distinguish bindings, including support for named bindings.
  * This ID is stored in the `$id` field of a binding entry and is used as the internal key.
  *
- * @param type - The type token of the binding.
- * @param name - Optional name for the binding (used for named bindings).
+ * @param {string} type - The type token of the binding.
+ * @param {string | undefined} [name] - Optional name for the binding (used for named bindings).
  * @return A unique string identifier for the binding.
  */
-function makeEntryId(type, name) {
-    return name ? type + ID_SEP + name : type;
-}
+var makeEntryId = (type, name) => (name ? type + ID_SEP + name : type);
 
-function isTypeEntry(mayBeTypeEntry) {
-    return (
-        mayBeTypeEntry &&
-        typeof mayBeTypeEntry === "object" &&
-        "$id" in mayBeTypeEntry &&
-        "type" in mayBeTypeEntry
-    );
-}
+/**
+ * Split identifier on key and name
+ * @param {string} id
+ * @returns {{type: string, name?: string}}
+ */
+var splitEntryId = (id) => {
+    id = id.split(ID_SEP);
+    return { type: id[0], name: id[1] };
+};
+
+var isTypeEntry = (mayBeTypeEntry) =>
+    typeof mayBeTypeEntry === "object" &&
+    "$id" in mayBeTypeEntry &&
+    "type" in mayBeTypeEntry;
+
+// #endregion
+
+// #region Errors
+
+var ErrorBindingConflict = (type) =>
+    `Binding exists: '${type}'`;
+var ErrorMissingRequiredType = (type) =>
+    `Missing binding: "${type}"`;
+var ErrorUndefinedInstance = (type) =>
+    `Undefined bind: "${type}"`;
+var ErrorResolveInternalType = (module, entryType, chain) =>
+    `Type "${entryType}" is not accessible outside "${module}" module (${chainToString(chain, entryType)})`;
+var ErrorAliasCycle = (alias, aliasChain) =>
+    `Alias cycle: ${chainToString(aliasChain, alias)}`;
+var ErrorAliasMissingRef = (aliasId, originId) =>
+    `Alias "${aliasId}" refers to missing binding "${originId}"`;
+var ErrorMiddlewareEntryTypeMismatch = (
+    middlewareName,
+    newEntryId,
+    originEntryId,
+) =>
+    `Middleware "${middlewareName || "unnamed"}" changed entry type: expected '${originEntryId}', got '${newEntryId}'`;
+var ErrorTypeBindingNotFound = (type, name) =>
+    `Binding not found: ${type}${name ? `("${name}")` : ""}`;
+var ErrorDependenciesCycle = (entryType, chain) =>
+    `Dependency cycle: '${entryType}' (${chainToString(chain, entryType)})`;
+var ErrorMixedLifecycleBindings = (type, lifecycleA, lifecycleB) =>
+    `Lifecycle conflict: "${type}" ${lifecycleA}/${lifecycleB}`;
+var ErrorSealedScope = (sealedScope, childScope) =>
+    `Cannot create "${childScope}" from sealed scope "${sealedScope}"`;
+var ErrorScopeViolation = (scope, type) =>
+    `Type "${type}" not accessible in scope "${scope}"`;
+var ErrorInstanceAccessAfterDispose = (type, scopeId, scopeHierarchy) =>
+    `Cannot resolve '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`;
+var ErrorChildScopeCreationAfterDispose = (
+    childScopeId,
+    scopeId,
+    scopeHierarchy,
+) =>
+    `Scope disposed: "${childScopeId}" @ "${chainToString(scopeHierarchy, scopeId)}"`;
+
+// #endregion
 
 /* istanbul ignore next */
 function phantomProxy(provider) {
@@ -104,7 +151,7 @@ function createContainerBlueprint() {
     /** Map of registered alias entries. */
     var aliases = new Map();
     /** Set of registered container middlewares. */
-    var middlewares = new Set();
+    var mws = new Set();
     /** Set of included modules. */
     var modules = new Set();
     /** Container type enumeration cache. */
@@ -112,16 +159,15 @@ function createContainerBlueprint() {
 
     function types() {
         if (!typesEnum)
-            typesEnum = Object.freeze(
+            typesEnum = readOnly(
                 Object.fromEntries([...entries.keys()].map((k) => [k, k])),
             );
 
         return typesEnum;
     }
 
-    // region: PUBLIC METHODS
     function hasMod(module) {
-        return modules.has(module);
+        return !!findInSet(modules, (m) => m.id === module.id);
     }
 
     function addMod(module) {
@@ -129,18 +175,23 @@ function createContainerBlueprint() {
     }
 
     function hasMw(middleware) {
-        return middlewares.has(middleware);
+        return !!findInSet(
+            mws,
+            (m) =>
+                m === middleware ||
+                (middleware.name && m.name === middleware.name),
+        );
     }
 
     function addMw(middleware) {
-        middlewares.add(middleware);
+        mws.add(middleware);
     }
 
     function callMw(hookName, resultArgIndex, ...args) {
         var result = args[resultArgIndex];
-        for (var mv of middlewares) {
+        for (var mv of mws) {
             var hook = mv[hookName];
-            if (typeof hook === "function") {
+            if (isFunc(hook)) {
                 result = hook(...args);
                 if (resultArgIndex >= 0) args[resultArgIndex] = result;
             }
@@ -148,7 +199,7 @@ function createContainerBlueprint() {
         return result;
     }
 
-    function getAliasOrigin(type, name) {
+    function getAO(type, name) {
         var ref = aliases.get(makeEntryId(type, name));
         return ref instanceof Set ? Array.from(ref.values()) : ref;
     }
@@ -158,7 +209,8 @@ function createContainerBlueprint() {
         return entries.has(id) || aliases.has(id);
     }
 
-    function findEntry(type, name) {
+    /** Find first entry with given type and name */
+    function findE(type, name) {
         var binding = entries.get(makeEntryId(type, name));
         return !binding || isTypeEntry(binding)
             ? binding
@@ -168,12 +220,11 @@ function createContainerBlueprint() {
     function findAlias(type, name) {
         var $id = makeEntryId(type, name);
         var alias = aliases.get($id);
-        return !alias || typeof alias === "string"
-            ? alias
-            : alias.values().next().value;
+        return !alias || isStr(alias) ? alias : alias.values().next().value;
     }
 
-    function findAllEntries(type, name) {
+    /** Find all entries by type and name */
+    function findEs(type, name) {
         var typeEntry = entries.get(makeEntryId(type, name));
         if (!typeEntry) return [];
 
@@ -182,12 +233,9 @@ function createContainerBlueprint() {
             : Array.from(typeEntry);
     }
 
-    function forEach(delegate) {
-        for (var entryOrSet of entries.values()) {
-            if (!isTypeEntry(entryOrSet)) entryOrSet.forEach(delegate);
-            else if (delegate(entryOrSet)) return;
-        }
-    }
+    var forEach = findInMapSet.bind(null, entries);
+
+    var forEachAlias = findInMapSet.bind(null, aliases);
 
     function find(predicate) {
         var result;
@@ -210,7 +258,7 @@ function createContainerBlueprint() {
             // No exist alias, or multibinding not enabled:
             // simply store the new alias by replacing any existing one
             aliases.set(aliasId, originId);
-        } else if (typeof existingAlias === "string") {
+        } else if (isStr(existingAlias)) {
             // Existing alias is a single reference
             // convert it to a Set and put both references into
             aliases.set(aliasId, new Set().add(existingAlias).add(originId));
@@ -239,7 +287,7 @@ function createContainerBlueprint() {
      */
     function addTypeEntry(builder, id, entry, multibinding) {
         var entryToBind = entry;
-        middlewares.forEach((middleware) => {
+        mws.forEach((middleware) => {
             if (!middleware.onBind) return;
 
             entryToBind = middleware.onBind(entryToBind, entry, builder);
@@ -250,7 +298,7 @@ function createContainerBlueprint() {
                 entryToBind.type !== entry.type
             )
                 throw new TypeError(
-                    DIErrors.MiddlewareEntryTypeMismatch(
+                    ErrorMiddlewareEntryTypeMismatch(
                         middleware.name,
                         entryToBind && entryToBind.$id,
                         entry.$id,
@@ -258,7 +306,7 @@ function createContainerBlueprint() {
                 );
         });
 
-        Object.freeze(entryToBind);
+        readOnly(entryToBind);
 
         var existingEntry = entries.get(id);
         if (!existingEntry || !multibinding) {
@@ -277,14 +325,14 @@ function createContainerBlueprint() {
     }
 
     function compileAliasRef(builder, aliasRef, stack) {
-        if (typeof aliasRef !== "string") {
+        if (!isStr(aliasRef)) {
             for (var ref of aliasRef) compileAliasRef(builder, ref, stack);
             return;
         }
 
-        if (stack.includes(aliasRef)) {
+        if (listContains(stack, aliasRef)) {
             stack.push(aliasRef);
-            throw new Error(DIErrors.AliasCycle(aliasRef, stack));
+            throw new Error(ErrorAliasCycle(aliasRef, stack));
         }
 
         var ref = aliases.get(aliasRef);
@@ -297,9 +345,7 @@ function createContainerBlueprint() {
 
         var typeEntry = entries.get(aliasRef);
         if (typeEntry === undefined)
-            throw new Error(
-                DIErrors.AliasMissingRef(stack[stack.length - 1], aliasRef),
-            );
+            throw new Error(ErrorAliasMissingRef(lastOf(stack), aliasRef));
 
         stack.push(aliasRef);
         for (var aliasId of stack) {
@@ -313,7 +359,7 @@ function createContainerBlueprint() {
         stack.pop();
     }
 
-    function compileAliases(builder) {
+    function cAlias(builder) {
         if (!aliases.size) return;
 
         var stack = [];
@@ -326,12 +372,10 @@ function createContainerBlueprint() {
         aliases.clear();
     }
 
-    // endregion: PUBLIC METHODS
-
     return {
         entries,
         aliases,
-        middlewares,
+        mws,
         types,
         has,
         hasMw,
@@ -339,16 +383,17 @@ function createContainerBlueprint() {
         callMw,
         hasMod,
         addMod,
-        findEntry,
+        findE,
         findAlias,
-        findAllEntries,
+        findEs,
         forEach,
+        forEachAlias,
         find,
         findAll,
-        getAliasOrigin,
+        getAO,
         addAlias,
         addTypeEntry,
-        compileAliases,
+        cAlias,
     };
 }
 
@@ -356,16 +401,17 @@ function createFactoryScopeContext(scope) {
     return {
         current: scope.id,
         path: scope.path,
+        data: scope.data,
         dispose: scope.dispose.bind(scope),
     };
 }
 
-function createRootContainerScope(blueprint) {
-    var $root = Symbol("root");
-    var $parent = Symbol("parent");
-    var $scopes = Symbol("scopes");
-    var $locals = Symbol("locals");
-    var $state = Symbol("state");
+function createRootContainerScope(blueprint, rootData) {
+    var $root = Symbol("r");
+    var $parent = Symbol("p");
+    var $scopes = Symbol("s");
+    var $locals = Symbol("l");
+    var $state = Symbol("d");
 
     /**
      * Builds a scope path array from root (excluded) to current scope.
@@ -378,18 +424,19 @@ function createRootContainerScope(blueprint) {
         // Root scope has empty ID and is ignored.
         if (parent) {
             path.push(scopeId);
-            while (parent && parent.id.length > 0) {
+            while (parent && parent.id !== '') {
                 path.push(parent.id);
                 parent = parent[$parent];
             }
         }
-        return Object.freeze(path.reverse());
+        return readOnly(path.reverse());
     }
 
     function createScopeObject(id, parent, options = {}) {
-        var { sealed = false, isolated = false } = options;
+        var { sealed = false, isolated = false, data } = options;
         return {
             id,
+            data,
             sealed,
             isolated,
             path: makeScopePath(id, parent),
@@ -405,6 +452,10 @@ function createRootContainerScope(blueprint) {
     // to detect circular dependencies during instance creation
     var activationStack = [];
 
+    // The resolution stack is used to determine request chain.
+    // It works with already created instances.
+    var resolutionStack = [];
+
     /**
      * Activates (creates) an instance for a given type entry.
      *
@@ -417,7 +468,7 @@ function createRootContainerScope(blueprint) {
      */
     function activateInstance(entry, scope) {
         // Check for circular dependency by verifying if the entry is already being activated
-        var hasDependencyCycle = activationStack.includes(entry);
+        var hasDependencyCycle = listContains(activationStack, entry);
 
         // Push the current entry to the activation stack
         activationStack.push(entry);
@@ -425,7 +476,7 @@ function createRootContainerScope(blueprint) {
         if (hasDependencyCycle) {
             // If a cycle is detected, throw a detailed error
             var error = new Error(
-                DIErrors.DependenciesCycle(
+                ErrorDependenciesCycle(
                     entry.$id,
                     activationStack.map((it) => it.$id),
                 ),
@@ -461,11 +512,30 @@ function createRootContainerScope(blueprint) {
     function getInstance(scope, entry, noThrow, noActivate) {
         var instance;
 
+        // Check for internal module type.
+        // Singletons can be created
+        if (entry.module && entry.internal) {
+            var topEntry = lastOf(activationStack);
+            if (!topEntry || topEntry.module !== entry.module) {
+                if (noThrow) return undefined;
+                else
+                    throw Error(
+                        ErrorResolveInternalType(
+                            entry.module.id,
+                            entry.$id,
+                            activationStack.map((it) => it.$id),
+                        ),
+                    );
+            }
+        }
+
+        resolutionStack.push(entry);
+
         // Return the directly bound instance, if any (from bindInstance)
         if ("instance" in entry) instance = entry.instance;
         else if (
             scope[$parent] &&
-            (entry.lifecycle === "singleton" || entry.lifecycle === "lazy")
+            (entry.lifecycle === LC_SINGLETON || entry.lifecycle === "lazy")
         )
             // Direct singleton access from the root
             instance = getInstance(scope[$root], entry, noThrow);
@@ -480,7 +550,7 @@ function createRootContainerScope(blueprint) {
                 parent && instance === undefined;
                 parent = parent[$parent]
             ) {
-                if (!allowedScopes || allowedScopes.includes(parent.id)) {
+                if (!allowedScopes || listContains(allowedScopes, parent.id)) {
                     // Save nearest allowed scope
                     nearestAllowedParent ||= parent;
                     var locals = parent[$locals];
@@ -491,10 +561,11 @@ function createRootContainerScope(blueprint) {
 
             if (allowedScopes) {
                 if (!nearestAllowedParent) {
+                    resolutionStack.pop();
                     if (noThrow) return instance;
                     else
                         throw new Error(
-                            DIErrors.ScopeViolation(scope.id, entry.$id),
+                            ErrorScopeViolation(scope.id, entry.$id),
                         );
                 }
 
@@ -518,21 +589,34 @@ function createRootContainerScope(blueprint) {
             }
         }
 
-        return instance === undefined
-            ? undefined
-            : blueprint.callMw("onResolve", 1, entry, instance, scope);
+        return blueprint.callMw(
+            "onResolve",
+            1,
+            resolutionStack.pop(),
+            instance,
+            scope,
+            resolutionStack,
+        );
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
         return (
-            blueprint.callMw("onRequest", 0, entry, scope, type, name) || entry
+            blueprint.callMw(
+                "onRequest",
+                0,
+                entry,
+                scope,
+                type,
+                name,
+                resolutionStack.slice(),
+            ) || entry
         );
     }
 
     function assertScopeNotDisposedToResolve(type, name) {
         if (this[$state].disposed)
             throw new Error(
-                DIErrors.InstanceAccessAfterDispose(
+                ErrorInstanceAccessAfterDispose(
                     makeEntryId(type, name),
                     this.id,
                     this.path,
@@ -567,9 +651,8 @@ function createRootContainerScope(blueprint) {
 
         get(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
-            if (!entry)
-                throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            var entry = blueprint.findE(type, name);
+            if (!entry) throw new Error(ErrorTypeBindingNotFound(type, name));
 
             entry = onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
@@ -577,7 +660,7 @@ function createRootContainerScope(blueprint) {
 
         maybe(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
+            var entry = blueprint.findE(type, name);
             if (!entry) return undefined;
 
             entry = onRequestMiddleware(this, entry, type, name);
@@ -587,28 +670,28 @@ function createRootContainerScope(blueprint) {
         getAll(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
             return blueprint
-                .findAllEntries(type, name)
+                .findEs(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map((entry) => getInstance(this, entry, true));
         },
 
         providerOf(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
+            var entry = blueprint.findE(type, name);
             if (entry) return makeProviderFunc(this, entry);
-            throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound(type, name));
         },
 
         phantomOf(type, name) {
             assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findEntry(type, name);
+            var entry = blueprint.findE(type, name);
             if (entry)
                 return (
                     getInstance(this, entry, true, true) ||
                     phantomProxy(makeProviderFunc(this, entry))
                 );
 
-            throw new Error(DIErrors.TypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound(type, name));
         },
 
         hasChildScope(id) {
@@ -618,11 +701,7 @@ function createRootContainerScope(blueprint) {
         scope(id, options) {
             if (this[$state].disposed)
                 throw new Error(
-                    DIErrors.ChildScopeCreationAfterDispose(
-                        id,
-                        this.id,
-                        this.path,
-                    ),
+                    ErrorChildScopeCreationAfterDispose(id, this.id, this.path),
                 );
 
             // Walk up the scope hierarchy to find a scope with the matching ID.
@@ -631,14 +710,14 @@ function createRootContainerScope(blueprint) {
                 if (scope.id === id) return scope;
 
             // Disallow creating child scopes from sealed scope
-            if (this.sealed) throw new Error(DIErrors.SealedScope(this.id, id));
+            if (this.sealed) throw new Error(ErrorSealedScope(this.id, id));
 
             var scopesMap = this[$scopes];
 
             var scope = scopesMap.get(id);
             if (scope) return scope;
 
-            scope = Object.freeze(
+            scope = readOnly(
                 Object.setPrototypeOf(
                     createScopeObject(id, this, options),
                     Object.getPrototypeOf(this),
@@ -662,12 +741,9 @@ function createRootContainerScope(blueprint) {
 
             // Dispose local instances
             this[$locals].forEach((inst) => {
-                if (
-                    hasSymbolDispose &&
-                    typeof inst[Symbol.dispose] === "function"
-                )
+                if (hasSymbolDispose && isFunc(inst[Symbol.dispose]))
                     inst[Symbol.dispose]();
-                else if (typeof inst.dispose === "function") inst.dispose();
+                else if (isFunc(inst.dispose)) inst.dispose();
             });
             this[$locals].clear();
         },
@@ -677,11 +753,11 @@ function createRootContainerScope(blueprint) {
     if (hasSymbolDispose)
         scopePrototype[Symbol.dispose] = scopePrototype.dispose;
 
-    var rootScope = Object.freeze(
+    var rootScope = readOnly(
         Object.setPrototypeOf(
-            createScopeObject(""),
+            createScopeObject("", undefined, { data: rootData }),
             // Preventing illegal mutations of the scope prototype
-            Object.freeze(scopePrototype),
+            readOnly(scopePrototype),
         ),
     );
 
@@ -693,7 +769,7 @@ function createRootContainerScope(blueprint) {
             // Has factory function
             typeEntry.factory &&
             // It is singleton binding
-            typeEntry.lifecycle === "singleton" &&
+            typeEntry.lifecycle === LC_SINGLETON &&
             // Not activated yet
             !rootScope[$locals].has(typeEntry)
         ) {
@@ -710,9 +786,10 @@ function createRootContainerScope(blueprint) {
 export function diBuilder(builderOptions = {}) {
     var {
         /** The default lifecycle to use when a binding does not explicitly define one. */
-        lifecycle: defaultLifecycle = "singleton",
+        lifecycle: defaultLifecycle = LC_SINGLETON,
         /** The default conflict resolution strategy to use for bindings. */
         ifConflict: defaultConflictResolve = "throw",
+        data,
     } = builderOptions;
 
     var blueprint = createContainerBlueprint();
@@ -721,8 +798,6 @@ export function diBuilder(builderOptions = {}) {
     var requiredTypes = new Set();
     var externalInjections = [];
     var moduleStack = [];
-
-    // region INTERNAL METHODS
 
     /**
      * Verifies whether a binding for the given type already exists in the container,
@@ -737,12 +812,12 @@ export function diBuilder(builderOptions = {}) {
      * @param lifecycle (Optional) factory binding lifecycle
      * @returns `true` if the binding should be skipped; `false` if it can proceed.
      *
-     * @throws {DIErrors.BindingConflict} If a binding conflict exists and the strategy is `"throw"` or undefined.
+     * @throws {ErrorBindingConflict} If a binding conflict exists and the strategy is `"throw"` or undefined.
      * @internal
      */
     function verifyBinding(id, strategy, lifecycle) {
         var isAlias = false;
-        var existEntry = blueprint.findEntry(id);
+        var existEntry = blueprint.findE(id);
         if (!existEntry) {
             existEntry = blueprint.findAlias(id);
             isAlias = true;
@@ -752,20 +827,20 @@ export function diBuilder(builderOptions = {}) {
             strategy ||= defaultConflictResolve;
             if (strategy === "keep") return true;
             if (!strategy || strategy === "throw")
-                throw new Error(DIErrors.BindingConflict(id));
+                throw new Error(ErrorBindingConflict(id));
 
             // Check lifecycle consistency
             // Only applies when appending to an existing binding
             // Skip if either binding is an instance (have no lifecycle)
             if (
                 !isAlias &&
-                strategy === "append" &&
+                strategy === STRATEGY_APPEND &&
                 lifecycle &&
                 existEntry.lifecycle &&
                 existEntry.lifecycle !== lifecycle
             ) {
                 throw new Error(
-                    DIErrors.MixedLifecycleBindings(
+                    ErrorMixedLifecycleBindings(
                         id,
                         existEntry.lifecycle,
                         lifecycle,
@@ -776,35 +851,30 @@ export function diBuilder(builderOptions = {}) {
         return false;
     }
 
-    // endregion INTERNAL METHODS
-
-    // region PUBLIC METHODS
-
     function requireType(type, name) {
         requiredTypes.add(makeEntryId(type, name));
         return this;
     }
 
     function bindInstance(type, instance, options = {}) {
-        var { name, ifConflict, allowedScopes, meta } = options;
+        var { name, ifConflict, ...entryOptions } = options;
         var $id = makeEntryId(type, name);
         if (instance === undefined)
-            throw TypeError(DIErrors.UndefinedInstance($id));
+            throw TypeError(ErrorUndefinedInstance($id));
         if (verifyBinding($id, ifConflict)) return this;
 
         blueprint.addTypeEntry(
             this,
             $id,
             {
+                ...entryOptions,
                 $id,
                 type,
-                instance,
                 name,
-                module: moduleStack[moduleStack.length - 1],
-                allowedScopes,
-                meta,
+                instance,
+                module: lastOf(moduleStack),
             },
-            ifConflict === "append",
+            ifConflict === STRATEGY_APPEND,
         );
         return this;
     }
@@ -814,9 +884,7 @@ export function diBuilder(builderOptions = {}) {
             name,
             ifConflict,
             lifecycle = defaultLifecycle,
-            withScope,
-            allowedScopes,
-            meta,
+            ...entryOptions
         } = options;
         var $id = makeEntryId(type, name);
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
@@ -826,43 +894,43 @@ export function diBuilder(builderOptions = {}) {
             this,
             $id,
             {
+                ...entryOptions,
                 $id,
                 type,
+                name,
                 factory,
                 lifecycle,
-                name,
-                withScope,
-                module: moduleStack[moduleStack.length - 1],
-                allowedScopes,
-                meta,
+                module: lastOf(moduleStack),
             },
-            ifConflict === "append",
+            ifConflict === STRATEGY_APPEND,
         );
         return this;
     }
 
-    function bindSafeFactory(type, injector, factory, options) {
-        var $id = makeEntryId(type, options && options.name);
-        var ifConflict = options && options.ifConflict;
-        var lifecycle = (options && options.lifecycle) || defaultLifecycle;
-
+    function bindSafeFactory(type, injector, factory, options = {}) {
+        var {
+            name,
+            ifConflict = defaultConflictResolve,
+            lifecycle = defaultLifecycle,
+            ...entryOptions
+        } = options;
+        var $id = makeEntryId(type, name);
         if (verifyBinding($id, ifConflict, lifecycle)) return this;
 
         blueprint.addTypeEntry(
             this,
             $id,
             {
+                ...entryOptions,
                 $id,
                 type,
                 injector,
                 factory,
                 lifecycle,
-                name: options && options.name,
-                module: moduleStack[moduleStack.length - 1],
-                allowedScopes: options && options.allowedScopes,
-                meta: options && options.meta,
+                name,
+                module: lastOf(moduleStack),
             },
-            ifConflict === "append",
+            ifConflict === STRATEGY_APPEND,
         );
         hasSomeSafeFactory = true;
         return this;
@@ -874,24 +942,33 @@ export function diBuilder(builderOptions = {}) {
         return this;
     }
 
-    function bindAlias(type, originType, options) {
-        var $aliasId = makeEntryId(type, options && options.name);
-        var ifConflict = options && options.ifConflict;
+    function bindAlias(type, originType, options = {}) {
+        var { name, originName, ifConflict = defaultConflictResolve } = options;
+        var $aliasId = makeEntryId(type, name);
 
         if (verifyBinding($aliasId, ifConflict)) return this;
 
+        blueprint.callMw(
+            "onBindAlias",
+            -1,
+            { type, name },
+            { type: originType, name: originName },
+            this,
+        );
         blueprint.addAlias(
             $aliasId,
             originType,
-            options && options.originName,
-            ifConflict === "append",
+            originName,
+            ifConflict === STRATEGY_APPEND,
         );
         return this;
     }
 
     function use(middleware) {
-        blueprint.addMw(middleware);
-        if (middleware.onUse) middleware.onUse(this);
+        if (!blueprint.hasMw(middleware)) {
+            blueprint.addMw(middleware);
+            if (middleware.onUse) middleware.onUse(this);
+        }
         return this;
     }
 
@@ -908,10 +985,10 @@ export function diBuilder(builderOptions = {}) {
         return this;
     }
 
+    var markAsRequired = (type, name) => (requireType(type, name), {});
     function requireTypesFromSafeFactories() {
         if (!hasSomeSafeFactory) return;
 
-        var markAsRequired = (type, name) => (requireType(type, name), {});
         var dryRunScope = {
             get: markAsRequired,
             providerOf: markAsRequired,
@@ -920,8 +997,8 @@ export function diBuilder(builderOptions = {}) {
             getAll: () => [],
         };
 
-        blueprint.entries.forEach((entry) => {
-            if (typeof entry.injector === "function")
+        blueprint.forEach((entry) => {
+            if (isFunc(entry.injector))
                 try {
                     // Dry-run call to collect required types from safe factories.
                     // We only care about which types are accessed via `get(...)`.
@@ -942,35 +1019,46 @@ export function diBuilder(builderOptions = {}) {
         blueprint.callMw("onPreBuild", -1, this);
 
         // Compile aliases
-        blueprint.compileAliases(this);
+        blueprint.cAlias(this);
 
         // Collect required types from safe factories
         requireTypesFromSafeFactories();
 
         // Required types verification
         requiredTypes.forEach(($id) => {
-            if (!blueprint.entries.has($id))
-                throw new Error(DIErrors.MissingRequiredTypeError($id));
+            if (!blueprint.has($id))
+                throw new Error(ErrorMissingRequiredType($id));
         });
 
-        var container = createRootContainerScope(blueprint);
+        var container = createRootContainerScope(blueprint, data);
         externalInjections.forEach((delegate) => delegate(container));
         blueprint.callMw("onPostBuild", -1, container);
         blueprint = null; // Dispose builder
         return container;
     }
 
-    // endregion PUBLIC METHODS
+    var findAlias = (predicate) => {
+        var alias;
+        blueprint.forEachAlias(
+            (originId, aliasId) =>
+                (alias =
+                    predicate(splitEntryId(aliasId), splitEntryId(originId)) &&
+                    aliasId),
+        );
+        return alias ? splitEntryId(alias) : undefined;
+    };
 
     return {
+        data,
         has: blueprint.has,
         hasModule: blueprint.hasMod,
         hasMiddleware: blueprint.hasMw,
-        findEntry: blueprint.findEntry,
-        findAllEntries: blueprint.findAllEntries,
+        findEntry: blueprint.findE,
+        findAllEntries: blueprint.findEs,
         find: blueprint.find,
         findAll: blueprint.findAll,
-        getAliasOrigin: blueprint.getAliasOrigin,
+        getAliasOrigin: blueprint.getAO,
+        findAlias,
         requireType,
         injectInto,
         bindInstance,
@@ -987,20 +1075,31 @@ export function diBuilder(builderOptions = {}) {
 export function staticModule(id) {
     return {
         create: (delegate) =>
-            Object.freeze({
+            readOnly({
                 id,
                 delegate,
                 type: "static",
+            }),
+        compose: (...modules) =>
+            readOnly({
+                id,
+                modules: readOnly(modules),
+                type: "compose",
+                delegate: (binder) => {
+                    for (var module of modules) {
+                        binder.include(module);
+                    }
+                },
             }),
     };
 }
 
 var mapInject = (r, i) => i.map((t) => r.get(t));
 export function factoryOf(Class, inject) {
-    var isFactory = Array.isArray(inject);
+    var isFactory = isArray(inject);
 
     inject = inject || Class.inject;
-    var hasDeps = Array.isArray(inject) && inject.length > 0;
+    var hasDeps = isArray(inject) && len(inject);
 
     var factory;
     if (isFactory) factory = (r) => Class(...mapInject(r, inject));

@@ -5,21 +5,21 @@
 
 # SpireX/DI
 
-`@spirex/di` is a **powerful**, **lightweight**, and **predictable** dependency injection library for JavaScript and TypeScript. 
+`@spirex/di` is a **powerful**, **lightweight**, and **predictable** dependency injection library for JavaScript and TypeScript.
 
-It enforces strict TypeScript typing through a **TypeMap**, uses an **immutable container** built via a fluent builder API, and supports **modular**, reusable configurations. With **zero dependencies**, **advanced scope management**, and **extensible middleware**, it keeps your code clean, testable, and flexible without imposing any runtime boilerplate. 
+It enforces strict TypeScript typing through a **TypeMap**, uses an **immutable container** built via a fluent builder API, and supports **modular** configurations with internal types and composite modules. With **zero dependencies**, **advanced scope management** (including local scope data), and **extensible middleware**, it keeps your code clean, testable, and flexible without imposing any runtime boilerplate.
 
 Fully **plug & play** and production-ready, **SpireX/DI** is ideal for enterprise projects, helping teams manage complex service graphs effortlessly while simplifying long-term maintenance.
 
 ## Features
 - **Immutable container** — no hidden runtime mutations;
 - **Maximum type safety** — full autocompletion & compile-time checks;
-- **Modular** — static & dynamic modules;
-- **Advanced scope management** with auto-dispose;
+- **Modular** — static & dynamic modules, internal types, composite modules;
+- **Advanced scope management** — auto-dispose, local scope data, sealed & isolated scopes;
 - **Lifecycle management** — singleton, lazy, scope, transient;
-- Middleware support;
-- Named bindings, aliases & conflict resolution strategies;
-- Zero dependencies, runs on pure JS, **only ~9.3KB** (~3.4kb gzipped).
+- **Middleware** — resolution stack, alias hooks, typed TypeMap extension;
+- Named bindings, aliases, conflict resolution strategies, alias search;
+- Zero dependencies, runs on pure JS, **only ~8.7Kb** (~3.58Kb gzipped).
 
 ## Installing
 ```sh
@@ -69,6 +69,13 @@ const service = container.get("service");
 4. `.build()` finalizes the container.
 5. `.get("service")` returns the fully constructed *Service* with *Gateway* automatically injected.
 
+## Recent Improvements (v1.2.0)
+- **Internal module types** — hide implementation details within modules; types marked `internal` are inaccessible outside the module at runtime;
+- **Module composition** — group modules with `staticModule("id").compose(A, B, C)` for reusable, hierarchical configurations;
+- **Local scope data** — attach immutable, context-specific data to scopes (e.g. request URI, session ID);
+- **Resolution stack** — middleware hooks `onRequest` and `onResolve` receive the full resolution chain for diagnostics and instrumentation;
+- **Alias hooks & search** — `onBindAlias` middleware hook and `findAlias` builder method for alias introspection.
+
 ## Documentation
 - [Introduction](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/00-Introduction.md)
 - [Philosophy](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/01-Philosophy.md)
@@ -88,9 +95,6 @@ const service = container.get("service");
     - [Lifecycles](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/01-Container-Configuration/10-Lifecycles.md)
     - [Aliases](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/01-Container-Configuration/11-Aliases.md)
     - [Container Build](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/01-Container-Configuration/12-Container-Build.md)
-  - Modules
-    - [Static Modules](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/02-Modules/01-Static-Modules.md)
-    - [Module Dependencies](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/02-Modules/02-Module-Dependencies.md)
   - Resolving Instances
     - [Type Enumeration](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/03-Resolving-Instances/01-Types-Enumeration.md)
     - [Get Instance of Type](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/03-Resolving-Instances/02-Get-Instance-Of-Type.md)
@@ -98,11 +102,17 @@ const service = container.get("service");
     - [Getting all instances of a type](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/03-Resolving-Instances/04-Get-All-Instances-Of-Type.md)
     - [Provider Functions](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/03-Resolving-Instances/05-Get-Provider-Function.md)
     - [Phantom Instance](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/03-Resolving-Instances/06-Get-Phantom-Instance.md)
+  - Modules
+    - [Static Modules](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/02-Modules/01-Static-Modules.md)
+    - [Module Dependencies](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/02-Modules/02-Module-Dependencies.md)
+    - [Internal Module Types](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/02-Modules/03-Internal-Module-Types.md)
+    - [Module Composition](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/05-Basics/02-Modules/04-Module-Composition.md)
 - **Advanced**
   - Container Builder
     - [Container Builder Default Options](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/06-Advanced/01-Container-Builder/01-Default-Options.md)
     - [Enforcing Type Bindings](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/06-Advanced/01-Container-Builder/02-Enforcing-Type-Bindings.md)
     - [Injecting Dependencies into Existing Services](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/06-Advanced/01-Container-Builder/03-Injecting-Into-Existing-Instances.md)
+    - [Binding Metadata](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/06-Advanced/01-Container-Builder/04-Binding-Metadata.md)
 
 *Documentation is a work in progress!*
 Some topics are not yet covered. For the most up-to-date documentation, please refer to the [repository](https://github.com/SpireX64/spirex-di).
