@@ -121,7 +121,7 @@ var ErrorSealedScope = (sealedScope, childScope) =>
 var ErrorScopeViolation = (scope, type) =>
     `Type "${type}" not accessible in scope "${scope}"`;
 var ErrorInstanceAccessAfterDispose = (type, scopeId, scopeHierarchy) =>
-    `Cannot resolve '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}""`;
+    `Cannot resolve '${type}' from disposed scope "${chainToString(scopeHierarchy, scopeId)}"`;
 var ErrorChildScopeCreationAfterDispose = (
     childScopeId,
     scopeId,
@@ -1084,7 +1084,7 @@ export function staticModule(id) {
             readOnly({
                 id,
                 modules: readOnly(modules),
-                type: "group",
+                type: "compose",
                 delegate: (binder) => {
                     for (var module of modules) {
                         binder.include(module);

@@ -5174,7 +5174,7 @@ describe("Container Module", () => {
             expect(group).instanceOf(Object);
             expect(group).is.frozen;
             expect(group.id).eq(groupID);
-            expect(group.type).eq("group");
+            expect(group.type).eq("compose");
             expect(group.modules).instanceOf(Array);
             expect(group.modules).is.frozen;
             expect(group.modules).toContainEqual(moduleA);
