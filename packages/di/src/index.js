@@ -413,6 +413,8 @@ function createRootContainerScope(blueprint, rootData) {
     var $locals = Symbol("l");
     var $state = Symbol("d");
 
+    var isDisposed = (scope) => scope[$state].disposed
+
     /**
      * Builds a scope path array from root (excluded) to current scope.
      * @param scopeId - Current scope ID
@@ -614,7 +616,7 @@ function createRootContainerScope(blueprint, rootData) {
     }
 
     function assertScopeNotDisposedToResolve(type, name) {
-        if (this[$state].disposed)
+        if (isDisposed(this))
             throw new Error(
                 ErrorInstanceAccessAfterDispose(
                     makeEntryId(type, name),
@@ -625,7 +627,7 @@ function createRootContainerScope(blueprint, rootData) {
     }
 
     function makeProviderFunc(scope, entry) {
-        var providerFuncName = "provider<" + entry.$id + ">";
+        var providerFuncName = "get"+entry.$id;
         return {
             // Deanonymize the function by giving it a specific name
             [providerFuncName]: function () {
@@ -646,7 +648,7 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         get isDisposed() {
-            return this[$state].disposed;
+            return isDisposed(this);
         },
 
         get(type, name) {
@@ -699,7 +701,7 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         scope(id, options) {
-            if (this[$state].disposed)
+            if (isDisposed(this))
                 throw new Error(
                     ErrorChildScopeCreationAfterDispose(id, this.id, this.path),
                 );
@@ -730,7 +732,7 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         dispose() {
-            if (this[$state].disposed) return;
+            if (isDisposed(this)) return;
 
             // Dispose children
             this[$scopes].forEach((scope) => scope.dispose());
@@ -882,7 +884,7 @@ export function diBuilder(builderOptions = {}) {
     function bindFactory(type, factory, options = {}) {
         var {
             name,
-            ifConflict,
+            ifConflict = defaultConflictResolve,
             lifecycle = defaultLifecycle,
             ...entryOptions
         } = options;

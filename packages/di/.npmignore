@@ -2,6 +2,7 @@
 src/
 node_modules/
 coverage/
+changelog/
 yarn.lock
 tsconfig.json
 vitest.config.mjs
