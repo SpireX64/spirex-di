@@ -44,11 +44,13 @@ var findInSet = (set, predicate) => {
  * @returns {T | undefined}
  */
 var findInMapSet = (mapSet, predicate) => {
+    var result;
     for (var [key, valueOrSet] of mapSet.entries()) {
         var predicateWithKey = (value) => predicate(value, key);
         if (valueOrSet instanceof Set) {
-            if (findInSet(valueOrSet, predicateWithKey)) return;
-        } else if (predicateWithKey(valueOrSet)) return valueOrSet;
+            result = findInSet(valueOrSet, predicateWithKey);
+        } else if (predicateWithKey(valueOrSet)) result = valueOrSet;
+        if (result) return result;
     }
 };
 
