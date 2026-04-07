@@ -1,4 +1,9 @@
-import type { ComponentType, PropsWithChildren } from "react";
+import type { 
+    ComponentType,
+    PropsWithChildren,
+    ForwardRefExoticComponent,
+    RefAttributes,
+} from "react";
 import type {
     IContainerScope,
     IScopeContext,
@@ -133,7 +138,7 @@ export type DIReact<TypeMap extends TTypeMapBase> = {
         scope?: DIScopeProps<TypeMap>,
     ): <P extends R>(
         component: ComponentType<P>,
-    ) => ComponentType<Omit<P, keyof R>>;
+    ) => ForwardRefExoticComponent<Omit<P, keyof R> & RefAttributes<unknown>>;
 };
 
 /**

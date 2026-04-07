@@ -1,6 +1,6 @@
 import { render, renderHook } from "@testing-library/react";
 import { vi, describe, test, expect } from "vitest";
-import { createElement, StrictMode } from "react";
+import { createElement, StrictMode, createRef, forwardRef } from "react";
 import { diBuilder } from "@spirex/di";
 import {
     createDIContext,
@@ -542,6 +542,125 @@ describe("React Integration", () => {
                     scopeId,
                 }),
             );
+        });
+    });
+
+    describe("No DI scope guard", () => {
+        var suppressErrors;
+
+        var setup = () => {
+            suppressErrors = vi.spyOn(console, "error").mockImplementation(() => {});
+        };
+
+        var cleanup = () => {
+            suppressErrors.mockRestore();
+        };
+
+        test("WHEN: useInject is called outside DIRootScope", () => {
+            setup();
+            expect(() =>
+                renderHook(() => useInject("typeKey")),
+            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+            cleanup();
+        });
+
+        test("WHEN: DIScope is rendered outside DIRootScope", () => {
+            setup();
+            expect(() =>
+                render(createElement(DIScope, { id: "orphan" })),
+            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+            cleanup();
+        });
+
+        test("WHEN: withInject (without scope) is used outside DIRootScope", () => {
+            setup();
+            var OriginComponent = vi.fn();
+            var WrappedComponent = withInject((r) => ({
+                value: r.get("typeKey"),
+            }))(OriginComponent);
+
+            expect(() =>
+                render(createElement(WrappedComponent)),
+            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+            cleanup();
+        });
+
+        test("WHEN: withInject (with scope) is used outside DIRootScope", () => {
+            setup();
+            var OriginComponent = vi.fn();
+            var WrappedComponent = withInject(
+                (r) => ({ value: r.get("typeKey") }),
+                { id: "orphanScope" },
+            )(OriginComponent);
+
+            expect(() =>
+                render(createElement(WrappedComponent)),
+            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+            cleanup();
+        });
+    });
+
+    describe("Ref forwarding", () => {
+        test("WHEN: withInject forwards ref to the wrapped component", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var expectedValue = 42;
+            var container = diBuilder()
+                .bindInstance(typeKey, expectedValue)
+                .build();
+
+            var receivedRef = { value: undefined };
+            var OriginComponent = forwardRef((props, ref) => {
+                receivedRef.value = ref;
+                return null;
+            });
+
+            var WrappedComponent = withInject((r) => ({
+                injected: r.get(typeKey),
+            }))(OriginComponent);
+
+            var wrapper = ({ children }) =>
+                createElement(DIRootScope, { root: container }, children);
+
+            var myRef = createRef();
+
+            // Act -----------
+            render(createElement(WrappedComponent, { ref: myRef }), { wrapper });
+
+            // Assert --------
+            expect(receivedRef.value).toBe(myRef);
+        });
+
+        test("WHEN: withInject with scope forwards ref to the wrapped component", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var expectedValue = 42;
+            var scopeId = "refScope";
+            var container = diBuilder()
+                .bindInstance(typeKey, expectedValue)
+                .build();
+
+            var receivedRef = { value: undefined };
+            var OriginComponent = forwardRef((props, ref) => {
+                receivedRef.value = ref;
+                return null;
+            });
+
+            var WrappedComponent = withInject(
+                (r, ctx) => ({ injected: r.get(typeKey), scopeId: ctx.current }),
+                { id: scopeId },
+            )(OriginComponent);
+
+            var wrapper = ({ children }) =>
+                createElement(DIRootScope, { root: container }, children);
+
+            var myRef = createRef();
+
+            // Act -----------
+            render(createElement(WrappedComponent, { ref: myRef }), { wrapper });
+
+            // Assert --------
+            expect(receivedRef.value).toBe(myRef);
         });
     });
 });

@@ -5,6 +5,7 @@ import {
     useMemo,
     useRef,
     useEffect,
+    forwardRef,
 } from "react";
 
 
@@ -55,24 +56,26 @@ export var useInject = (selector, name) => {
 }
 
 export var withInject = (selector, scopeProps) => (component) => {
-    var HOC = scopeProps
-        ? (props) => {
-            var [ value, dispose ] = useNestedScope(scopeProps)
-            var deps = selector(value, {
-                current: value.id,
-                path: value.path,
-                dispose,
-            });
+    var HOC = forwardRef(
+        scopeProps
+            ? (props, ref) => {
+                var [ value, dispose ] = useNestedScope(scopeProps)
+                var deps = selector(value, {
+                    current: value.id,
+                    path: value.path,
+                    dispose,
+                });
 
-            return createElement(
-                Provider, { value },
-                createElement(component, {...deps, ...props}),
-            );
-        }
-        : (props) => {
-            var deps = useInject(selector);
-            return createElement(component, {...deps, ...props});
-        }
+                return createElement(
+                    Provider, { value },
+                    createElement(component, {...deps, ...props, ref}),
+                );
+            }
+            : (props, ref) => {
+                var deps = useInject(selector);
+                return createElement(component, {...deps, ...props, ref});
+            }
+    );
 
     /* istanbul ignore next */
     HOC.displayName =
