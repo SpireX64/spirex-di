@@ -28,7 +28,7 @@ At this stage, the component is fully decoupled from the DI container and can be
 `withInject` is a higher-order component that maps DI-resolved values to component props.
 
 ```ts
-import { withInject } from "../di/react";
+import { withInject } from "@spirex/di-react";
 
 export const MyComponentInjected = withInject(resolver => ({
     viewModel: resolver.get("MyComponentViewModel"),
@@ -43,7 +43,7 @@ This pattern allows dependencies to be supplied declaratively, without the compo
 ## TypeScript Integration
 `withInject` improves the developer experience by automatically **removing injected props** from the external type signature of the wrapped component. This means TypeScript will **not require injected props to be passed manually**.
 
-When `withInject` is created from a fully typed DI context:
+When `withInject` is obtained via `getDIReact<TypeMap>()` or narrowed with `TWithInject<TypeMap>`:
 - TypeScript ensures all dependency keys used in the delegate exist in the container.
 - TypeScript verifies that injected values are compatible with the component’s prop types.
 

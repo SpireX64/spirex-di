@@ -12,7 +12,7 @@ The simplest approach is to pass the container itself as the root scope:
 ```tsx
 import React from "react";
 import { buildContainer } from "./di/container";
-import { DIRootScope } from "./di/react";
+import { DIRootScope } from "@spirex/di-react";
 
 export const AppComponent: React.VFC = () => {
     const container = React.useState(buildContainer)[0];
@@ -35,7 +35,7 @@ A dedicated scope can be derived from the container and memoized to ensure stabi
 ```tsx
 import React from "react";
 import { buildContainer } from "./di/container";
-import { DIRootScope } from "./di/react";
+import { DIRootScope } from "@spirex/di-react";
 
 export const AppComponent: React.VFC = () => {
     const container = React.useState(buildContainer)[0];

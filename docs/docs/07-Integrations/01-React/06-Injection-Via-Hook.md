@@ -14,7 +14,7 @@ without altering the component’s public interface or wrapping it in a higher-o
 The hook accepts a **delegate function**. This delegate receives a **resolver** reference, which can be used to retrieve instances from the dependency container. The delegate must return either a **single** dependency or an object containing **multiple** dependencies.
 
 ```ts
-import { useInject } from '../di/context';
+import { useInject } from "@spirex/di-react";
 
 const MyComponent: React.VFC = () => {
     const { vm, auth } = useInject(r => ({
