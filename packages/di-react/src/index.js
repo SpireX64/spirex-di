@@ -11,8 +11,14 @@ import {
 var DIContext = createContext(null);
 var Provider = DIContext.Provider;
 
+var assertScope = (scope) => {
+    if (scope === null)
+        throw new Error("No DI scope found. Wrap your component tree with <DIRootScope>.");
+}
+
 var useNestedScope = ({ id, ...opt }) => {
     var currentScope = useContext(DIContext);
+    assertScope(currentScope);
     var ref = useRef(null);
 
     if (!ref.current || ref.current.isDisposed) {
@@ -34,6 +40,7 @@ export var DIScope = ({ children, ...props }) => {
 
 export var useInject = (selector, name) => {
     var scope = useContext(DIContext);
+    assertScope(scope);
     return useMemo(
         () =>
             typeof selector === "string"
