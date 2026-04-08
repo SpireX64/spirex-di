@@ -8,28 +8,36 @@ import {
     forwardRef,
 } from "react";
 
-
 var DIContext = createContext(null);
 var Provider = DIContext.Provider;
 
 var assertScope = (scope) => {
     if (scope === null)
-        throw new Error("No DI scope found. Wrap your component tree with <DIRootScope>.");
+        throw new Error("No DIRootScope found");
 }
+
+var disposer = (scope) => scope.dispose.bind(scope);
+
+var makeCtx = (scope, dispose) => ({
+    current: scope.id,
+    path: scope.path,
+    dispose: dispose || disposer(scope),
+})
 
 var useNestedScope = ({ id, ...opt }) => {
     var currentScope = useContext(DIContext);
     assertScope(currentScope);
     var ref = useRef(null);
+    var rc = ref.current;
 
-    if (!ref.current || ref.current.isDisposed) {
+    if (!rc || rc.isDisposed) {
         ref.current = currentScope.scope(id, opt);
     }
 
     var scope = ref.current;
-    useEffect(() => () => scope.dispose(), []);
-
-    return [scope, scope.dispose.bind(scope)];
+    var dispose = disposer(scope);
+    useEffect(() => dispose, []);
+    return [scope, dispose];
 }
 
 export var DIRootScope = ({ root, children }) =>
@@ -46,11 +54,7 @@ export var useInject = (selector, name) => {
         () =>
             typeof selector === "string"
                 ? scope.get(selector, name)
-                : selector(scope, {
-                        current: scope.id,
-                        path: scope.path,
-                        dispose: scope.dispose.bind(scope),
-                    }),
+                : selector(scope, makeCtx(scope)),
         [scope],
     );
 }
@@ -60,11 +64,7 @@ export var withInject = (selector, scopeProps) => (component) => {
         scopeProps
             ? (props, ref) => {
                 var [ value, dispose ] = useNestedScope(scopeProps)
-                var deps = selector(value, {
-                    current: value.id,
-                    path: value.path,
-                    dispose,
-                });
+                var deps = selector(value, makeCtx(value, dispose));
 
                 return createElement(
                     Provider, { value },
@@ -80,7 +80,7 @@ export var withInject = (selector, scopeProps) => (component) => {
     /* istanbul ignore next */
     HOC.displayName =
         "withInject(" +
-        (component.displayName || component.name || "Component") +
+        (component.displayName || component.name || "") +
         ")";
     return HOC;
 };

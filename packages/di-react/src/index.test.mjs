@@ -560,7 +560,7 @@ describe("React Integration", () => {
             setup();
             expect(() =>
                 renderHook(() => useInject("typeKey")),
-            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+        ).toThrow("No DIRootScope found");
             cleanup();
         });
 
@@ -568,7 +568,7 @@ describe("React Integration", () => {
             setup();
             expect(() =>
                 render(createElement(DIScope, { id: "orphan" })),
-            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+            ).toThrow("No DIRootScope found");
             cleanup();
         });
 
@@ -581,7 +581,7 @@ describe("React Integration", () => {
 
             expect(() =>
                 render(createElement(WrappedComponent)),
-            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+            ).toThrow("No DIRootScope found");
             cleanup();
         });
 
@@ -595,7 +595,7 @@ describe("React Integration", () => {
 
             expect(() =>
                 render(createElement(WrappedComponent)),
-            ).toThrow("No DI scope found. Wrap your component tree with <DIRootScope>.");
+            ).toThrow("No DIRootScope found");
             cleanup();
         });
     });

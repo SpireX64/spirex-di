@@ -19,7 +19,7 @@ With a **tiny footprint** and support for modern React, this package ensures pre
 - **Declarative injection:** `useInject` hook for functional components, `withInject` HOC for props-based injection  
 - **Automatic scope disposal:** Child scopes unmount cleanly with React components (StrictMode-safe)
 - **Shared context:** Single React context — all packages share the same DI tree
-- **Lightweight:** Only 0.78kb (0.46kb gzipped)
+- **Lightweight:** Only 1kb (0.58kb gzipped)
 
 
 ## Installation
