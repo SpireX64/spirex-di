@@ -300,6 +300,80 @@ describe("Dynamic Modules", () => {
         });
     });
 
+    describe("Internal types", () => {
+        test("WHEN: Resolve internal binding via public factory after load", async () => {
+            // Arrange --------
+            var typeKeyA = "typeKeyA";
+            var typeAValue = Symbol();
+            var typeKeyB = "typeKeyB";
+            var typeBFactory = vi.fn((r) => r.get(typeKeyA));
+
+            var dyModule = dynamicModule("DynMod", () =>
+                Promise.resolve({}),
+            ).create((binder) => {
+                binder
+                    .bindInstance(typeKeyA, typeAValue, { internal: true })
+                    .bindFactory(typeKeyB, typeBFactory, { lifecycle: "lazy" });
+            });
+
+            var container = diBuilder()
+                .use(DynamicModules)
+                .include(dyModule)
+                .build();
+
+            // Act ------------
+            await dyModule.loadAsync();
+            var value = container.get(typeKeyB);
+
+            // Assert ---------
+            expect(typeBFactory).toHaveBeenCalledOnce();
+            expect(value).toBe(typeAValue);
+        });
+
+        test("WHEN: Cannot resolve internal type from container root", async () => {
+            // Arrange --------
+            var typeKey = "internalSecret";
+            var dyModule = dynamicModule("DynMod", () =>
+                Promise.resolve({}),
+            ).create((binder) => {
+                binder.bindInstance(typeKey, 42, { internal: true });
+            });
+
+            var container = diBuilder()
+                .use(DynamicModules)
+                .include(dyModule)
+                .build();
+
+            await dyModule.loadAsync();
+
+            // Act ------------
+            var error = catchError(() => container.get(typeKey));
+
+            // Assert ---------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("not accessible outside");
+            expect(error.message).toContain("DynMod");
+        });
+
+        test("WHEN: Internal flag is set on entry from dynamic bindInstance", () => {
+            // Arrange --------
+            var typeKey = "secret";
+            var dyModule = dynamicModule("DynMod", () => Promise.resolve({})).create(
+                (binder) => {
+                    binder.bindInstance(typeKey, 99, { internal: true });
+                },
+            );
+
+            // Act ------------
+            var builder = diBuilder().use(DynamicModules).include(dyModule);
+            var entry = builder.findEntry(typeKey);
+
+            // Assert ---------
+            expect(entry).toBeDefined();
+            expect(entry.internal).is.true;
+        });
+    });
+
     describe("Dynamic binding", () => {
         test("WHEN: Bind instance", () => {
             // Arrange --------

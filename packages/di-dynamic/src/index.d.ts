@@ -5,12 +5,18 @@ import type {
     IModuleTypeEntryBinder,
 } from "@spirex/di";
 
+/** @internal — mirrors `@spirex/di` delegate merging for public + internal type maps */
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
 /**
  * Delegate function for defining bindings in a dynamic module.
  * It receives a binder for registering dependencies and the JS module
  * which will be available after loading.
  *
- * @template TypeMap - Map of types provided by the module.
+ * Use the second generic on `create` for **internal** types (hidden from the container
+ * that includes the module), same pattern as `staticModule().create<TypeMap, Internal>()`.
+ *
+ * @template TypeMap - Map of types provided by the module (public and, when using internal map, internal keys).
  * @template JSModule - The type of the underlying JavaScript module.
  * @param binder - Binder used to register type entries for the module.
  * @param module - The actual JavaScript module after dynamic import.
@@ -58,12 +64,21 @@ export type TDynamicModuleDeclaration<JSModule> = {
     /**
      * Finalizes a dynamic module definition using the provided delegate.
      *
-     * @template TypeMap - Map of types provided by this module.
+     * @template TypeMap - Map of **public** types the module exposes to the including container.
+     * @template InternalTypeMap - Optional map of **internal** types (only resolvable inside the module).
      * @param delegate - Function to register bindings using the loaded module.
      * @returns The dynamic module definition.
      */
-    create<TypeMap extends TTypeMapBase>(
-        delegate: DIDynamicModuleDelegate<TypeMap, JSModule>,
+    create<
+        TypeMap extends TTypeMapBase,
+        InternalTypeMap extends TTypeMapBase = object,
+    >(
+        delegate: DIDynamicModuleDelegate<
+            object extends InternalTypeMap
+                ? TypeMap
+                : Prettify<InternalTypeMap & TypeMap>,
+            JSModule
+        >,
     ): DIDynamicModule<TypeMap, JSModule>;
 };
 
