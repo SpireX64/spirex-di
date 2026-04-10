@@ -4696,6 +4696,61 @@ describe("Container Scope", () => {
             expect(rootScope.hasChildScope(childB.id)).is.false;
         });
 
+        test("WHEN: Child scope is removed from parent after only that child is disposed", () => {
+            // Arrange -------
+            var rootScope = diBuilder().build();
+            var scopeId = "child";
+            var childScope = rootScope.scope(scopeId);
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(childScope.isDisposed).is.true;
+            expect(rootScope.hasChildScope(scopeId)).is.false;
+        });
+
+        test("WHEN: Open child scope with same id after previous child was disposed", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var rootScope = diBuilder()
+                .bindInstance(typeKey, { tag: "root" })
+                .build();
+            var scopeId = "session";
+            var firstChild = rootScope.scope(scopeId);
+            firstChild.dispose();
+
+            // Act -----------
+            var secondChild = rootScope.scope(scopeId);
+
+            // Assert --------
+            expect(secondChild).not.toBe(firstChild);
+            expect(secondChild.isDisposed).is.false;
+            expect(rootScope.hasChildScope(scopeId)).is.true;
+            expect(secondChild.get(typeKey)).toEqual({ tag: "root" });
+        });
+
+        test("WHEN: Scope-lifecycle binding yields new instance after child scope was disposed and reopened", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var factory = vi.fn(() => ({}));
+            var rootScope = diBuilder()
+                .bindFactory(typeKey, factory, { lifecycle: "scope" })
+                .build();
+            var scopeId = "s";
+            var firstScope = rootScope.scope(scopeId);
+            var firstInstance = firstScope.get(typeKey);
+            firstScope.dispose();
+
+            // Act -----------
+            var secondScope = rootScope.scope(scopeId);
+            var secondInstance = secondScope.get(typeKey);
+
+            // Assert --------
+            expect(firstInstance).not.toBe(secondInstance);
+            expect(factory).toHaveBeenCalledTimes(2);
+        });
+
         test("WHEN: Dispose already disposed scope", () => {
             // Arrange -------
             var onScopeDispose = vi.fn();
