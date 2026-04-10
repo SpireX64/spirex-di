@@ -737,8 +737,9 @@ function createRootContainerScope(blueprint, rootData) {
             // Dispose children
             this[$scopes].forEach((scope) => scope.dispose());
             this[$scopes].clear();
-
+            
             blueprint.callMw("onScopeDispose", -1, this);
+            this[$parent][$scopes].delete(this.id);
             this[$state].disposed = true;
 
             // Dispose local instances

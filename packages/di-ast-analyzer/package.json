@@ -1,0 +1,32 @@
+{
+    "name": "@spirex/di-ast-analyzer",
+    "version": "1.0.0",
+    "license": "MIT",
+    "private": true,
+    "sideEffects": false,
+    "description": "AST analysis core for @spirex/di tooling. Provides pattern matchers, DI model collector, and graph algorithms for static analysis of DI container configurations.",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "test": "vitest run --config ./vitest.config.mts",
+        "test:c": "vitest run --config ./vitest.config.mts --coverage",
+        "build": "tsc -p tsconfig.build.json",
+        "clean": "rimraf dist coverage"
+    },
+    "dependencies": {
+        "@spirex/di": "^1.2.0"
+    },
+    "devDependencies": {
+        "@types/estree": "^1.0.7",
+        "typescript": "^5.8.3",
+        "vitest": "*",
+        "@vitest/coverage-istanbul": "*",
+        "rimraf": "*"
+    }
+}
