@@ -5,6 +5,7 @@ export default defineConfig({
     test: {
         name: "@spirex/di-angular-bridge",
         root: "./src",
+        environment: "jsdom",
         include: ["**/*.{test,spec}.(c|m)js"],
         exclude: [
             "**/node_modules/**",

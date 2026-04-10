@@ -1,11 +1,24 @@
 import { InjectionToken } from "@angular/core";
 
-export var named = (token, name) => 
-    token.named && token.named[name] || token
+var bridgeMeta = new WeakMap();
+
+function getMeta(token) {
+    return bridgeMeta.get(token);
+}
+
+function setMeta(token, meta) {
+    bridgeMeta.set(token, meta);
+}
+
+export var named = (token, name) => {
+    var meta = getMeta(token);
+    return (meta && meta.named && meta.named[name]) || token;
+};
 
 export function allOf(token, name) {
     if (name) token = named(token, name);
-    return token.multi || token;
+    var meta = getMeta(token);
+    return (meta && meta.multi) || token;
 }
 
 function collectTypesDataFromBuilder(builder) {
@@ -86,10 +99,12 @@ export function AngularBridge() {
                     var namedToken = createToken(type, false, name)
                     var namedMultiToken = createToken(type, true, name)
                     bindProviders(builder, type, namedToken, namedMultiToken, info.scoped.has(name), name);
-                    namedTokens[name] = Object.assign(namedToken, { multi: namedMultiToken })
+                    namedTokens[name] = namedToken
+                    setMeta(namedToken, { multi: namedMultiToken })
                 });
 
-                tokens[type] = Object.assign(primaryToken, {
+                tokens[type] = primaryToken
+                setMeta(primaryToken, {
                     multi: primaryMultiToken,
                     named: namedTokens,
                 })
