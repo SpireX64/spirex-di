@@ -14,10 +14,12 @@ With a **tiny footprint** and support for modern React, this package ensures pre
 
 ## Features
 - **Type-safe DI:** Full TypeScript support, with IDE autocompletion
+- **Strict and dynamic typing:** Supports full static typing or direct imports with type casts for multi-package setups
 - **Root & child DI scopes:** Control lifetime and visibility of dependencies
 - **Declarative injection:** `useInject` hook for functional components, `withInject` HOC for props-based injection  
-- **Automatic scope disposal:** Child scopes unmount cleanly with React components
-- **Lightweight:** Only 0.78kb (0.46kb gzipped)
+- **Automatic scope disposal:** Child scopes unmount cleanly with React components (StrictMode-safe)
+- **Shared context:** Single React context — all packages share the same DI tree
+- **Lightweight:** Only 1kb (0.58kb gzipped)
 
 
 ## Installation
@@ -37,10 +39,14 @@ pnpm add @spirex/di @spirex/di-react
 
 ## Quickstart
 
+### Static Typed API
+
+When the full `TypeMap` is available (single-package applications), use `getDIReact<TypeMap>()` to get fully typed components and hooks:
+
 ```tsx
 import React from "react";
 import { diBuilder, factoryOf, TypeMapOf } from "@spirex/di";
-import { createDIContext } from "@spirex/di-react";
+import { getDIReact } from "@spirex/di-react";
 
 
 // Build the core container
@@ -48,15 +54,15 @@ const buildContainer = () => diBuilder<{
     auth: AuthService;
     viewModel: SampleViewModel;
 }>()
-    .bindFactory('authService', factoryOf(AuthService)
+    .bindFactory('authService', factoryOf(AuthService))
     .bindFactory('viewModel', factoryOf(SampleViewModel))
     .build();
 
 // Extract TypeMap
 export type TypeMap = TypeMapOf<ReturnType<typeof buildContainer>>;
 
-// Create typed React DI context
-export const { DIRootScope, useInject } = createDIContext<TypeMap>();
+// Get strictly typed React DI tools
+export const { DIRootScope, useInject } = getDIReact<TypeMap>();
 
 // Component using hook-based injection
 const MyComponent: React.VFC = () => {
@@ -84,13 +90,41 @@ export const App: React.VFC = () => {
 };
 ```
 
-This small example shows:
-- Creating typed DI context for React;
-- Root DI scope (`DIRootScope`) attached to the React tree;
-- Hook-based dependency injection (`useInject`) in a functional component
+### Dynamic Typed API
 
-`DIRootScope` connects the container to React’s component tree.
-All components inside the root scope can access injected dependencies.
+For multi-package applications where the full `TypeMap` is not available in every package, use direct imports with type casts:
+
+```tsx
+import { useInject, DIRootScope } from "@spirex/di-react";
+import type { TUseInject } from "@spirex/di-react";
+import type { TypeMapOf } from "@spirex/di";
+import type { ModuleA } from "./modules/a";
+import type { ModuleB } from "./modules/b";
+
+// Combine known type maps from local modules
+type LocalTypeMap = TypeMapOf<typeof ModuleA> & TypeMapOf<typeof ModuleB>;
+
+// Narrow the hook type for the current package
+const useTypedInject = useInject as TUseInject<LocalTypeMap>;
+
+const MyComponent: React.VFC = () => {
+    const service = useTypedInject('myService'); // fully typed
+    // ...
+};
+```
+
+All packages share the same underlying React context, so `DIRootScope` provided at the application root is accessible everywhere.
+
+## Migration from `createDIContext`
+
+`createDIContext()` is deprecated since v1.2.0. It still works as an alias for `getDIReact()`, but no longer creates isolated contexts — all calls return the same shared components and hooks.
+
+```diff
+- import { createDIContext } from "@spirex/di-react";
+- const { DIRootScope, useInject } = createDIContext<TypeMap>();
++ import { getDIReact } from "@spirex/di-react";
++ const { DIRootScope, useInject } = getDIReact<TypeMap>();
+```
 
 
 ## Documentation

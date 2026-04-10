@@ -3,75 +3,91 @@ import {
     createContext,
     useContext,
     useMemo,
+    useRef,
     useEffect,
+    forwardRef,
 } from "react";
 
-export function createDIContext() {
-    var DIContext = createContext(null);
-    var P = DIContext.Provider
+var DIContext = createContext(null);
+var Provider = DIContext.Provider;
 
-    var useNestedScope = ({ id, ...opt }) => {
-        var currentScope = useContext(DIContext)
-        var scope = useMemo(() => currentScope.scope(id, opt), []);
-        var dispose = scope.dispose.bind(scope);
-        useEffect(() => dispose, []);
-        return [scope, dispose]
+var assertScope = (scope) => {
+    if (scope === null)
+        throw new Error("No DIRootScope found");
+}
+
+var disposer = (scope) => scope.dispose.bind(scope);
+
+var makeCtx = (scope, dispose) => ({
+    current: scope.id,
+    path: scope.path,
+    dispose: dispose || disposer(scope),
+})
+
+var useNestedScope = ({ id, ...opt }) => {
+    var currentScope = useContext(DIContext);
+    assertScope(currentScope);
+    var ref = useRef(null);
+    var rc = ref.current;
+
+    if (!rc || rc.isDisposed) {
+        ref.current = currentScope.scope(id, opt);
     }
 
-    var DIRootScope = ({ root, children }) =>
-        createElement(P, { value: root }, children);
+    var scope = ref.current;
+    var dispose = disposer(scope);
+    useEffect(() => dispose, []);
+    return [scope, dispose];
+}
 
-    var DIScope = ({ children, ...props }) => {
-        return createElement(P, { value: useNestedScope(props)[0] }, children);
-    };
+export var DIRootScope = ({ root, children }) =>
+    createElement(Provider, { value: root }, children);
 
-    var useInject = (selector, name) => {
-        var scope = useContext(DIContext);
-        return useMemo(
-            () =>
-                typeof selector === "string"
-                    ? scope.get(selector, name)
-                    : selector(scope, {
-                          current: scope.id,
-                          path: scope.path,
-                          dispose: scope.dispose.bind(scope),
-                      }),
-            [scope],
-        );
-    }
+export var DIScope = ({ children, ...props }) => {
+    return createElement(Provider, { value: useNestedScope(props)[0] }, children);
+};
 
-    var withInject = (selector, scopeProps) => (component) => {
-        var HOC = scopeProps
-            ? (props) => {
+export var useInject = (selector, name) => {
+    var scope = useContext(DIContext);
+    assertScope(scope);
+    return useMemo(
+        () =>
+            typeof selector === "string"
+                ? scope.get(selector, name)
+                : selector(scope, makeCtx(scope)),
+        [scope],
+    );
+}
+
+export var withInject = (selector, scopeProps) => (component) => {
+    var HOC = forwardRef(
+        scopeProps
+            ? (props, ref) => {
                 var [ value, dispose ] = useNestedScope(scopeProps)
-                var deps = selector(value, {
-                    current: value.id,
-                    path: value.path,
-                    dispose,
-                });
+                var deps = selector(value, makeCtx(value, dispose));
 
                 return createElement(
-                    P, { value },
-                    createElement(component, {...deps, ...props}),
+                    Provider, { value },
+                    createElement(component, {...deps, ...props, ref}),
                 );
             }
-            : (props) => {
+            : (props, ref) => {
                 var deps = useInject(selector);
-                return createElement(component, {...deps, ...props});
+                return createElement(component, {...deps, ...props, ref});
             }
+    );
 
-        /* istanbul ignore next */
-        HOC.displayName =
-            "withInject(" +
-            (component.displayName || component.name || "Component") +
-            ")";
-        return HOC;
-    };
+    /* istanbul ignore next */
+    HOC.displayName =
+        "withInject(" +
+        (component.displayName || component.name || "") +
+        ")";
+    return HOC;
+};
 
-    return {
-        DIRootScope,
-        DIScope,
-        useInject,
-        withInject,
-    };
-}
+export function getDIReact() {
+    return { DIRootScope, DIScope, useInject, withInject }
+} 
+
+/** @deprecated (since 1.2.0) */
+export var createDIContext = getDIReact;

@@ -28,10 +28,10 @@ An isolated scope is useful when a feature must be fully self-contained,
 while a sealed scope is helpful when the scope represents a final boundary in the dependency hierarchy.
 
 ## React Integration with DI scopes
-When using **SpireX/DI with React**, child scopes can be created declaratively using the `DIScope` component. This component is provided by the **DI React context** factory and mirrors the behavior of creating a scope directly on the container.
+When using **SpireX/DI with React**, child scopes can be created declaratively using the `DIScope` component. This component mirrors the behavior of creating a scope directly on the container.
 
 ```tsx
-import { DIScope } from '../di/react';
+import { DIScope } from "@spirex/di-react";
 
 const MyComponent: React.VFC = () => {
     return (
@@ -54,7 +54,7 @@ ensuring they do not continue to occupy memory.
 The `DIScope` component also supports the `isolated` and `sealed` options as props.
 
 ```tsx
-import { DIScope } from '../di/react';
+import { DIScope } from "@spirex/di-react";
 
 const MyComponent: React.VFC = () => {
     return (
@@ -73,14 +73,14 @@ In some cases, the current component should already belong to a new scope. This 
 To address this, `@spirex/di-react` allows you to define a scope directly on a component using the `withInject` higher-order component.
 
 ```ts
-import { withInject } from "../di/react";
+import { withInject } from "@spirex/di-react";
 
 const withProfileScope = withInject(
     r => ({
         viewModel: r.get('ProfileViewModel'),
     }),
     {
-        scope: 'profile',
+        id: 'profile',
         isolated: true,
         sealed: true,
     }
