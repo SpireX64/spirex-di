@@ -1,0 +1,128 @@
+{
+    "name": "spirex-di-vscode",
+    "displayName": "SpireX DI",
+    "version": "1.0.0",
+    "description": "Navigation, autocomplete, and analysis for @spirex/di in VSCode",
+    "publisher": "spirex",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Visualization",
+        "Linters",
+        "Other"
+    ],
+    "keywords": [
+        "di",
+        "dependency-injection",
+        "spirex",
+        "javascript",
+        "typescript",
+        "navigation",
+        "graph",
+        "explorer",
+        "autocomplete"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/SpireX64/spirex-di.git",
+        "directory": "tools/vscode-plugin"
+    },
+    "main": "./dist/extension.js",
+    "activationEvents": [
+        "workspaceContains:**/node_modules/@spirex/di/package.json",
+        "workspaceContains:**/node_modules/@spirex/di",
+        "onCommand:spirexDI.showDependencyGraph",
+        "onCommand:spirexDI.refreshIndex",
+        "onView:spirexDI.containerExplorer"
+    ],
+    "contributes": {
+        "views": {
+            "explorer": [
+                {
+                    "id": "spirexDI.containerExplorer",
+                    "name": "SpireX DI Explorer",
+                    "when": "spirexDI.hasProject"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "spirexDI.showDependencyGraph",
+                "title": "SpireX DI: Show Graph",
+                "icon": "$(type-hierarchy)"
+            },
+            {
+                "command": "spirexDI.toggleInternalBindings",
+                "title": "SpireX DI: Toggle Internal Bindings",
+                "icon": "$(lock)"
+            },
+            {
+                "command": "spirexDI.refreshIndex",
+                "title": "SpireX DI: Refresh Index",
+                "icon": "$(refresh)"
+            }
+        ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "spirexDI.showDependencyGraph",
+                    "when": "view == spirexDI.containerExplorer",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "spirexDI.refreshIndex",
+                    "when": "view == spirexDI.containerExplorer",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "spirexDI.toggleInternalBindings",
+                    "when": "view == spirexDI.containerExplorer",
+                    "group": "navigation@3"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "SpireX DI",
+            "properties": {
+                "spirexDI.enableDiagnostics": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable real-time DI diagnostics"
+                },
+                "spirexDI.enableCodeLens": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show reference counts above DI bindings"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "build": "rollup --config",
+        "watch": "rollup --config --watch",
+        "package": "npx @vscode/vsce package --no-dependencies",
+        "vsix": "rollup --config && npx @vscode/vsce package --no-dependencies",
+        "clean": "rimraf dist"
+    },
+    "dependencies": {
+        "@spirex/di-ast-analyzer": "^0.1.0",
+        "@typescript-eslint/typescript-estree": "^8.32.0",
+        "cytoscape": "^3.31.0",
+        "cytoscape-cose-bilkent": "^4.1.0"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.85.0",
+        "@types/node": "^22.14.1",
+        "@rollup/plugin-commonjs": "*",
+        "@rollup/plugin-node-resolve": "*",
+        "@rollup/plugin-typescript": "*",
+        "rollup": "*",
+        "tslib": "*",
+        "@vscode/vsce": "*",
+        "typescript": "^5.8.3",
+        "rimraf": "*"
+    }
+}
