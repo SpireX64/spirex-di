@@ -108,7 +108,7 @@
         "clean": "rimraf dist"
     },
     "dependencies": {
-        "@spirex/di-ast-analyzer": "^0.1.0",
+        "@spirex/di-ast-analyzer": "*",
         "@typescript-eslint/typescript-estree": "^8.32.0",
         "cytoscape": "^3.31.0",
         "cytoscape-cose-bilkent": "^4.1.0"
