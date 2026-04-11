@@ -18,10 +18,16 @@ jobs:
       - uses: dorny/paths-filter@v4
         id: filter
         with:
+          # Do not use `**` with `!packages/**`: paths-filter OR-matches rules, so `**` matches everything.
           filters: |
             shared:
-              - '**'
-              - '!packages/**'
+              - '/package.json'
+              - '/yarn.lock'
+              - '.github/**'
+              - 'tools/**'
+              - '/eslint.config.mjs'
+              - '/.prettierrc.json'
+              - '/README.md'
             di:
               - 'packages/di/**'
             di-dynamic:
