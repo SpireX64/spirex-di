@@ -29,8 +29,9 @@ const generatedCode = {
 exports.default = [
     {
         input: sourceFile,
+        external: ["svelte", "@spirex/di"],
         output: {
-            name: "DIReact",
+            name: "DISvelte",
             file: `${output}.js`,
             format: "umd",
             sourcemap: release ? false : "inline",
@@ -40,6 +41,7 @@ exports.default = [
     },
     {
         input: sourceFile,
+        external: ["svelte", "@spirex/di"],
         output: {
             file: `${output}.mjs`,
             format: "es",

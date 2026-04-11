@@ -6,9 +6,13 @@ export default defineConfig({
     plugins: [
         svelte({})
     ],
+    resolve: {
+        conditions: ["browser", "import"],
+    },
     test: {
         name: "@spirex/di-svelte",
         root: "./src",
+        setupFiles: ["@testing-library/svelte/vitest"],
         environment: 'jsdom',
         include: ["**/*.{test,spec}.(c|m)js"],
         exclude: [
@@ -22,6 +26,13 @@ export default defineConfig({
             provider: "istanbul",
             reporter: ["text", "lcov", "html"],
             reportsDirectory: "../coverage",
+            include: ["index.js", "test-support/**"],
+            thresholds: {
+                lines: 100,
+                functions: 100,
+                branches: 100,
+                statements: 100,
+            },
         },
         testTimeout: 200,
         clearMocks: true,

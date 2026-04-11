@@ -1,10 +1,40 @@
 {
   "name": "@spirex/di-svelte",
   "version": "1.0.0-alpha",
-  "description": "SpireX/DI integration for Svelte",
-  "main": "index.js",
+  "description": "SpireX/DI integration for Svelte — context-based injection with multi-package TypeMap support.",
   "license": "MIT",
   "private": false,
+  "sideEffects": false,
+  "author": {
+    "name": "Artem Sobolenkov",
+    "email": "SpireX@outlook.com",
+    "url": "https://github.com/SpireX64"
+  },
+  "keywords": [
+    "svelte",
+    "di",
+    "ioc",
+    "dependency injection",
+    "spirex",
+    "type-safe",
+    "context"
+  ],
+  "homepage": "https://github.com/SpireX64/spirex-di",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpireX64/spirex-di.git",
+    "directory": "packages/di-svelte"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "test": "vitest run --config ./vitest.config.mjs",
     "test:c": "vitest run --config ./vitest.config.mjs --coverage",
@@ -14,17 +44,17 @@
     "clean": "rimraf dist coverage"
   },
   "devDependencies": {
-    "jsdom": "26.1.0",
-    "svelte": "5.39.11",
-    "@testing-library/svelte": "5.2.8",
     "@sveltejs/vite-plugin-svelte": "6.2.1",
+    "@testing-library/svelte": "5.2.8",
     "@types/jest": "*",
     "@vitest/coverage-istanbul": "*",
     "eslint": "*",
+    "jsdom": "26.1.0",
     "prettier": "*",
     "rollup": "*",
     "rollup-plugin-copy": "*",
     "rollup-plugin-terser": "*",
+    "svelte": "5.39.11",
     "vitest": "*"
   },
   "peerDependencies": {
