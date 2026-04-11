@@ -6,25 +6,67 @@ on:
       - main
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.matrix.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            shared:
+              - '**'
+              - '!packages/**'
+            di:
+              - 'packages/di/**'
+            di-dynamic:
+              - 'packages/di-dynamic/**'
+            di-config:
+              - 'packages/di-config/**'
+            di-react:
+              - 'packages/di-react/**'
+            di-angular-bridge:
+              - 'packages/di-angular-bridge/**'
+
+      - id: matrix
+        env:
+          SHARED: ${{ steps.filter.outputs.shared }}
+          CHANGES: ${{ steps.filter.outputs.changes }}
+        run: |
+          ALL='["di","di-dynamic","di-config","di-react","di-angular-bridge"]'
+          if [ "$SHARED" = "true" ]; then
+            echo "packages=$ALL" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FILTERED=$(echo "$CHANGES" | jq -c 'map(select(. == "di" or . == "di-dynamic" or . == "di-config" or . == "di-react" or . == "di-angular-bridge"))')
+          COUNT=$(echo "$FILTERED" | jq 'length')
+          if [ "$COUNT" -eq 0 ]; then
+            echo "packages=$ALL" >> "$GITHUB_OUTPUT"
+          else
+            echo "packages=$FILTERED" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        package:
-          - di
-          - di-dynamic
-          - di-config
-          - di-react
-          - di-angular-bridge
+        package: ${{ fromJSON(needs.changes.outputs.packages) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: "Setup Node.JS"
         uses: actions/setup-node@v4
         with:
           node-version: "22.22"
           cache: "yarn"
-      
+
       - name: "Install Dependencies"
         run: yarn install --frozen-lockfile
 
