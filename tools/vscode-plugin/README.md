@@ -74,6 +74,7 @@ Rename a DI token string across all files — binding sites, resolution sites, a
 The extension recognizes resolution patterns from:
 - `@spirex/di` — `scope.get()`, `scope.maybe()`, `scope.getAll()`, `scope.providerOf()`, `scope.phantomOf()`
 - `@spirex/di-react` — `useInject()`, `withInject()`, `<DIScope>`
+- `@spirex/di-solid` — `useInject()`, `<DIRootScope>`, `<DIScope>`
 - `@spirex/di-svelte` — `useInject()`, `setDIScope()`
 
 ## Related
