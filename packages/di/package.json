@@ -62,7 +62,7 @@
         }
     },
     "scripts": {
-        "prepack": "cp ../../README.md ./README.md",
+        "prepack": "yarn build:release && cp ../../README.md ./README.md",
         "test": "vitest run --config ./vitest.config.mjs",
         "test:c": "vitest run --config ./vitest.config.mjs --coverage",
         "build": "rollup --config --environment NODE_ENV:development",

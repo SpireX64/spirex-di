@@ -63,6 +63,7 @@
         "test:c": "vitest run --config ./vitest.config.mjs --coverage",
         "build": "rollup --config --environment NODE_ENV:development",
         "build:release": "rollup --config --environment NODE_ENV:production",
+        "prepack": "yarn build:release",
         "clean": "rimraf dist coverage"
     },
     "devDependencies": {

@@ -17,6 +17,8 @@
         "test": "vitest run --config ./vitest.config.mts",
         "test:c": "vitest run --config ./vitest.config.mts --coverage",
         "build": "tsc -p tsconfig.build.json",
+        "build:release": "tsc -p tsconfig.build.json",
+        "prepack": "yarn build:release",
         "clean": "rimraf dist coverage"
     },
     "dependencies": {
