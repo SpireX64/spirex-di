@@ -54,7 +54,7 @@
     "rollup": "*",
     "rollup-plugin-copy": "*",
     "rollup-plugin-terser": "*",
-    "svelte": "5.53.5",
+    "svelte": "5.55.3",
     "vitest": "*"
   },
   "peerDependencies": {
