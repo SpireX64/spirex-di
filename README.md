@@ -129,6 +129,7 @@ Container is designed to be fully extensible and works seamlessly with additiona
 | `@spirex/di-svelte` | **SpireX/DI for Svelte** - provides **Svelte** integration for injecting dependencies into components.|
 | `@spirex/di-angular-bridge` | Using **SpireX/DI** as a domain-level service container with standard **Angular DI** access. |
 | `@spirex/di-config` | **SpireX/DI Config** - provides a middleware that configures services right after they are created. |
+| `@spirex/di-shared` | **DIFacade DI for migration** — safely use DI globally while tracking and eliminating it during migration. |
 
 ## License
 `@spirex/di` is released under the MIT License.

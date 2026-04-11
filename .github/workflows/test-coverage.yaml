@@ -38,6 +38,8 @@ jobs:
               - 'packages/di-react/**'
             di-solid:
               - 'packages/di-solid/**'
+            di-shared:
+              - 'packages/di-shared/**'
             di-svelte:
               - 'packages/di-svelte/**'
             di-angular-bridge:
@@ -48,12 +50,12 @@ jobs:
           SHARED: ${{ steps.filter.outputs.shared }}
           CHANGES: ${{ steps.filter.outputs.changes }}
         run: |
-          ALL='["di","di-dynamic","di-config","di-react","di-solid","di-svelte","di-angular-bridge"]'
+          ALL='["di","di-dynamic","di-config","di-react","di-solid","di-shared","di-svelte","di-angular-bridge"]'
           if [ "$SHARED" = "true" ]; then
             echo "packages=$ALL" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          FILTERED=$(echo "$CHANGES" | jq -c 'map(select(. == "di" or . == "di-dynamic" or . == "di-config" or . == "di-react" or . == "di-solid" or . == "di-svelte" or . == "di-angular-bridge"))')
+          FILTERED=$(echo "$CHANGES" | jq -c 'map(select(. == "di" or . == "di-dynamic" or . == "di-config" or . == "di-react" or . == "di-solid" or . == "di-shared" or . == "di-svelte" or . == "di-angular-bridge"))')
           COUNT=$(echo "$FILTERED" | jq 'length')
           if [ "$COUNT" -eq 0 ]; then
             echo "packages=$ALL" >> "$GITHUB_OUTPUT"
