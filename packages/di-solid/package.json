@@ -1,0 +1,77 @@
+{
+    "name": "@spirex/di-solid",
+    "version": "1.0.0",
+    "license": "MIT",
+    "private": false,
+    "sideEffects": false,
+    "description": "Type-safe SolidJS integration for SpireX/DI. Provides a typed, declarative dependency injection system using Solid context.",
+    "author": {
+        "name": "Artem Sobolenkov",
+        "email": "SpireX@outlook.com",
+        "url": "https://github.com/SpireX64"
+    },
+    "keywords": [
+        "solid",
+        "solidjs",
+        "components",
+        "hook",
+        "di",
+        "ioc",
+        "dependency",
+        "injection",
+        "injector",
+        "container",
+        "dependency injection",
+        "type-safe",
+        "typescript",
+        "javascript",
+        "scope",
+        "spirex"
+    ],
+    "homepage": "https://github.com/SpireX64/spirex-di",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/SpireX64/spirex-di.git",
+        "directory": "packages/di-solid"
+    },
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "default": "./dist/index.mjs"
+            },
+            "default": {
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vitest run --config ./vitest.config.mjs",
+        "test:c": "vitest run --config ./vitest.config.mjs --coverage",
+        "build": "rollup --config --environment NODE_ENV:development",
+        "build:release": "rollup --config --environment NODE_ENV:production",
+        "prepack": "yarn build:release",
+        "clean": "rimraf dist coverage"
+    },
+    "devDependencies": {
+        "@spirex/di": "*",
+        "@solidjs/testing-library": "^0.8.10",
+        "@vitest/coverage-istanbul": "*",
+        "eslint": "*",
+        "jsdom": "26.1.0",
+        "prettier": "*",
+        "rollup": "*",
+        "rollup-plugin-copy": "*",
+        "rollup-plugin-terser": "*",
+        "solid-js": "^1.9.5",
+        "vite": "^6.3.0",
+        "vite-plugin-solid": "^2.11.6",
+        "vitest": "*"
+    },
+    "peerDependencies": {
+        "@spirex/di": "^1",
+        "solid-js": "^1.8.0"
+    }
+}
