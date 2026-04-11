@@ -2,38 +2,38 @@
 # yarn lockfile v1
 
 
-"@angular/common@22.0.0-next.7":
-  version "22.0.0-next.7"
-  resolved "https://registry.yarnpkg.com/@angular/common/-/common-22.0.0-next.7.tgz#96c3d7bd99b89c13bcaea6ea0842de6201c5e98d"
-  integrity sha512-u81tWnwOdsgo7SPo0udAxGa82sxLF1gb7u30pf+k6nWkYZ09diwh454AOv2XumMLoA1cB4oz9+rELmkmZDdOZQ==
+"@angular/common@20.3.18":
+  version "20.3.18"
+  resolved "https://registry.yarnpkg.com/@angular/common/-/common-20.3.18.tgz#311dc0658be69f1368db2eeea92ea1b940329975"
+  integrity sha512-M62oQbSTRmnGavIVCwimoadg/PDWadgNhactMm9fgH0eM9rx+iWBAYJk4VufO0bwOhysFpRZpJgXlFjOifz/Jw==
   dependencies:
     tslib "^2.3.0"
 
-"@angular/compiler@22.0.0-next.7":
-  version "22.0.0-next.7"
-  resolved "https://registry.yarnpkg.com/@angular/compiler/-/compiler-22.0.0-next.7.tgz#b9acba5cf99e2d085474a9b85b9fd06da5acf87c"
-  integrity sha512-ftCTQbZTszqgkYGBOtrMIMR6TJUWby1fejWYZMO0Qm1ArUpChdP1rp3o/FszHb0NyMT0OAGwRKb+qjLWaktnMQ==
+"@angular/compiler@20.3.18":
+  version "20.3.18"
+  resolved "https://registry.yarnpkg.com/@angular/compiler/-/compiler-20.3.18.tgz#5370dc1a24d55623828a2b0875c776c8da13fdc6"
+  integrity sha512-AaP/LCiDNcYmF135EEozjyR04NRBT38ZfBHQwjhgwiBBTejmvcpHwJaHSkraLpZqZzE4BQqqmgiQ1EJqxEwLVA==
   dependencies:
     tslib "^2.3.0"
 
-"@angular/core@22.0.0-next.7":
-  version "22.0.0-next.7"
-  resolved "https://registry.yarnpkg.com/@angular/core/-/core-22.0.0-next.7.tgz#e4a6aeb2498570fabdc605704c47f66ac82e276b"
-  integrity sha512-R4hWLgfx7tN8zkTLJdesZZjMrsT6GzKkniLWm0ZGmJ30TyH9H/53FRW3nPcwGxd0VCS+A5YExo4DLETFEBXokQ==
+"@angular/core@20.3.18":
+  version "20.3.18"
+  resolved "https://registry.yarnpkg.com/@angular/core/-/core-20.3.18.tgz#af91805841184cd87e862134a806bba019d170ea"
+  integrity sha512-B+NQQngd/aDbcfW0zGLis3wTLDeHTeTYMl/mGKQH+HwdPaRCKI1wEtaXaOYVJXkP2FeThocPevB8gLwNlPQUUw==
   dependencies:
     tslib "^2.3.0"
 
-"@angular/platform-browser-dynamic@22.0.0-next.7":
-  version "22.0.0-next.7"
-  resolved "https://registry.yarnpkg.com/@angular/platform-browser-dynamic/-/platform-browser-dynamic-22.0.0-next.7.tgz#3a88dded9615a8b959086ef869638428ec9a7216"
-  integrity sha512-1HDmkfO2LBVzMgmSaawAC6k16j7TgeLvND3ZS2myMkLu6hYj9r2vK9DvQ57dJipsk65if9SXcXQsN9PYHYNbqA==
+"@angular/platform-browser-dynamic@20.3.18":
+  version "20.3.18"
+  resolved "https://registry.yarnpkg.com/@angular/platform-browser-dynamic/-/platform-browser-dynamic-20.3.18.tgz#c4c633fcc4782e1a361a0904d2bc3f180bbf0f81"
+  integrity sha512-NyTobOGYVzGmPmtI+3lxMzxi0TbLq4SRNQ2ENEJAt6k2JnMmHBm483ppLRAM47nGlDdiraW0IX93EtYYNkiK3g==
   dependencies:
     tslib "^2.3.0"
 
-"@angular/platform-browser@22.0.0-next.7":
-  version "22.0.0-next.7"
-  resolved "https://registry.yarnpkg.com/@angular/platform-browser/-/platform-browser-22.0.0-next.7.tgz#b2b226f3350e7230c73ea72cb749c8750fe508b4"
-  integrity sha512-4XsoT7ArTSU1b3u2TPNKUL6CdCQdHXDyMFunD+KlukfwFc+dcfMvtli1Kz3xgi+t49CEK8LQDJm4hF17XQt3dw==
+"@angular/platform-browser@20.3.18":
+  version "20.3.18"
+  resolved "https://registry.yarnpkg.com/@angular/platform-browser/-/platform-browser-20.3.18.tgz#33b5d5cdddc4a0f60a9ddf886b941587a348d304"
+  integrity sha512-q6s5rEN1yYazpHYp+k4pboXRzMsRB9auzTRBEhyXSGYxqzrnn3qHN0DqgsLC9WAdyhCgnIEMFA8kRT+W277DqQ==
   dependencies:
     tslib "^2.3.0"
 
@@ -2351,7 +2351,7 @@ yocto-queue@^0.1.0:
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
 
-zone.js@~0.16.1:
-  version "0.16.1"
-  resolved "https://registry.yarnpkg.com/zone.js/-/zone.js-0.16.1.tgz#ca91f0889e46b1c252aab6c75332e36840916227"
-  integrity sha512-dpvY17vxYIW3+bNrP0ClUlaiY0CiIRK3tnoLaGoQsQcY9/I/NpzIWQ7tQNhbV7LacQMpCII6wVzuL3tuWOyfuA==
+zone.js@~0.15.0:
+  version "0.15.1"
+  resolved "https://registry.yarnpkg.com/zone.js/-/zone.js-0.15.1.tgz#1e109adb75f80e9e004ee8e0d4a0a52e0a336481"
+  integrity sha512-XE96n56IQpJM7NAoXswY3XRLcWFW83xe0BiAOeMD7K5k5xecOeul3Qcpx6GqEeeHNkW5DWL5zOyTbEfB4eti8w==
