@@ -7,19 +7,34 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
 // #region Shortcuts
 
+/** * @typedef {{string: string, number: number, boolean: boolean, symbol: symbol, bigint: bigint, undefined: undefined, function: Function, object: object|null}} TypeofMap */
+
 /**
  * Returns last array element
  * @param {Array<T>} array
  * @returns {T | undefined}
  */
-var len = (x) => x.length
 var lastOf = (array) => array[len(array) - 1];
+
+/** @type {<T>(t: T, o) => o is InstanceType<T>} */
+var instOf = (t, o) => o instanceof t;
+
+/**
+ * @template {keyof TypeofMap} T
+ * @type {(t:T, o:unknown) => o is TypeofMap[T]} 
+ */
+var typeOf = (t, o) => typeof o === t;
+var len = (x) => x.length;
 var listContains = (array, element) => array.includes(element);
 var readOnly = Object.freeze;
-var isArray = Array.isArray;
-var isFunc = (x) => typeof x === "function";
-var isStr = (x) => typeof x === "string";
 
+var isArray = Array.isArray;
+
+/** @type {(o:unknown) => o is Function} */
+var isFunc = typeOf.bind(0, "function");
+
+/** @type {(o:unknown) => o is string} */
+var isStr = typeOf.bind(0, "string");
 // #endregion
 
 // #region Utilities
@@ -47,7 +62,7 @@ var findInMapSet = (mapSet, predicate) => {
     var result;
     for (var [key, valueOrSet] of mapSet.entries()) {
         var predicateWithKey = (value) => predicate(value, key);
-        if (valueOrSet instanceof Set) {
+        if (instOf(Set, valueOrSet)) {
             result = findInSet(valueOrSet, predicateWithKey);
         } else if (predicateWithKey(valueOrSet)) result = valueOrSet;
         if (result) return result;
@@ -92,12 +107,9 @@ var isTypeEntry = (mayBeTypeEntry) =>
 
 // #region Errors
 
-var ErrorBindingConflict = (type) =>
-    `Binding exists: '${type}'`;
-var ErrorMissingRequiredType = (type) =>
-    `Missing binding: "${type}"`;
-var ErrorUndefinedInstance = (type) =>
-    `Undefined bind: "${type}"`;
+var ErrorBindingConflict = (type) => `Binding exists: '${type}'`;
+var ErrorMissingRequiredType = (type) => `Missing binding: "${type}"`;
+var ErrorUndefinedInstance = (type) => `Undefined bind: "${type}"`;
 var ErrorResolveInternalType = (module, entryType, chain) =>
     `Type "${entryType}" is not accessible outside "${module}" module (${chainToString(chain, entryType)})`;
 var ErrorAliasCycle = (alias, aliasChain) =>
@@ -201,7 +213,7 @@ function createContainerBlueprint() {
 
     function getAO(type, name) {
         var ref = aliases.get(makeEntryId(type, name));
-        return ref instanceof Set ? Array.from(ref.values()) : ref;
+        return instOf(Set, ref) ? Array.from(ref.values()) : ref;
     }
 
     function has(type, name) {
@@ -413,7 +425,7 @@ function createRootContainerScope(blueprint, rootData) {
     var $locals = Symbol("l");
     var $state = Symbol("d");
 
-    var isDisposed = (scope) => scope[$state].disposed
+    var isDisposed = (scope) => scope[$state].disposed;
 
     /**
      * Builds a scope path array from root (excluded) to current scope.
@@ -426,7 +438,7 @@ function createRootContainerScope(blueprint, rootData) {
         // Root scope has empty ID and is ignored.
         if (parent) {
             path.push(scopeId);
-            while (parent && parent.id !== '') {
+            while (parent && parent.id !== "") {
                 path.push(parent.id);
                 parent = parent[$parent];
             }
@@ -627,7 +639,7 @@ function createRootContainerScope(blueprint, rootData) {
     }
 
     function makeProviderFunc(scope, entry) {
-        var providerFuncName = "get"+entry.$id;
+        var providerFuncName = "get" + entry.$id;
         return {
             // Deanonymize the function by giving it a specific name
             [providerFuncName]: function () {
@@ -742,7 +754,7 @@ function createRootContainerScope(blueprint, rootData) {
             this[$state].disposed = true;
             var parent = this[$parent];
             if (parent && parent[$scopes].get(this.id) === this) {
-                parent[$scopes].delete(this.id)
+                parent[$scopes].delete(this.id);
             }
 
             // Dispose local instances
