@@ -21,7 +21,7 @@ var instOf = (t, o) => o instanceof t;
 
 /**
  * @template {keyof TypeofMap} T
- * @type {(t:T, o:unknown) => o is TypeofMap[T]} 
+ * @type {(t:T, o:unknown) => o is TypeofMap[T]}
  */
 var typeOf = (t, o) => typeof o === t;
 var len = (x) => x.length;
@@ -157,6 +157,19 @@ function phantomProxy(provider) {
     });
 }
 
+var listOfMiddlewareHooks = [
+    // "onUse" - No need to reference, called on use()
+    "onBind",
+    "onBindAlias",
+    "onPreBuild",
+    "onPostBuild",
+    "onRequest",
+    "onActivated",
+    "onResolve",
+    "onScopeOpen",
+    "onScopeDispose",
+];
+
 function createContainerBlueprint() {
     /** Map of registered type bindings */
     var entries = new Map();
@@ -168,6 +181,10 @@ function createContainerBlueprint() {
     var modules = new Set();
     /** Container type enumeration cache. */
     var typesEnum = null;
+
+    var middlewareVirtualTable = Object.fromEntries(
+        listOfMiddlewareHooks.map((methodName) => [methodName, []]),
+    );
 
     function types() {
         if (!typesEnum)
@@ -197,16 +214,19 @@ function createContainerBlueprint() {
 
     function addMw(middleware) {
         mws.add(middleware);
+        for (var hookName of listOfMiddlewareHooks) {
+            var hook = middleware[hookName];
+            if (isFunc(hook))
+                middlewareVirtualTable[hookName].push(hook.bind(middleware));
+        }
     }
 
     function callMw(hookName, resultArgIndex, ...args) {
+        var mvHooks = middlewareVirtualTable[hookName];
         var result = args[resultArgIndex];
-        for (var mv of mws) {
-            var hook = mv[hookName];
-            if (isFunc(hook)) {
-                result = hook(...args);
-                if (resultArgIndex >= 0) args[resultArgIndex] = result;
-            }
+        for (var hook of mvHooks) {
+            result = hook(...args);
+            if (resultArgIndex >= 0) args[resultArgIndex] = result;
         }
         return result;
     }
@@ -749,7 +769,7 @@ function createRootContainerScope(blueprint, rootData) {
             // Dispose children
             this[$scopes].forEach((scope) => scope.dispose());
             this[$scopes].clear();
-            
+
             blueprint.callMw("onScopeDispose", -1, this);
             this[$state].disposed = true;
             var parent = this[$parent];
