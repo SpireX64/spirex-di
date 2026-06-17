@@ -7,7 +7,9 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
 // #region Shortcuts
 
-/** * @typedef {{string: string, number: number, boolean: boolean, symbol: symbol, bigint: bigint, undefined: undefined, function: Function, object: object|null}} TypeofMap */
+/** 
+ * @typedef {{string: string, number: number, boolean: boolean, symbol: symbol, bigint: bigint, undefined: undefined, function: Function, object: object|null}} TypeofMap
+ */
 
 /**
  * Returns last array element
@@ -613,7 +615,7 @@ function createRootContainerScope(blueprint, rootData) {
             instance = scope[$locals].get(entry);
             if (instance === undefined && !noActivate) {
                 if (entry.withScope)
-                    scope = scope.scope(entry.type, entry.withScope);
+                    scope = scope.scope(entry.$id, entry.withScope);
 
                 instance = activateInstance(entry, scope);
 
@@ -1005,7 +1007,7 @@ export function diBuilder(builderOptions = {}) {
     function use(middleware) {
         if (!blueprint.hasMw(middleware)) {
             blueprint.addMw(middleware);
-            if (middleware.onUse) middleware.onUse(this);
+            if (isFunc(middleware.onUse)) middleware.onUse(this);
         }
         return this;
     }
@@ -1063,10 +1065,9 @@ export function diBuilder(builderOptions = {}) {
         requireTypesFromSafeFactories();
 
         // Required types verification
-        requiredTypes.forEach(($id) => {
+        for (var $id of requiredTypes)
             if (!blueprint.has($id))
                 throw new Error(ErrorMissingRequiredType($id));
-        });
 
         var container = createRootContainerScope(blueprint, data);
         externalInjections.forEach((delegate) => delegate(container));
@@ -1079,9 +1080,9 @@ export function diBuilder(builderOptions = {}) {
         var alias;
         blueprint.forEachAlias(
             (originId, aliasId) =>
-                (alias =
-                    predicate(splitEntryId(aliasId), splitEntryId(originId)) &&
-                    aliasId),
+            (alias =
+                predicate(splitEntryId(aliasId), splitEntryId(originId)) &&
+                aliasId),
         );
         return alias ? splitEntryId(alias) : undefined;
     };
