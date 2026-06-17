@@ -431,12 +431,14 @@ function createContainerBlueprint() {
     };
 }
 
-function createFactoryScopeContext(scope) {
+function createFactoryScopeContext(scope, name, stack) {
     return {
         current: scope.id,
         path: scope.path,
         data: scope.data,
         dispose: scope.dispose.bind(scope),
+        name,
+        stack,
     };
 }
 
@@ -531,7 +533,7 @@ function createRootContainerScope(blueprint, rootData) {
         }
 
         // Call the factory to create the instance, passing the current scope as resolver
-        var ctx = createFactoryScopeContext(scope);
+        var ctx = createFactoryScopeContext(scope, activationStack);
         var instance = entry.injector
             ? entry.factory(entry.injector(scope, ctx), ctx)
             : entry.factory(scope, ctx);
