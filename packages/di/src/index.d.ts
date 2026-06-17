@@ -958,6 +958,12 @@ export interface IScopeContext extends IDisposable {
      */
     readonly data?: Readonly<object>;
 
+    /** Current binding name */
+    readonly name: string | undefined;
+
+    /** Current readonly activation stack */
+    readonly stack: readonly TBindingRef<AnyTypeMap, keyof AnyTypeMap>[];
+
     /**
      * Closes the current scope and cleans up all local instances.
      *

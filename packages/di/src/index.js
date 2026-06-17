@@ -18,6 +18,8 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
  */
 var lastOf = (array) => array[len(array) - 1];
 
+var firstValueOfIter = (iter) => iter.values().next().value
+
 /** @type {<T>(t: T, o) => o is InstanceType<T>} */
 var instOf = (t, o) => o instanceof t;
 
@@ -89,6 +91,8 @@ function chainToString(chain, key) {
  * @return A unique string identifier for the binding.
  */
 var makeEntryId = (type, name) => (name ? type + ID_SEP + name : type);
+
+var getEntryId = (entry) => entry.$id
 
 /**
  * Split identifier on key and name
@@ -248,13 +252,13 @@ function createContainerBlueprint() {
         var binding = entries.get(makeEntryId(type, name));
         return !binding || isTypeEntry(binding)
             ? binding
-            : binding.values().next().value;
+            : firstValueOfIter(binding);
     }
 
     function findAlias(type, name) {
         var $id = makeEntryId(type, name);
         var alias = aliases.get($id);
-        return !alias || isStr(alias) ? alias : alias.values().next().value;
+        return !alias || isStr(alias) ? alias : firstValueOfIter(alias);
     }
 
     /** Find all entries by type and name */
@@ -295,7 +299,7 @@ function createContainerBlueprint() {
         } else if (isStr(existingAlias)) {
             // Existing alias is a single reference
             // convert it to a Set and put both references into
-            aliases.set(aliasId, new Set().add(existingAlias).add(originId));
+            aliases.set(aliasId, new Set([existingAlias, originId]));
         } else {
             // Existing alias already targeting to many references
             // add new entry to the existing Set
@@ -350,7 +354,7 @@ function createContainerBlueprint() {
         } else if (isTypeEntry(existingEntry)) {
             // Existing entry is a single binding:
             // convert it to a Set and add both the old and new entries.
-            entries.set(id, new Set().add(existingEntry).add(entryToBind));
+            entries.set(id, new Set([existingEntry, entryToBind]));
         } else {
             // Existing entry is already a Set:
             // add the new entry to the existing set.
@@ -428,17 +432,6 @@ function createContainerBlueprint() {
         addAlias,
         addTypeEntry,
         cAlias,
-    };
-}
-
-function createFactoryScopeContext(scope, name, stack) {
-    return {
-        current: scope.id,
-        path: scope.path,
-        data: scope.data,
-        dispose: scope.dispose.bind(scope),
-        name,
-        stack,
     };
 }
 
@@ -523,7 +516,7 @@ function createRootContainerScope(blueprint, rootData) {
             var error = new Error(
                 ErrorDependenciesCycle(
                     entry.$id,
-                    activationStack.map((it) => it.$id),
+                    activationStack.map(getEntryId),
                 ),
             );
 
@@ -532,8 +525,14 @@ function createRootContainerScope(blueprint, rootData) {
             throw error;
         }
 
-        // Call the factory to create the instance, passing the current scope as resolver
-        var ctx = createFactoryScopeContext(scope, activationStack);
+        var ctx = {
+            current: scope.id,
+            path: scope.path,
+            data: scope.data,
+            dispose: scope.dispose.bind(scope),
+            name: entry.name,
+            stack: activationStack,
+        };
         var instance = entry.injector
             ? entry.factory(entry.injector(scope, ctx), ctx)
             : entry.factory(scope, ctx);
@@ -568,7 +567,7 @@ function createRootContainerScope(blueprint, rootData) {
                         ErrorResolveInternalType(
                             entry.module.id,
                             entry.$id,
-                            activationStack.map((it) => it.$id),
+                            activationStack.map(getEntryId),
                         ),
                     );
             }
