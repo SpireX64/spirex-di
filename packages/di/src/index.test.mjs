@@ -26,7 +26,7 @@ function catchError(procedure) {
     return undefined;
 }
 
-function noop() {}
+function noop() { }
 
 // @ts-nocheck
 describe("Container Builder", () => {
@@ -873,7 +873,7 @@ describe("Container Builder", () => {
                 test("WHEN: class without static inject field", () => {
                     // Arrange -------
                     var classKey = "MyService";
-                    class MyService {}
+                    class MyService { }
 
                     var builder = diBuilder();
 
@@ -2886,7 +2886,7 @@ describe("Container Scope", () => {
             test("WHEN: get from generated class factory without dependencies", () => {
                 // Arrange ------
                 var classKey = "service";
-                class Service {}
+                class Service { }
 
                 var container = diBuilder()
                     .bindFactory(classKey, factoryOf(Service))
@@ -4304,6 +4304,64 @@ describe("Container Scope", () => {
                 expect(childScope.sealed).is.false;
                 expect(childScope.isolated).is.true;
             });
+
+            test("Child scope extends root data", () => {
+                // Arrange -----------
+                var expectedData = { foo: 'bar' }
+                var container = diBuilder({ data: expectedData }).build()
+
+                // Act ---------------
+                var child = container.scope("child");
+
+                // Assert ------------
+                expect(container.data).toBe(expectedData)
+                expect(child.data).toBe(expectedData)
+            })
+
+            test("Child scope data merge with root data", () => {
+                // Arrange ----------
+                var rootTag = 'foo'
+                var expectedTag = 'bar'
+                var expectedValue = 42;
+
+                var container = diBuilder({
+                    data: {
+                        tag: rootTag,
+                        value: expectedValue,
+
+                    },
+                }).build()
+
+                // Act --------------
+                var child = container.scope('child', {
+                    data: { tag: expectedTag },
+                })
+
+                // Assert -----------
+                expect(container.data.tag).toBe(rootTag);
+                expect(container.data.value).toBe(expectedValue);
+
+                expect(child.data.tag).toBe(expectedTag);
+                expect(child.data.value).toBe(expectedValue);
+            })
+
+            test("Isolated child not extends root data", () => {
+                // Arrange -----------
+                var container = diBuilder({
+                    data: { value: 42 },
+                }).build()
+
+                // Act ---------------
+                var child = container.scope("child", {
+                    data: { tag: "foo" },
+                    isolated: true,
+                })
+
+                // Assert ------------
+                expect(container.data.value).toBe(42)
+                expect(child.data.value).toBeUndefined();
+                expect(child.data.tag).toBe("foo");
+            })
 
             test("WHEN: Create scope via factory binding", () => {
                 // Arrange ------

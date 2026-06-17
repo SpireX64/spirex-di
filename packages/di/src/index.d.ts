@@ -191,10 +191,15 @@ export type TScopeOptions = {
     isolated?: boolean;
 
     /**
-     * Optional contextual data associated with this scope
+     * Optional contextual data associated with this scope.
+     *
+     * For non-isolated scopes, this object is shallow-merged with parent scope data
+     * (parents' values are preserved unless overridden).
+     * For isolated scopes, parent data is ignored and only this `data` is used.
+     *
      * @since 1.2.0
      */
-    data?: any;
+    data?: Readonly<object>;
 };
 
 /**
@@ -947,8 +952,11 @@ export interface IScopeContext extends IDisposable {
     /** Scope hierarchy */
     readonly path: readonly string[];
 
-    /** Read-only optional contextual data associated with current scope. */
-    readonly data?: unknown;
+    /**
+     * Read-only optional contextual data associated with current scope.
+     * @since 1.2.0
+     */
+    readonly data?: Readonly<object>;
 
     /**
      * Closes the current scope and cleans up all local instances.
@@ -999,8 +1007,11 @@ export interface IContainerScope<TypeMap extends TTypeMapBase>
      */
     readonly isDisposed: boolean;
 
-    /** Read-only optional contextual data associated with this scope */
-    readonly data?: unknown;
+    /**
+     * Read-only optional contextual data associated with this scope
+     * @since 1.2.0
+     */
+    readonly data?: Readonly<object>;
 
     /**
      * Checks if the current scope has a direct child scope with the specified ID.
@@ -1186,8 +1197,15 @@ export type TContainerBuilderOptions = {
     /** Default conflict resolution strategy when a binding for the same type already exists. */
     ifConflict?: TTypesBindingResolveStrategy;
 
-    /** Additional data to be stored in the root scope. */
-    data?: any;
+    /**
+     * Additional data to be stored in the root scope.
+     *
+     * The root scope's data is treated as truly immutable and won't be modified.
+     * When child scopes are created (non-isolated), their `data` is shallow-merged
+     * on top of parent scope data so children can extend or override values.
+     * Isolated scopes ignore parent data entirely and only expose their own `data`.
+     */
+    data?: Readonly<object>;
 };
 
 export type TModuleDeclaration = {

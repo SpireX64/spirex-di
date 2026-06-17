@@ -440,6 +440,13 @@ function createFactoryScopeContext(scope) {
     };
 }
 
+function mergeScopeData(data, parent) {
+    var parentData = (parent && parent.data);
+    if (data)
+        return parentData ? { ...parentData, ...data } : data
+    return parentData
+}
+
 function createRootContainerScope(blueprint, rootData) {
     var $root = Symbol("r");
     var $parent = Symbol("p");
@@ -472,7 +479,7 @@ function createRootContainerScope(blueprint, rootData) {
         var { sealed = false, isolated = false, data } = options;
         return {
             id,
-            data,
+            data: isolated ? data : mergeScopeData(data, parent),
             sealed,
             isolated,
             path: makeScopePath(id, parent),
