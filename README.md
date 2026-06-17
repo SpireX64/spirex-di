@@ -19,7 +19,7 @@ Fully **plug & play** and production-ready, **SpireX/DI** is ideal for enterpris
 - **Lifecycle management** — singleton, lazy, scope, transient;
 - **Middleware** — resolution stack, alias hooks, typed TypeMap extension;
 - Named bindings, aliases, conflict resolution strategies, alias search;
-- Zero dependencies, runs on pure JS, **only ~8.7Kb** (~3.58Kb gzipped).
+- Zero dependencies, runs on pure JS, **only ~9Kb** (~3.7Kb gzipped).
 
 ## Installing
 ```sh

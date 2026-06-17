@@ -34,11 +34,13 @@ export class MyService {
 Next, we declare the TypeMap, mapping keys to the types we want to manage:
 
 ```ts
-type TypeMap = {
+import { diBuilder } from '@spirex/di';
+
+const builder = diBuilder<{
   value: number;
   logger: Logger;
   service: MyService;
-}
+}>()
 ```
 
 Here, "value" is a `number`, "logger" is a `Logger` instance, and "service" is a `MyService` instance.
@@ -48,7 +50,11 @@ Here, "value" is a `number`, "logger" is a `Logger` instance, and "service" is a
 ```ts
 import { diBuilder } from '@spirex/di';
 
-const builder = diBuilder<TypeMap>()
+const builder = diBuilder<{
+  value: number;
+  logger: Logger;
+  service: MyService;
+}>()
   .bindInstance('value', 42); // bind a constant value
 ```
 
