@@ -9,6 +9,25 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 export declare const ID_SEP: string;
 
 /**
+ * A wildcard name constant for fallback bindings.
+ *
+ * When a binding is registered with `name: ASTERISK` (i.e. '*'),
+ * it serves as a default fallback for any name that doesn't have an exact match.
+ *
+ * @example
+ * ```ts
+ * binder
+ *   .bindFactory('service', factoryOf(DefaultService), { name: ASTERISK })
+ *   .bindFactory('service', factoryOf(SpecialService), { name: 'special' });
+ *
+ * // 'special' → SpecialService (exact match)
+ * // 'unknown' → DefaultService (asterisk fallback)
+ * ```
+ * @since 1.3.0
+ */
+export declare const ASTERISK: string;
+
+/**
  * A map of string keys to types used in the DI container.
  * Each key represents a type token, and its value is the type of the instance bound to that token.
  */

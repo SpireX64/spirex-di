@@ -1,6 +1,9 @@
 /** A char used to separate the type and name in the unique ID of a binding */
 export var ID_SEP = "$";
 
+/** A constant representing a wildcard (asterisk) name for fallback bindings */
+export var ASTERISK = "*";
+
 var STRATEGY_APPEND = "append";
 var LC_SINGLETON = "singleton";
 
@@ -8,7 +11,7 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
 
 // #region Shortcuts
 
-/** 
+/**
  * @typedef {{string: string, number: number, boolean: boolean, symbol: symbol, bigint: bigint, undefined: undefined, function: Function, object: object|null}} TypeofMap
  */
 
@@ -19,7 +22,7 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
  */
 var lastOf = (array) => array[len(array) - 1];
 
-var firstValueOfIter = (iter) => iter.values().next().value
+var firstValueOfIter = (iter) => iter.values().next().value;
 
 /** @type {<T>(t: T, o) => o is InstanceType<T>} */
 var instOf = (t, o) => o instanceof t;
@@ -82,7 +85,7 @@ function chainToString(chain, key) {
 }
 
 function fnName(n, fn) {
-    return Object.defineProperty(fn, 'name', { value: n });
+    return Object.defineProperty(fn, "name", { value: n });
 }
 
 /**
@@ -97,7 +100,7 @@ function fnName(n, fn) {
  */
 var makeEntryId = (type, name) => (name ? type + ID_SEP + name : type);
 
-var getEntryId = (entry) => entry.$id
+var getEntryId = (entry) => entry.$id;
 
 /**
  * Split identifier on key and name
@@ -133,8 +136,7 @@ var ErrorMiddlewareEntryTypeMismatch = (
     originEntryId,
 ) =>
     `Middleware "${middlewareName || "unnamed"}" changed entry type: expected '${originEntryId}', got '${newEntryId}'`;
-var ErrorTypeBindingNotFound = (id) =>
-    `Binding not found: ${id}`;
+var ErrorTypeBindingNotFound = (id) => `Binding not found: ${id}`;
 var ErrorDependenciesCycle = (entryType, chain) =>
     `Dependency cycle: '${entryType}' (${chainToString(chain, entryType)})`;
 var ErrorMixedLifecycleBindings = (type, lifecycleA, lifecycleB) =>
@@ -151,6 +153,8 @@ var ErrorChildScopeCreationAfterDispose = (
     scopeHierarchy,
 ) =>
     `Scope disposed: "${childScopeId}" @ "${chainToString(scopeHierarchy, scopeId)}"`;
+var ErrorAsteriskMultibinding = (type) =>
+    `Asterisk binding "${type}${ID_SEP}*" does not support multi-binding`;
 
 // #endregion
 
@@ -280,6 +284,23 @@ function createContainerBlueprint() {
             : Array.from(typeEntry);
     }
 
+    /**
+     * Find all entries for a given type, regardless of name.
+     * Returns entries for both unnamed (`type`) and all named (`type$name`) bindings.
+     */
+    function findAllOfType(type) {
+        var prefix = type + ID_SEP;
+        var results = [];
+        forEach(function (entry, key) {
+            if (
+                (key === type || key.startsWith(prefix)) &&
+                entry.name !== ASTERISK
+            )
+                results.push(entry);
+        });
+        return results;
+    }
+
     var forEach = findInMapSet.bind(null, entries);
 
     var forEachAlias = findInMapSet.bind(null, aliases);
@@ -352,6 +373,9 @@ function createContainerBlueprint() {
                     ),
                 );
         });
+
+        if (entryToBind.name === ASTERISK && multibinding)
+            throw new Error(ErrorAsteriskMultibinding(entryToBind.type));
 
         readOnly(entryToBind);
 
@@ -434,6 +458,7 @@ function createContainerBlueprint() {
         findE,
         findAlias,
         findEs,
+        findAllOfType,
         forEach,
         forEachAlias,
         find,
@@ -446,10 +471,9 @@ function createContainerBlueprint() {
 }
 
 function mergeScopeData(data, parent) {
-    var parentData = (parent && parent.data);
-    if (data)
-        return parentData ? { ...parentData, ...data } : data
-    return parentData
+    var parentData = parent && parent.data;
+    if (data) return parentData ? { ...parentData, ...data } : data;
+    return parentData;
 }
 
 function createRootContainerScope(blueprint, rootData) {
@@ -690,14 +714,42 @@ function createRootContainerScope(blueprint, rootData) {
 
     function makeProviderFunc(scope, entry) {
         return fnName(entry.$id, () => {
-            entry = onRequestMiddleware(
-                scope,
-                entry,
-                entry.type,
-                entry.name,
-            );
+            entry = onRequestMiddleware(scope, entry, entry.type, entry.name);
             return getInstance.call(scope, scope, entry);
-        })
+        });
+    }
+
+    /**
+     * Resolves an entry by type and name, falling back to asterisk binding.
+     * When the fallback is used, creates a fork of the asterisk entry with
+     * the requested name, so each unique name gets its own cached instance.
+     */
+    function resolveOrForkEntry(type, name) {
+        var $id = makeEntryId(type, name);
+        var entry = blueprint.findE($id);
+        if (entry) return entry;
+
+        if (name === ASTERISK) return undefined;
+
+        entry = blueprint.findE(makeEntryId(type, ASTERISK));
+        if (entry) {
+            var forkedEntry = readOnly({ ...entry, $id, name });
+            blueprint.entries.set($id, forkedEntry);
+            return forkedEntry;
+        }
+    }
+
+    /**
+     * Resolves all entries by type and name, falling back to asterisk binding.
+     */
+    function resolveEntries(type, name) {
+        // getAll(type, ASTERISK) - return ALL entries for the type
+        if (name === ASTERISK) return blueprint.findAllOfType(type);
+
+        var entries = blueprint.findEs(makeEntryId(type, name));
+        if (!entries.length)
+            entries = blueprint.findEs(makeEntryId(type, ASTERISK));
+        return entries;
     }
 
     var scopePrototype = {
@@ -712,7 +764,7 @@ function createRootContainerScope(blueprint, rootData) {
         get(type, name) {
             var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
-            var entry = blueprint.findE($id);
+            var entry = resolveOrForkEntry(type, name);
             if (!entry) throw new Error(ErrorTypeBindingNotFound($id));
 
             entry = onRequestMiddleware(this, entry, type, name);
@@ -720,9 +772,9 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         maybe(type, name) {
-            var $id = makeEntryId(type, name)
+            var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
-            var entry = blueprint.findE($id);
+            var entry = resolveOrForkEntry(type, name);
             if (!entry) return undefined;
 
             entry = onRequestMiddleware(this, entry, type, name);
@@ -730,26 +782,25 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         getAll(type, name) {
-            var $id = makeEntryId(type, name)
+            var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
-            return blueprint
-                .findEs($id)
+            return resolveEntries(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map((entry) => getInstance(this, entry, true));
         },
 
         providerOf(type, name) {
-            var $id = makeEntryId(type, name)
+            var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
-            var entry = blueprint.findE($id);
+            var entry = resolveOrForkEntry(type, name);
             if (entry) return makeProviderFunc(this, entry);
             throw new Error(ErrorTypeBindingNotFound($id));
         },
 
         phantomOf(type, name) {
-            var $id = makeEntryId(type, name)
+            var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
-            var entry = blueprint.findE($id);
+            var entry = resolveOrForkEntry(type, name);
             if (entry)
                 return (
                     getInstance(this, entry, true, true) ||
@@ -853,7 +904,10 @@ function createRootContainerScope(blueprint, rootData) {
             // It is singleton binding
             typeEntry.lifecycle === LC_SINGLETON &&
             // Not activated yet
-            !rootScope[$locals].has(typeEntry)
+            !rootScope[$locals].has(typeEntry) &&
+            // Skip asterisk bindings
+            // they are templates, activated via fork on first use
+            typeEntry.name !== ASTERISK
         ) {
             rootScope[$locals].set(
                 typeEntry,
