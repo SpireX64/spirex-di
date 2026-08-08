@@ -1,5 +1,6 @@
 /** A char used to separate the type and name in the unique ID of a binding */
-var ID_SEP = "$";
+export var ID_SEP = "$";
+
 var STRATEGY_APPEND = "append";
 var LC_SINGLETON = "singleton";
 

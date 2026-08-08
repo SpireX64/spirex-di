@@ -5,6 +5,9 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     ? I
     : never;
 
+/** A char used to separate the type and name in the unique ID of a binding */
+export declare const ID_SEP: string;
+
 /**
  * A map of string keys to types used in the DI container.
  * Each key represents a type token, and its value is the type of the instance bound to that token.
