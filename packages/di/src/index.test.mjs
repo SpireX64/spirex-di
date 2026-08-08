@@ -5663,6 +5663,75 @@ describe("Container Scope", () => {
             expect(result).toBe(instance);
         });
 
+        test("WHEN: Asterisk alias makes named and unnamed resolution return the same instance", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instance = { value: "shared" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instance)
+                .bindAlias(typeKey, typeKey, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var named = container.get(typeKey, "anyName");
+            var unnamed = container.get(typeKey);
+
+            // Assert ----------
+            expect(named).toBe(instance);
+            expect(unnamed).toBe(instance);
+        });
+
+        test("WHEN: maybe resolves through asterisk alias", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instance = { value: "ok" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instance)
+                .bindAlias(typeKey, typeKey, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.maybe(typeKey, "anyName");
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: explicit get(type, ASTERISK) resolves through asterisk alias", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instance = { value: "explicit" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instance)
+                .bindAlias(typeKey, typeKey, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.get(typeKey, ASTERISK);
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: Asterisk alias to non-existent binding fails at build", () => {
+            // Arrange ---------
+            var typeKey = "service";
+
+            // Act -------------
+            var error = catchError(function () {
+                diBuilder()
+                    .bindAlias(typeKey, "nonExistent", { name: ASTERISK })
+                    .build();
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("refers to missing binding");
+        });
+
         test("WHEN: getAll(type, *) returns all instances of the type regardless of name", () => {
             // Arrange ---------
             var typeKey = "service";
