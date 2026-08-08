@@ -505,12 +505,13 @@ function createRootContainerScope(blueprint, rootData) {
     }
 
     function createScopeObject(id, parent, options = {}) {
-        var { sealed = false, isolated = false, data } = options;
+        var { sealed = false, isolated = false, data, allowedList } = options;
         return {
             id,
             data: isolated ? data : mergeScopeData(data, parent),
             sealed,
             isolated,
+            allowedList,
             path: makeScopePath(id, parent),
             [$root]: parent && (parent[$root] || parent),
             [$parent]: parent,
@@ -764,6 +765,8 @@ function createRootContainerScope(blueprint, rootData) {
         get(type, name) {
             var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                throw new Error(ErrorScopeViolation(this.id, type));
             var entry = resolveOrForkEntry(type, name);
             if (!entry) throw new Error(ErrorTypeBindingNotFound($id));
 
@@ -774,6 +777,8 @@ function createRootContainerScope(blueprint, rootData) {
         maybe(type, name) {
             var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                return undefined;
             var entry = resolveOrForkEntry(type, name);
             if (!entry) return undefined;
 
@@ -784,6 +789,8 @@ function createRootContainerScope(blueprint, rootData) {
         getAll(type, name) {
             var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                return [];
             return resolveEntries(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map((entry) => getInstance(this, entry, true));
@@ -792,6 +799,8 @@ function createRootContainerScope(blueprint, rootData) {
         providerOf(type, name) {
             var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                throw new Error(ErrorScopeViolation(this.id, type));
             var entry = resolveOrForkEntry(type, name);
             if (entry) return makeProviderFunc(this, entry);
             throw new Error(ErrorTypeBindingNotFound($id));
@@ -800,6 +809,8 @@ function createRootContainerScope(blueprint, rootData) {
         phantomOf(type, name) {
             var $id = makeEntryId(type, name);
             assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                throw new Error(ErrorScopeViolation(this.id, type));
             var entry = resolveOrForkEntry(type, name);
             if (entry)
                 return (

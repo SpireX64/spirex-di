@@ -213,6 +213,16 @@ export type TScopeOptions = {
     isolated?: boolean;
 
     /**
+     * Restricts direct resolution in this scope to only the listed types.
+     *
+     * This restriction applies only to DIRECT resolution via scope methods.
+     * Dependencies requested by factories from within this scope are **not** restricted.
+     *
+     * @since 1.3.0
+     */
+    allowedList?: ReadonlyArray<string>;
+
+    /**
      * Optional contextual data associated with this scope.
      *
      * For non-isolated scopes, this object is shallow-merged with parent scope data

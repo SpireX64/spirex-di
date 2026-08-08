@@ -26,7 +26,7 @@ function catchError(procedure) {
     return undefined;
 }
 
-function noop() {}
+function noop() { }
 
 // @ts-nocheck
 describe("Container Builder", () => {
@@ -873,7 +873,7 @@ describe("Container Builder", () => {
                 test("WHEN: class without static inject field", () => {
                     // Arrange -------
                     var classKey = "MyService";
-                    class MyService {}
+                    class MyService { }
 
                     var builder = diBuilder();
 
@@ -2886,7 +2886,7 @@ describe("Container Scope", () => {
             test("WHEN: get from generated class factory without dependencies", () => {
                 // Arrange ------
                 var classKey = "service";
-                class Service {}
+                class Service { }
 
                 var container = diBuilder()
                     .bindFactory(classKey, factoryOf(Service))
@@ -5779,6 +5779,196 @@ describe("Container Scope", () => {
             // Assert ----------
             expect(error).toBeInstanceOf(Error);
             expect(error.message).toContain("Binding not found");
+        });
+    });
+
+    describe("Scope allowed list", () => {
+        test("WHEN: allowed type can be resolved from restricted scope", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+
+            var container = diBuilder().bindInstance(typeKey, instance).build();
+
+            var childScope = container.scope("child", {
+                allowedList: [typeKey],
+            });
+
+            // Act -------------
+            var result = childScope.get(typeKey);
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: disallowed type throws from restricted scope", () => {
+            // Arrange ---------
+            var typeKeyA = "typeKeyA";
+            var typeKeyB = "typeKeyB";
+
+            var container = diBuilder()
+                .bindInstance(typeKeyA, { value: "A" })
+                .bindInstance(typeKeyB, { value: "B" })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: [typeKeyA],
+            });
+
+            // Act -------------
+            var error = catchError(function () {
+                childScope.get(typeKeyB);
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("not accessible in scope");
+        });
+
+        test("WHEN: maybe returns undefined for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var result = childScope.maybe(typeKey);
+
+            // Assert ----------
+            expect(result).toBeUndefined();
+        });
+
+        test("WHEN: getAll returns empty array for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var results = childScope.getAll(typeKey);
+
+            // Assert ----------
+            expect(results).toEqual([]);
+        });
+
+        test("WHEN: providerOf throws for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var error = catchError(function () {
+                childScope.providerOf(typeKey)();
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("not accessible in scope");
+        });
+
+        test("WHEN: phantomOf throws for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var error = catchError(function () {
+                childScope.phantomOf(typeKey);
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("not accessible in scope");
+        });
+
+        test("WHEN: factory dependencies bypass allowedList restriction", () => {
+            // Arrange ---------
+            var depKey = "dep";
+            var serviceKey = "service";
+
+            var container = diBuilder()
+                .bindInstance(depKey, { value: "dep" })
+                .bindFactory(serviceKey, function (r) {
+                    return { dep: r.get(depKey) };
+                }, { lifecycle: "transient" })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: [serviceKey],
+            });
+
+            // Act -------------
+            var result = childScope.get(serviceKey);
+
+            // Assert ----------
+            // Factory internally resolved 'dep' — it should work, not throw
+            expect(result.dep.value).toBe("dep");
+        });
+
+        test("WHEN: scope without allowedList has no restrictions", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+
+            var container = diBuilder().bindInstance(typeKey, instance).build();
+
+            var childScope = container.scope("child");
+
+            // Act -------------
+            var result = childScope.get(typeKey);
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: allowedList works with named bindings", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var nameA = "nameA";
+            var nameB = "nameB";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: "A" }, { name: nameA })
+                .bindInstance(typeKey, { value: "B" }, { name: nameB })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: [typeKey],
+            });
+
+            // Act -------------
+            var resultA = childScope.get(typeKey, nameA);
+            var resultB = childScope.get(typeKey, nameB);
+
+            // Assert ----------
+            expect(resultA.value).toBe("A");
+            expect(resultB.value).toBe("B");
         });
     });
 });
