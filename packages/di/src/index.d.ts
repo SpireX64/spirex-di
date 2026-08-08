@@ -255,6 +255,13 @@ export type TFactoryBindingOptions<
      * @since 1.1.0
      */
     withScope?: TScopeOptions | boolean;
+
+    /**
+     * A per-binding callback invoked when a scope-local instance is disposed.
+     * @param inst - The instance being disposed.
+     * @since 1.3.0
+     */
+    onDispose?: (inst: TypeMap[T]) => void;
 };
 
 /** Options for configuring an alias binding. */

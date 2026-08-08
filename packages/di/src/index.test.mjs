@@ -4856,6 +4856,87 @@ describe("Container Scope", () => {
             expect(container.isDisposed).is.true;
         });
 
+        test("WHEN: Auto-dispose via defined onDispose delegate", () => {
+            // Arrange -------
+            var typeKey = 'typeKey';
+            var closeDelegate = vi.fn();
+
+            var factory = () => ({ close: closeDelegate });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: 'scope',
+                    onDispose: (inst) => inst.close(),
+                })
+                .build();
+
+            var childScope = container.scope('child');
+            childScope.get(typeKey);
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(closeDelegate).toHaveBeenCalledOnce();
+            expect(childScope.isDisposed).is.true;
+        });
+
+        test("WHEN: onDispose replaces instance.dispose() call", () => {
+            // Arrange -------
+            var typeKey = 'typeKey';
+            var onDisposeFn = vi.fn();
+            var disposeFn = vi.fn();
+
+            var factory = () => ({ dispose: disposeFn });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: 'scope',
+                    onDispose: onDisposeFn,
+                })
+                .build();
+
+            var childScope = container.scope('child');
+            childScope.get(typeKey);
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(onDisposeFn).toHaveBeenCalledOnce();
+            expect(disposeFn).not.toHaveBeenCalled();
+            expect(childScope.isDisposed).is.true;
+        });
+
+        test("WHEN: onDispose has priority over Symbol.dispose", () => {
+            // Arrange -------
+            var typeKey = 'typeKey';
+            var onDisposeFn = vi.fn();
+            var symbolDisposeFn = vi.fn();
+
+            var factory = () => ({
+                [Symbol.dispose]: symbolDisposeFn,
+            });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: 'scope',
+                    onDispose: onDisposeFn,
+                })
+                .build();
+
+            var childScope = container.scope('child');
+            childScope.get(typeKey);
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(onDisposeFn).toHaveBeenCalledOnce();
+            expect(symbolDisposeFn).not.toHaveBeenCalled();
+            expect(childScope.isDisposed).is.true;
+        });
+
         test("WHEN: Auto-dispose local instances with 'Symbol.dispose'", () => {
             // Arrange -------
             var typeKey = "typeKey";

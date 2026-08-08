@@ -807,8 +807,9 @@ function createRootContainerScope(blueprint, rootData) {
             }
 
             // Dispose local instances
-            this[$locals].forEach((inst) => {
-                if (hasSymbolDispose && isFunc(inst[Symbol.dispose]))
+            this[$locals].forEach((inst, entry) => {
+                if (isFunc(entry.onDispose)) entry.onDispose(inst);
+                else if (hasSymbolDispose && isFunc(inst[Symbol.dispose]))
                     inst[Symbol.dispose]();
                 else if (isFunc(inst.dispose)) inst.dispose();
             });
