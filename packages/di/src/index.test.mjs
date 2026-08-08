@@ -5210,6 +5210,129 @@ describe("Container Scope", () => {
             expect(childScope.isDisposed).is.true;
         });
     });
+
+    describe("Per-binding onActivated", () => {
+        test("WHEN: onActivated callback is invoked after factory creates the instance", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+            var onActivatedHandler = vi.fn();
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => instance, {
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            var resolved = container.get(typeKey);
+
+            // Assert ----------
+            expect(resolved).toBe(instance);
+            expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
+                instance,
+            );
+        });
+
+        test("WHEN: onActivated is called BEFORE middleware.onActivated", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var callOrder = [];
+            var instance = { value: 42 };
+
+            var middlewareOnActivated = vi.fn(function (_, inst) {
+                callOrder.push("middleware");
+                return inst;
+            });
+            var perBindingOnActivated = vi.fn(function () {
+                callOrder.push("per-binding");
+            });
+
+            var container = diBuilder()
+                .use({ onActivated: middlewareOnActivated })
+                .bindFactory(typeKey, () => instance, {
+                    onActivated: perBindingOnActivated,
+                })
+                .build();
+
+            // Act -------------
+            container.get(typeKey);
+
+            // Assert ----------
+            expect(callOrder).toEqual(["per-binding", "middleware"]);
+        });
+
+        test("WHEN: onActivated is NOT called when instance is reused from cache", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+            var onActivatedHandler = vi.fn();
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => instance, {
+                    lifecycle: "singleton",
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            container.get(typeKey);
+            container.get(typeKey);
+
+            // Assert ----------
+            // Called only once — for the first resolution
+            expect(onActivatedHandler).toHaveBeenCalledTimes(1);
+        });
+
+        test("WHEN: onActivated return value is ignored (cannot replace instance)", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var originalInstance = { value: 42 };
+            var replacementInstance = { value: 99 };
+
+            var onActivatedHandler = vi.fn(function () {
+                return replacementInstance;
+            });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => originalInstance, {
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            var resolved = container.get(typeKey);
+
+            // Assert ----------
+            // Return value is ignored, original instance is used
+            expect(resolved).toBe(originalInstance);
+            expect(resolved).not.toBe(replacementInstance);
+        });
+
+        test("WHEN: onActivated works with named bindings", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var name = "myName";
+            var instance = { value: 42 };
+            var onActivatedHandler = vi.fn();
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => instance, {
+                    name: name,
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            var resolved = container.get(typeKey, name);
+
+            // Assert ----------
+            expect(resolved).toBe(instance);
+            expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
+                instance,
+            );
+        });
+    });
 });
 
 describe("Container Module", () => {

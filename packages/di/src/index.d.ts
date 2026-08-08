@@ -257,6 +257,25 @@ export type TFactoryBindingOptions<
     withScope?: TScopeOptions | boolean;
 
     /**
+     * A per-binding callback invoked immediately after the factory creates the instance.
+     *
+     * Called before `middleware.onActivated`. Cannot replace the instance -
+     * the return value is ignored. Use this for lightweight post-construction
+     * setup (e.g. calling `init()`, setting optional properties).
+     *
+     * For transforming or wrapping instances, use `middleware.onActivated` instead.
+     *
+     * @param inst - The freshly created instance.
+     * @since 1.3.0
+     *
+     * @example
+     * b.bindFactory('type', factoryOf(Service), {
+     *   onActivated: srv => srv.postConstruct(),
+     * })
+     */
+    onActivated?: (inst: TypeMap[T]) => void;
+
+    /**
      * A per-binding callback invoked when a scope-local instance is disposed.
      * @param inst - The instance being disposed.
      * @since 1.3.0

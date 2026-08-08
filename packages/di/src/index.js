@@ -547,6 +547,8 @@ function createRootContainerScope(blueprint, rootData) {
             ? entry.factory(entry.injector(scope, ctx), ctx)
             : entry.factory(scope, ctx);
 
+        if (isFunc(entry.onActivated)) entry.onActivated(instance);
+
         // Call 'OnActivated' middleware
         if (blueprint.hasMwHook("onActivated")) {
             instance = blueprint.callMw(
