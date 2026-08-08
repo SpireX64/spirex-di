@@ -5143,6 +5143,73 @@ describe("Container Scope", () => {
             expect(inst).toBe(scopeData);
         });
     });
+
+    describe("Dispose Ordering", () => {
+        test("WHEN: Instances are disposed in order by disposeOrder (lower first)", () => {
+            // Arrange -------
+            var callOrder = [];
+
+            var factoryA = () => ({
+                dispose() { callOrder.push('A'); }
+            });
+            var factoryB = () => ({
+                dispose() { callOrder.push('B'); }
+            });
+            var factoryC = () => ({
+                dispose() { callOrder.push('C'); }
+            });
+
+            var container = diBuilder()
+                .bindFactory('A', factoryA, { lifecycle: 'scope', disposeOrder: 10 })
+                .bindFactory('B', factoryB, { lifecycle: 'scope', disposeOrder: 5 })
+                .bindFactory('C', factoryC, { lifecycle: 'scope', disposeOrder: 0 })
+                .build();
+
+            var childScope = container.scope('child');
+            childScope.get('A');
+            childScope.get('B');
+            childScope.get('C');
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(callOrder).toEqual(['C', 'B', 'A']);
+            expect(childScope.isDisposed).is.true;
+        });
+
+        test("WHEN: disposeOrder works with dispose", () => {
+            // Arrange -------
+            var callOrder = [];
+
+            var onDisposeA = vi.fn(() => callOrder.push('A'));
+            var onDisposeB = vi.fn(() => callOrder.push('B'));
+
+            var container = diBuilder()
+                .bindFactory('A', () => ({}), {
+                    lifecycle: 'scope',
+                    disposeOrder: 10,
+                    onDispose: onDisposeA,
+                })
+                .bindFactory('B', () => ({}), {
+                    lifecycle: 'scope',
+                    disposeOrder: 5,
+                    onDispose: onDisposeB,
+                })
+                .build();
+
+            var childScope = container.scope('child');
+            childScope.get('A');
+            childScope.get('B');
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(callOrder).toEqual(['B', 'A']);
+            expect(childScope.isDisposed).is.true;
+        });
+    });
 });
 
 describe("Container Module", () => {

@@ -262,6 +262,14 @@ export type TFactoryBindingOptions<
      * @since 1.3.0
      */
     onDispose?: (inst: TypeMap[T]) => void;
+
+    /**
+     * Controls the order in which instances are disposed within a scope.
+     *
+     * Lower values are disposed first. Defaults to `0` when not specified.
+     * @since 1.3.0
+     */
+    disposeOrder?: number;
 };
 
 /** Options for configuring an alias binding. */

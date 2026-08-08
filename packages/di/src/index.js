@@ -806,13 +806,25 @@ function createRootContainerScope(blueprint, rootData) {
                 parent[$scopes].delete(this.id);
             }
 
-            // Dispose local instances
-            this[$locals].forEach((inst, entry) => {
+            // Dispose local instances in order by disposeOrder (lower first, default 0)
+            // Priority per instance: onDispose (binding-level) > Symbol.dispose > .dispose()
+            // onDispose takes full responsibility — standard protocol is skipped
+            var locals = new Array(this[$locals].size);
+            var pairIndex = 0;
+            this[$locals].forEach(function (inst, entry) {
+                locals[pairIndex++] = [entry, inst];
+            });
+            locals.sort(function (lhv, rhv) {
+                return (lhv[0].disposeOrder || 0) - (rhv[0].disposeOrder || 0);
+            });
+            for (var pair of locals) {
+                var inst = pair[1];
+                var entry = pair[0];
                 if (isFunc(entry.onDispose)) entry.onDispose(inst);
                 else if (hasSymbolDispose && isFunc(inst[Symbol.dispose]))
                     inst[Symbol.dispose]();
                 else if (isFunc(inst.dispose)) inst.dispose();
-            });
+            }
             this[$locals].clear();
         },
     };
