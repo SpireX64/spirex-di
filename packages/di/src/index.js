@@ -219,6 +219,10 @@ function createContainerBlueprint() {
         );
     }
 
+    function hasMwHook(hook) {
+        return middlewareVirtualTable[hook].length > 0;
+    }
+
     function addMw(middleware) {
         mws.add(middleware);
         for (var hookName of listOfMiddlewareHooks) {
@@ -420,6 +424,7 @@ function createContainerBlueprint() {
         hasMw,
         addMw,
         callMw,
+        hasMwHook,
         hasMod,
         addMod,
         findE,
@@ -539,14 +544,16 @@ function createRootContainerScope(blueprint, rootData) {
             : entry.factory(scope, ctx);
 
         // Call 'OnActivated' middleware
-        instance = blueprint.callMw(
-            "onActivated",
-            1,
-            entry,
-            instance,
-            scope,
-            activationStack.slice(),
-        );
+        if (blueprint.hasMwHook("onActivated")) {
+            instance = blueprint.callMw(
+                "onActivated",
+                1,
+                entry,
+                instance,
+                scope,
+                activationStack.slice(),
+            );
+        }
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -634,17 +641,23 @@ function createRootContainerScope(blueprint, rootData) {
             }
         }
 
-        return blueprint.callMw(
-            "onResolve",
-            1,
-            resolutionStack.pop(),
-            instance,
-            scope,
-            resolutionStack,
-        );
+        if (blueprint.hasMwHook("onResolve")) {
+            return blueprint.callMw(
+                "onResolve",
+                1,
+                resolutionStack.pop(),
+                instance,
+                scope,
+                resolutionStack,
+            );
+        }
+        resolutionStack.pop();
+        return instance;
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
+        if (!blueprint.hasMwHook("onRequest")) return entry;
+
         return (
             blueprint.callMw(
                 "onRequest",
