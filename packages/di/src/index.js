@@ -129,8 +129,8 @@ var ErrorMiddlewareEntryTypeMismatch = (
     originEntryId,
 ) =>
     `Middleware "${middlewareName || "unnamed"}" changed entry type: expected '${originEntryId}', got '${newEntryId}'`;
-var ErrorTypeBindingNotFound = (type, name) =>
-    `Binding not found: ${type}${name ? `("${name}")` : ""}`;
+var ErrorTypeBindingNotFound = (id) =>
+    `Binding not found: ${id}`;
 var ErrorDependenciesCycle = (entryType, chain) =>
     `Dependency cycle: '${entryType}' (${chainToString(chain, entryType)})`;
 var ErrorMixedLifecycleBindings = (type, lifecycleA, lifecycleB) =>
@@ -695,17 +695,19 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         get(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
-            if (!entry) throw new Error(ErrorTypeBindingNotFound(type, name));
+            var $id = makeEntryId(type, name);
+            assertScopeNotDisposedToResolve.call(this, $id);
+            var entry = blueprint.findE($id);
+            if (!entry) throw new Error(ErrorTypeBindingNotFound($id));
 
             entry = onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
         },
 
         maybe(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
+            var $id = makeEntryId(type, name)
+            assertScopeNotDisposedToResolve.call(this, $id);
+            var entry = blueprint.findE($id);
             if (!entry) return undefined;
 
             entry = onRequestMiddleware(this, entry, type, name);
@@ -713,30 +715,33 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         getAll(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
+            var $id = makeEntryId(type, name)
+            assertScopeNotDisposedToResolve.call(this, $id);
             return blueprint
-                .findEs(type, name)
+                .findEs($id)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map((entry) => getInstance(this, entry, true));
         },
 
         providerOf(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
+            var $id = makeEntryId(type, name)
+            assertScopeNotDisposedToResolve.call(this, $id);
+            var entry = blueprint.findE($id);
             if (entry) return makeProviderFunc(this, entry);
-            throw new Error(ErrorTypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound($id));
         },
 
         phantomOf(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
+            var $id = makeEntryId(type, name)
+            assertScopeNotDisposedToResolve.call(this, $id);
+            var entry = blueprint.findE($id);
             if (entry)
                 return (
                     getInstance(this, entry, true, true) ||
                     phantomProxy(makeProviderFunc(this, entry))
                 );
 
-            throw new Error(ErrorTypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound($id));
         },
 
         hasChildScope(id) {
