@@ -81,6 +81,10 @@ function chainToString(chain, key) {
     return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
 }
 
+function fnName(n, fn) {
+    return Object.defineProperty(fn, 'name', { value: n });
+}
+
 /**
  * Creates a unique identifier string for a binding entry based on its type and optional name.
  *
@@ -683,19 +687,15 @@ function createRootContainerScope(blueprint, rootData) {
     }
 
     function makeProviderFunc(scope, entry) {
-        var providerFuncName = "get" + entry.$id;
-        return {
-            // Deanonymize the function by giving it a specific name
-            [providerFuncName]: function () {
-                entry = onRequestMiddleware(
-                    scope,
-                    entry,
-                    entry.type,
-                    entry.name,
-                );
-                return getInstance.call(scope, scope, entry);
-            },
-        }[providerFuncName];
+        return fnName(entry.$id, () => {
+            entry = onRequestMiddleware(
+                scope,
+                entry,
+                entry.type,
+                entry.name,
+            );
+            return getInstance.call(scope, scope, entry);
+        })
     }
 
     var scopePrototype = {
