@@ -14,12 +14,16 @@ Fully **plug & play** and production-ready, **SpireX/DI** is ideal for enterpris
 ## Features
 - **Immutable container** — no hidden runtime mutations;
 - **Maximum type safety** — full autocompletion & compile-time checks;
-- **Modular** — static & dynamic modules, internal types, composite modules;
+- **Asterisk Binding** (`*`) — wildcard fallback for unknown names, `getAll(type, "*")`, dynamic factories with `ctx.name`;
+- **Per-binding lifecycle hooks** — `onActivated`, `onDispose` at the binding level;
+- **Dispose Ordering** — control the order of instance cleanup within a scope;
+- **Scope Access Control** — restrict direct type resolution per scope with `allowedList`;
 - **Advanced scope management** — auto-dispose, local scope data, sealed & isolated scopes;
 - **Lifecycle management** — singleton, lazy, scope, transient;
-- **Middleware** — resolution stack, alias hooks, typed TypeMap extension;
+- **Modular** — static & dynamic modules, internal types, composite modules;
+- **Middleware** — 10 hooks covering the full lifecycle: `onBind`, `onRequest`, `onActivated`, `onResolve`, `onScopeOpen`, `onScopeDispose`, and more;
 - Named bindings, aliases, conflict resolution strategies, alias search;
-- Zero dependencies, runs on pure JS, **only ~9Kb** (~3.7Kb gzipped).
+- Zero dependencies, runs on pure JS, **only ~10Kb** (~4.1Kb gzipped).
 
 ## Installing
 ```sh
@@ -69,12 +73,12 @@ const service = container.get("service");
 4. `.build()` finalizes the container.
 5. `.get("service")` returns the fully constructed *Service* with *Gateway* automatically injected.
 
-## Recent Improvements (v1.2.0)
-- **Internal module types** — hide implementation details within modules; types marked `internal` are inaccessible outside the module at runtime;
-- **Module composition** — group modules with `staticModule("id").compose(A, B, C)` for reusable, hierarchical configurations;
-- **Local scope data** — attach immutable, context-specific data to scopes (e.g. request URI, session ID);
-- **Resolution stack** — middleware hooks `onRequest` and `onResolve` receive the full resolution chain for diagnostics and instrumentation;
-- **Alias hooks & search** — `onBindAlias` middleware hook and `findAlias` builder method for alias introspection.
+## Recent Improvements (v1.3.0)
+- **Asterisk Binding (`*`)** — register a wildcard fallback binding; when an exact named or unnamed binding is not found, the container falls back to the `*` entry. Supports asterisk aliases, `getAll(type, "*")` for all instances of a type, and dynamic factories that receive the requested name via `ctx.name`;
+- **Scope Allowed List** — restrict which types can be directly resolved from a scope. Non-listed types throw for `get()`, return `undefined` for `maybe()`, and `[]` for `getAll()`. Dependencies requested by factories during activation bypass the check;
+- **Per-binding `onActivated`** — a lifecycle hook called after factory instantiation, before middleware `onActivated`. Cannot replace the instance;
+- **Per-binding `onDispose`** — attach cleanup logic directly to a binding. Takes priority over `Symbol.dispose` and `.dispose()`;
+- **Dispose Ordering** — control cleanup order within a scope via `disposeOrder` (lower values disposed first; default `0`);
 
 ## Documentation
 - [Introduction](https://github.com/SpireX64/spirex-di/blob/main/docs/docs/00-Introduction.md)
