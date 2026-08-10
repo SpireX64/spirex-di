@@ -7,7 +7,8 @@ export var ASTERISK = "*";
 var STRATEGY_APPEND = "append";
 var LC_SINGLETON = "singleton";
 
-var hasSymbolDispose = typeof Symbol.dispose === "symbol";
+var symDispose = Symbol.dispose
+var isSymbolDisposeSupported = typeof symDispose === "symbol";
 
 // #region Shortcuts
 
@@ -101,6 +102,12 @@ function fnName(n, fn) {
 var makeEntryId = (type, name) => (name ? type + ID_SEP + name : type);
 
 var getEntryId = (entry) => entry.$id;
+
+var DEFAULT_DISPOSE_ORDER = 0;
+
+function getDisposeOrderOfEntry(entry) {
+    return entry.disposeOrder || DEFAULT_DISPOSE_ORDER
+}
 
 /**
  * Split identifier on key and name
@@ -879,14 +886,14 @@ function createRootContainerScope(blueprint, rootData) {
                 locals[pairIndex++] = [entry, inst];
             });
             locals.sort(function (lhv, rhv) {
-                return (lhv[0].disposeOrder || 0) - (rhv[0].disposeOrder || 0);
+                return getDisposeOrderOfEntry(lhv[0]) - getDisposeOrderOfEntry(rhv[0]);
             });
             for (var pair of locals) {
                 var inst = pair[1];
                 var entry = pair[0];
                 if (isFunc(entry.onDispose)) entry.onDispose(inst);
-                else if (hasSymbolDispose && isFunc(inst[Symbol.dispose]))
-                    inst[Symbol.dispose]();
+                else if (isSymbolDisposeSupported && isFunc(inst[symDispose]))
+                    inst[symDispose]();
                 else if (isFunc(inst.dispose)) inst.dispose();
             }
             this[$locals].clear();
@@ -894,8 +901,8 @@ function createRootContainerScope(blueprint, rootData) {
     };
 
     // istanbul ignore next
-    if (hasSymbolDispose)
-        scopePrototype[Symbol.dispose] = scopePrototype.dispose;
+    if (isSymbolDisposeSupported)
+        scopePrototype[symDispose] = scopePrototype.dispose;
 
     var rootScope = readOnly(
         Object.setPrototypeOf(
