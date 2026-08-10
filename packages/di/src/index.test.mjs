@@ -1,5 +1,5 @@
 import { vi, describe, test, expect } from "vitest";
-import { diBuilder, staticModule, factoryOf } from "./index";
+import { diBuilder, staticModule, factoryOf, ASTERISK } from "./index";
 
 /**
  * Executes a procedure and captures any thrown Error instance.
@@ -4189,7 +4189,9 @@ describe("Container Scope", () => {
                 var container = diBuilder().build();
 
                 // Act -----------
-                const childScope = container.scope(scopeId, { data: scopeData });
+                const childScope = container.scope(scopeId, {
+                    data: scopeData,
+                });
 
                 // Assert --------
                 expect(container.hasChildScope(scopeId)).is.true;
@@ -4307,35 +4309,34 @@ describe("Container Scope", () => {
 
             test("Child scope extends root data", () => {
                 // Arrange -----------
-                var expectedData = { foo: 'bar' }
-                var container = diBuilder({ data: expectedData }).build()
+                var expectedData = { foo: "bar" };
+                var container = diBuilder({ data: expectedData }).build();
 
                 // Act ---------------
                 var child = container.scope("child");
 
                 // Assert ------------
-                expect(container.data).toBe(expectedData)
-                expect(child.data).toBe(expectedData)
-            })
+                expect(container.data).toBe(expectedData);
+                expect(child.data).toBe(expectedData);
+            });
 
             test("Child scope data merge with root data", () => {
                 // Arrange ----------
-                var rootTag = 'foo'
-                var expectedTag = 'bar'
+                var rootTag = "foo";
+                var expectedTag = "bar";
                 var expectedValue = 42;
 
                 var container = diBuilder({
                     data: {
                         tag: rootTag,
                         value: expectedValue,
-
                     },
-                }).build()
+                }).build();
 
                 // Act --------------
-                var child = container.scope('child', {
+                var child = container.scope("child", {
                     data: { tag: expectedTag },
-                })
+                });
 
                 // Assert -----------
                 expect(container.data.tag).toBe(rootTag);
@@ -4343,25 +4344,25 @@ describe("Container Scope", () => {
 
                 expect(child.data.tag).toBe(expectedTag);
                 expect(child.data.value).toBe(expectedValue);
-            })
+            });
 
             test("Isolated child not extends root data", () => {
                 // Arrange -----------
                 var container = diBuilder({
                     data: { value: 42 },
-                }).build()
+                }).build();
 
                 // Act ---------------
                 var child = container.scope("child", {
                     data: { tag: "foo" },
                     isolated: true,
-                })
+                });
 
                 // Assert ------------
-                expect(container.data.value).toBe(42)
+                expect(container.data.value).toBe(42);
                 expect(child.data.value).toBeUndefined();
                 expect(child.data.tag).toBe("foo");
-            })
+            });
 
             test("WHEN: Create scope via factory binding", () => {
                 // Arrange ------
@@ -4856,6 +4857,87 @@ describe("Container Scope", () => {
             expect(container.isDisposed).is.true;
         });
 
+        test("WHEN: Auto-dispose via defined onDispose delegate", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var closeDelegate = vi.fn();
+
+            var factory = () => ({ close: closeDelegate });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    onDispose: (inst) => inst.close(),
+                })
+                .build();
+
+            var childScope = container.scope("child");
+            childScope.get(typeKey);
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(closeDelegate).toHaveBeenCalledOnce();
+            expect(childScope.isDisposed).is.true;
+        });
+
+        test("WHEN: onDispose replaces instance.dispose() call", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var onDisposeFn = vi.fn();
+            var disposeFn = vi.fn();
+
+            var factory = () => ({ dispose: disposeFn });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    onDispose: onDisposeFn,
+                })
+                .build();
+
+            var childScope = container.scope("child");
+            childScope.get(typeKey);
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(onDisposeFn).toHaveBeenCalledOnce();
+            expect(disposeFn).not.toHaveBeenCalled();
+            expect(childScope.isDisposed).is.true;
+        });
+
+        test("WHEN: onDispose has priority over Symbol.dispose", () => {
+            // Arrange -------
+            var typeKey = "typeKey";
+            var onDisposeFn = vi.fn();
+            var symbolDisposeFn = vi.fn();
+
+            var factory = () => ({
+                [Symbol.dispose]: symbolDisposeFn,
+            });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, factory, {
+                    lifecycle: "scope",
+                    onDispose: onDisposeFn,
+                })
+                .build();
+
+            var childScope = container.scope("child");
+            childScope.get(typeKey);
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(onDisposeFn).toHaveBeenCalledOnce();
+            expect(symbolDisposeFn).not.toHaveBeenCalled();
+            expect(childScope.isDisposed).is.true;
+        });
+
         test("WHEN: Auto-dispose local instances with 'Symbol.dispose'", () => {
             // Arrange -------
             var typeKey = "typeKey";
@@ -5060,6 +5142,902 @@ describe("Container Scope", () => {
 
             // Assert -----------
             expect(inst).toBe(scopeData);
+        });
+    });
+
+    describe("Dispose Ordering", () => {
+        test("WHEN: Instances are disposed in order by disposeOrder (lower first)", () => {
+            // Arrange -------
+            var callOrder = [];
+
+            var factoryA = () => ({
+                dispose() {
+                    callOrder.push("A");
+                },
+            });
+            var factoryB = () => ({
+                dispose() {
+                    callOrder.push("B");
+                },
+            });
+            var factoryC = () => ({
+                dispose() {
+                    callOrder.push("C");
+                },
+            });
+
+            var container = diBuilder()
+                .bindFactory("A", factoryA, {
+                    lifecycle: "scope",
+                    disposeOrder: 10,
+                })
+                .bindFactory("B", factoryB, {
+                    lifecycle: "scope",
+                    disposeOrder: 5,
+                })
+                .bindFactory("C", factoryC, {
+                    lifecycle: "scope",
+                    disposeOrder: 0,
+                })
+                .build();
+
+            var childScope = container.scope("child");
+            childScope.get("A");
+            childScope.get("B");
+            childScope.get("C");
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(callOrder).toEqual(["C", "B", "A"]);
+            expect(childScope.isDisposed).is.true;
+        });
+
+        test("WHEN: disposeOrder works with dispose", () => {
+            // Arrange -------
+            var callOrder = [];
+
+            var onDisposeA = vi.fn(() => callOrder.push("A"));
+            var onDisposeB = vi.fn(() => callOrder.push("B"));
+
+            var container = diBuilder()
+                .bindFactory("A", () => ({}), {
+                    lifecycle: "scope",
+                    disposeOrder: 10,
+                    onDispose: onDisposeA,
+                })
+                .bindFactory("B", () => ({}), {
+                    lifecycle: "scope",
+                    disposeOrder: 5,
+                    onDispose: onDisposeB,
+                })
+                .build();
+
+            var childScope = container.scope("child");
+            childScope.get("A");
+            childScope.get("B");
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            expect(callOrder).toEqual(["B", "A"]);
+            expect(childScope.isDisposed).is.true;
+        });
+
+        test("WHEN: Entries without disposeOrder default to 0", () => {
+            // Arrange -------
+            var callOrder = [];
+
+            var facDefault = () => ({
+                dispose() {
+                    callOrder.push("default");
+                },
+            });
+            var facWithOrder = () => ({
+                dispose() {
+                    callOrder.push("ordered");
+                },
+            });
+
+            var container = diBuilder()
+                .bindFactory("A", facDefault, { lifecycle: "scope" })
+                .bindFactory("B", facWithOrder, {
+                    lifecycle: "scope",
+                    disposeOrder: 5,
+                })
+                .build();
+
+            var childScope = container.scope("child");
+            childScope.get("A");
+            childScope.get("B");
+
+            // Act -----------
+            childScope.dispose();
+
+            // Assert --------
+            // default (implicit 0) < 5 → A disposed before B
+            expect(callOrder).toEqual(["default", "ordered"]);
+            expect(childScope.isDisposed).is.true;
+        });
+    });
+
+    describe("Per-binding onActivated", () => {
+        test("WHEN: onActivated callback is invoked after factory creates the instance", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+            var onActivatedHandler = vi.fn();
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => instance, {
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            var resolved = container.get(typeKey);
+
+            // Assert ----------
+            expect(resolved).toBe(instance);
+            expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
+                instance,
+            );
+        });
+
+        test("WHEN: onActivated is called BEFORE middleware.onActivated", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var callOrder = [];
+            var instance = { value: 42 };
+
+            var middlewareOnActivated = vi.fn(function (_, inst) {
+                callOrder.push("middleware");
+                return inst;
+            });
+            var perBindingOnActivated = vi.fn(function () {
+                callOrder.push("per-binding");
+            });
+
+            var container = diBuilder()
+                .use({ onActivated: middlewareOnActivated })
+                .bindFactory(typeKey, () => instance, {
+                    onActivated: perBindingOnActivated,
+                })
+                .build();
+
+            // Act -------------
+            container.get(typeKey);
+
+            // Assert ----------
+            expect(callOrder).toEqual(["per-binding", "middleware"]);
+        });
+
+        test("WHEN: onActivated is NOT called when instance is reused from cache", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+            var onActivatedHandler = vi.fn();
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => instance, {
+                    lifecycle: "singleton",
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            container.get(typeKey);
+            container.get(typeKey);
+
+            // Assert ----------
+            // Called only once — for the first resolution
+            expect(onActivatedHandler).toHaveBeenCalledTimes(1);
+        });
+
+        test("WHEN: onActivated return value is ignored (cannot replace instance)", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var originalInstance = { value: 42 };
+            var replacementInstance = { value: 99 };
+
+            var onActivatedHandler = vi.fn(function () {
+                return replacementInstance;
+            });
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => originalInstance, {
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            var resolved = container.get(typeKey);
+
+            // Assert ----------
+            // Return value is ignored, original instance is used
+            expect(resolved).toBe(originalInstance);
+            expect(resolved).not.toBe(replacementInstance);
+        });
+
+        test("WHEN: onActivated works with named bindings", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var name = "myName";
+            var instance = { value: 42 };
+            var onActivatedHandler = vi.fn();
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => instance, {
+                    name: name,
+                    onActivated: onActivatedHandler,
+                })
+                .build();
+
+            // Act -------------
+            var resolved = container.get(typeKey, name);
+
+            // Assert ----------
+            expect(resolved).toBe(instance);
+            expect(onActivatedHandler).toHaveBeenCalledExactlyOnceWith(
+                instance,
+            );
+        });
+    });
+
+    describe("Asterisk Binding", () => {
+        test("WHEN: Asterisk binding is used as fallback for unknown name", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var defaultInst = { value: "default" };
+            var namedInst = { value: "named" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, defaultInst, { name: ASTERISK })
+                .bindInstance(typeKey, namedInst, { name: "specific" })
+                .build();
+
+            // Act -------------
+            var exact = container.get(typeKey, "specific");
+            var unknown = container.get(typeKey, "unknown");
+
+            // Assert ----------
+            expect(exact).toBe(namedInst);
+            expect(unknown).toBe(defaultInst);
+        });
+
+        test("WHEN: Asterisk binding is used as fallback for unnamed lookup", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var defaultInst = { value: "default" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, defaultInst, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.get(typeKey);
+
+            // Assert ----------
+            // Unnamed lookup ('typeKey' without name) should NOT fall back to asterisk
+            // because name is undefined, not an "unknown name"
+            expect(result).toBe(defaultInst);
+        });
+
+        test("WHEN: Asterisk binding is used as fallback for maybe", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var defaultInst = { value: "default" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, defaultInst, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.maybe(typeKey, "anything");
+
+            // Assert ----------
+            expect(result).toBe(defaultInst);
+        });
+
+        test("WHEN: Asterisk binding is used as fallback for getAll", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var defaultInst = { value: "default" };
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => defaultInst, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var results = container.getAll(typeKey, "anything");
+
+            // Assert ----------
+            expect(results).toEqual([defaultInst]);
+        });
+
+        test("WHEN: Asterisk binding is used as fallback for providerOf", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var defaultInst = { value: "default" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, defaultInst, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var provide = container.providerOf(typeKey, "anything");
+
+            // Assert ----------
+            expect(provide()).toBe(defaultInst);
+        });
+
+        test("WHEN: Explicit asterisk lookup returns asterisk binding directly", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var defaultInst = { value: "default" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, defaultInst, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.get(typeKey, ASTERISK);
+
+            // Assert ----------
+            expect(result).toBe(defaultInst);
+        });
+
+        test("WHEN: Asterisk factory receives the originally requested name in ctx.name", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var capturedName = undefined;
+
+            var container = diBuilder()
+                .bindFactory(
+                    typeKey,
+                    (_, ctx) => {
+                        capturedName = ctx.name;
+                        return { value: ctx.name };
+                    },
+                    { name: ASTERISK },
+                )
+                .build();
+
+            // Act -------------
+            var result = container.get(typeKey, "dynamicName");
+
+            // Assert ----------
+            // ctx.name should be the originally requested name, not '*'
+            expect(capturedName).toBe("dynamicName");
+            expect(result.value).toBe("dynamicName");
+        });
+
+        test("WHEN: Asterisk factory receives undefined for unnamed lookup (forked entry has no name)", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var capturedName = "not-set";
+
+            var container = diBuilder()
+                .bindFactory(
+                    typeKey,
+                    (_, ctx) => {
+                        capturedName = ctx.name;
+                        return {};
+                    },
+                    { name: ASTERISK },
+                )
+                .build();
+
+            // Act -------------
+            container.get(typeKey);
+
+            // Assert ----------
+            // No name was requested → forked entry has no name → ctx.name is undefined
+            expect(capturedName).toBeUndefined();
+        });
+
+        test("WHEN: Asterisk factory receives requested name via maybe", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var capturedName = undefined;
+
+            var container = diBuilder()
+                .bindFactory(
+                    typeKey,
+                    (_, ctx) => {
+                        capturedName = ctx.name;
+                        return {};
+                    },
+                    { name: ASTERISK },
+                )
+                .build();
+
+            // Act -------------
+            container.maybe(typeKey, "viaMaybe");
+
+            // Assert ----------
+            expect(capturedName).toBe("viaMaybe");
+        });
+
+        test("WHEN: Asterisk factory receives requested name via providerOf", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var capturedName = undefined;
+
+            var container = diBuilder()
+                .bindFactory(
+                    typeKey,
+                    (_, ctx) => {
+                        capturedName = ctx.name;
+                        return {};
+                    },
+                    { name: ASTERISK },
+                )
+                .build();
+
+            // Act -------------
+            container.providerOf(typeKey, "viaProvider")();
+
+            // Assert ----------
+            expect(capturedName).toBe("viaProvider");
+        });
+
+        test("WHEN: Exact named binding receives its own name (not asterisk fallback)", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var capturedName = undefined;
+
+            var container = diBuilder()
+                .bindFactory(
+                    typeKey,
+                    (_, ctx) => {
+                        capturedName = ctx.name;
+                        return {};
+                    },
+                    { name: "specific" },
+                )
+                .build();
+
+            // Act -------------
+            container.get(typeKey, "specific");
+
+            // Assert ----------
+            // Exact match: ctx.name equals the entry name
+            expect(capturedName).toBe("specific");
+        });
+
+        test("WHEN: Asterisk binding does NOT fallback when exact named binding exists", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var defaultInst = { value: "default" };
+            var namedInst = { value: "named" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, defaultInst, { name: ASTERISK })
+                .bindInstance(typeKey, namedInst, { name: "exact" })
+                .build();
+
+            // Act -------------
+            var result = container.get(typeKey, "exact");
+
+            // Assert ----------
+            expect(result).toBe(namedInst);
+            expect(result).not.toBe(defaultInst);
+        });
+
+        test("WHEN: Multi-binding for asterisk throws an error", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            // Act & Assert ----
+            var error = catchError(() => {
+                diBuilder()
+                    .bindInstance(typeKey, "first", { name: ASTERISK })
+                    .bindInstance(typeKey, "second", {
+                        name: ASTERISK,
+                        ifConflict: "append",
+                    })
+                    .build();
+            });
+
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("does not support multi-binding");
+        });
+
+        test("WHEN: Asterisk alias resolves to the target binding", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instance = { value: "main" };
+
+            var container = diBuilder()
+                .bindFactory(typeKey, () => instance, { lifecycle: "lazy" })
+                .bindAlias(typeKey, typeKey, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.get(typeKey, "anyName");
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: Asterisk alias makes named and unnamed resolution return the same instance", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instance = { value: "shared" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instance)
+                .bindAlias(typeKey, typeKey, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var named = container.get(typeKey, "anyName");
+            var unnamed = container.get(typeKey);
+
+            // Assert ----------
+            expect(named).toBe(instance);
+            expect(unnamed).toBe(instance);
+        });
+
+        test("WHEN: maybe resolves through asterisk alias", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instance = { value: "ok" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instance)
+                .bindAlias(typeKey, typeKey, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.maybe(typeKey, "anyName");
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: explicit get(type, ASTERISK) resolves through asterisk alias", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instance = { value: "explicit" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instance)
+                .bindAlias(typeKey, typeKey, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var result = container.get(typeKey, ASTERISK);
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: Asterisk alias to non-existent binding fails at build", () => {
+            // Arrange ---------
+            var typeKey = "service";
+
+            // Act -------------
+            var error = catchError(function () {
+                diBuilder()
+                    .bindAlias(typeKey, "nonExistent", { name: ASTERISK })
+                    .build();
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("refers to missing binding");
+        });
+
+        test("WHEN: getAll(type, *) returns all instances of the type regardless of name", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instA = { value: "A" };
+            var instB = { value: "B" };
+            var instDefault = { value: "default" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instDefault)
+                .bindInstance(typeKey, instA, { name: "A" })
+                .bindInstance(typeKey, instB, { name: "B" })
+                .build();
+
+            // Act -------------
+            var results = container.getAll(typeKey, ASTERISK);
+
+            // Assert ----------
+            expect(results).toHaveLength(3);
+            expect(results).toContain(instDefault);
+            expect(results).toContain(instA);
+            expect(results).toContain(instB);
+        });
+
+        test("WHEN: getAll(type, *) returns only matching type, not other types", () => {
+            // Arrange ---------
+            var typeKeyA = "typeKeyA";
+            var typeKeyB = "typeKeyB";
+            var instA = { value: "A" };
+            var instB = { value: "B" };
+
+            var container = diBuilder()
+                .bindInstance(typeKeyA, instA, { name: "x" })
+                .bindInstance(typeKeyB, instB, { name: "y" })
+                .build();
+
+            // Act -------------
+            var results = container.getAll(typeKeyA, ASTERISK);
+
+            // Assert ----------
+            expect(results).toHaveLength(1);
+            expect(results[0]).toBe(instA);
+        });
+
+        test("WHEN: getAll(type, *) returns empty array when no bindings exist", () => {
+            // Arrange ---------
+            var container = diBuilder().build();
+
+            // Act -------------
+            var results = container.getAll("nonexistent", ASTERISK);
+
+            // Assert ----------
+            expect(results).toEqual([]);
+        });
+
+        test("WHEN: getAll(type, *) includes multi-binding entries", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instA = { value: "A" };
+            var instB = { value: "B" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instA, {
+                    name: "A",
+                    ifConflict: "append",
+                })
+                .bindInstance(typeKey, instB, {
+                    name: "A",
+                    ifConflict: "append",
+                })
+                .build();
+
+            // Act -------------
+            var results = container.getAll(typeKey, ASTERISK);
+
+            // Assert ----------
+            expect(results).toHaveLength(2);
+            expect(results).toContain(instA);
+            expect(results).toContain(instB);
+        });
+
+        test("WHEN: getAll(type, *) excludes the asterisk binding itself", () => {
+            // Arrange ---------
+            var typeKey = "service";
+            var instA = { value: "A" };
+            var defaultInst = { value: "default" };
+
+            var container = diBuilder()
+                .bindInstance(typeKey, instA, { name: "A" })
+                .bindInstance(typeKey, defaultInst, { name: ASTERISK })
+                .build();
+
+            // Act -------------
+            var results = container.getAll(typeKey, ASTERISK);
+
+            // Assert ----------
+            // Only the concrete binding, not the asterisk fallback
+            expect(results).toHaveLength(1);
+            expect(results[0]).toBe(instA);
+        });
+
+        test("WHEN: get(type, ASTERISK) throws when no asterisk binding exists", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: "only" }, { name: "specific" })
+                .build();
+
+            // Act -------------
+            var error = catchError(function () {
+                container.get(typeKey, ASTERISK);
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("Binding not found");
+        });
+    });
+
+    describe("Scope allowed list", () => {
+        test("WHEN: allowed type can be resolved from restricted scope", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+
+            var container = diBuilder().bindInstance(typeKey, instance).build();
+
+            var childScope = container.scope("child", {
+                allowedList: [typeKey],
+            });
+
+            // Act -------------
+            var result = childScope.get(typeKey);
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: disallowed type throws from restricted scope", () => {
+            // Arrange ---------
+            var typeKeyA = "typeKeyA";
+            var typeKeyB = "typeKeyB";
+
+            var container = diBuilder()
+                .bindInstance(typeKeyA, { value: "A" })
+                .bindInstance(typeKeyB, { value: "B" })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: [typeKeyA],
+            });
+
+            // Act -------------
+            var error = catchError(function () {
+                childScope.get(typeKeyB);
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("not accessible in scope");
+        });
+
+        test("WHEN: maybe returns undefined for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var result = childScope.maybe(typeKey);
+
+            // Assert ----------
+            expect(result).toBeUndefined();
+        });
+
+        test("WHEN: getAll returns empty array for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var results = childScope.getAll(typeKey);
+
+            // Assert ----------
+            expect(results).toEqual([]);
+        });
+
+        test("WHEN: providerOf throws for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var error = catchError(function () {
+                childScope.providerOf(typeKey)();
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("not accessible in scope");
+        });
+
+        test("WHEN: phantomOf throws for disallowed type", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: 42 })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: ["other"],
+            });
+
+            // Act -------------
+            var error = catchError(function () {
+                childScope.phantomOf(typeKey);
+            });
+
+            // Assert ----------
+            expect(error).toBeInstanceOf(Error);
+            expect(error.message).toContain("not accessible in scope");
+        });
+
+        test("WHEN: factory dependencies bypass allowedList restriction", () => {
+            // Arrange ---------
+            var depKey = "dep";
+            var serviceKey = "service";
+
+            var container = diBuilder()
+                .bindInstance(depKey, { value: "dep" })
+                .bindFactory(serviceKey, function (r) {
+                    return { dep: r.get(depKey) };
+                }, { lifecycle: "transient" })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: [serviceKey],
+            });
+
+            // Act -------------
+            var result = childScope.get(serviceKey);
+
+            // Assert ----------
+            // Factory internally resolved 'dep' — it should work, not throw
+            expect(result.dep.value).toBe("dep");
+        });
+
+        test("WHEN: scope without allowedList has no restrictions", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var instance = { value: 42 };
+
+            var container = diBuilder().bindInstance(typeKey, instance).build();
+
+            var childScope = container.scope("child");
+
+            // Act -------------
+            var result = childScope.get(typeKey);
+
+            // Assert ----------
+            expect(result).toBe(instance);
+        });
+
+        test("WHEN: allowedList works with named bindings", () => {
+            // Arrange ---------
+            var typeKey = "typeKey";
+            var nameA = "nameA";
+            var nameB = "nameB";
+
+            var container = diBuilder()
+                .bindInstance(typeKey, { value: "A" }, { name: nameA })
+                .bindInstance(typeKey, { value: "B" }, { name: nameB })
+                .build();
+
+            var childScope = container.scope("child", {
+                allowedList: [typeKey],
+            });
+
+            // Act -------------
+            var resultA = childScope.get(typeKey, nameA);
+            var resultB = childScope.get(typeKey, nameB);
+
+            // Assert ----------
+            expect(resultA.value).toBe("A");
+            expect(resultB.value).toBe("B");
         });
     });
 });

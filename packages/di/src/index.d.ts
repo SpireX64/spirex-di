@@ -5,6 +5,28 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     ? I
     : never;
 
+/** A char used to separate the type and name in the unique ID of a binding */
+export declare const ID_SEP: string;
+
+/**
+ * A wildcard name constant for fallback bindings.
+ *
+ * When a binding is registered with `name: ASTERISK` (i.e. '*'),
+ * it serves as a default fallback for any name that doesn't have an exact match.
+ *
+ * @example
+ * ```ts
+ * binder
+ *   .bindFactory('service', factoryOf(DefaultService), { name: ASTERISK })
+ *   .bindFactory('service', factoryOf(SpecialService), { name: 'special' });
+ *
+ * // 'special' → SpecialService (exact match)
+ * // 'unknown' → DefaultService (asterisk fallback)
+ * ```
+ * @since 1.3.0
+ */
+export declare const ASTERISK: string;
+
 /**
  * A map of string keys to types used in the DI container.
  * Each key represents a type token, and its value is the type of the instance bound to that token.
@@ -191,6 +213,16 @@ export type TScopeOptions = {
     isolated?: boolean;
 
     /**
+     * Restricts direct resolution in this scope to only the listed types.
+     *
+     * This restriction applies only to DIRECT resolution via scope methods.
+     * Dependencies requested by factories from within this scope are **not** restricted.
+     *
+     * @since 1.3.0
+     */
+    allowedList?: ReadonlyArray<string>;
+
+    /**
      * Optional contextual data associated with this scope.
      *
      * For non-isolated scopes, this object is shallow-merged with parent scope data
@@ -252,6 +284,40 @@ export type TFactoryBindingOptions<
      * @since 1.1.0
      */
     withScope?: TScopeOptions | boolean;
+
+    /**
+     * A per-binding callback invoked immediately after the factory creates the instance.
+     *
+     * Called before `middleware.onActivated`. Cannot replace the instance -
+     * the return value is ignored. Use this for lightweight post-construction
+     * setup (e.g. calling `init()`, setting optional properties).
+     *
+     * For transforming or wrapping instances, use `middleware.onActivated` instead.
+     *
+     * @param inst - The freshly created instance.
+     * @since 1.3.0
+     *
+     * @example
+     * b.bindFactory('type', factoryOf(Service), {
+     *   onActivated: srv => srv.postConstruct(),
+     * })
+     */
+    onActivated?: (inst: TypeMap[T]) => void;
+
+    /**
+     * A per-binding callback invoked when a scope-local instance is disposed.
+     * @param inst - The instance being disposed.
+     * @since 1.3.0
+     */
+    onDispose?: (inst: TypeMap[T]) => void;
+
+    /**
+     * Controls the order in which instances are disposed within a scope.
+     *
+     * Lower values are disposed first. Defaults to `0` when not specified.
+     * @since 1.3.0
+     */
+    disposeOrder?: number;
 };
 
 /** Options for configuring an alias binding. */

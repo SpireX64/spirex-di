@@ -1,13 +1,18 @@
 /** A char used to separate the type and name in the unique ID of a binding */
-var ID_SEP = "$";
+export var ID_SEP = "$";
+
+/** A constant representing a wildcard (asterisk) name for fallback bindings */
+export var ASTERISK = "*";
+
 var STRATEGY_APPEND = "append";
 var LC_SINGLETON = "singleton";
 
-var hasSymbolDispose = typeof Symbol.dispose === "symbol";
+var symDispose = Symbol.dispose
+var isSymbolDisposeSupported = typeof symDispose === "symbol";
 
 // #region Shortcuts
 
-/** 
+/**
  * @typedef {{string: string, number: number, boolean: boolean, symbol: symbol, bigint: bigint, undefined: undefined, function: Function, object: object|null}} TypeofMap
  */
 
@@ -18,7 +23,7 @@ var hasSymbolDispose = typeof Symbol.dispose === "symbol";
  */
 var lastOf = (array) => array[len(array) - 1];
 
-var firstValueOfIter = (iter) => iter.values().next().value
+var firstValueOfIter = (iter) => iter.values().next().value;
 
 /** @type {<T>(t: T, o) => o is InstanceType<T>} */
 var instOf = (t, o) => o instanceof t;
@@ -80,6 +85,10 @@ function chainToString(chain, key) {
     return chain.map((it) => (it === key ? `[${it}]` : it)).join(sep);
 }
 
+function fnName(n, fn) {
+    return Object.defineProperty(fn, "name", { value: n });
+}
+
 /**
  * Creates a unique identifier string for a binding entry based on its type and optional name.
  *
@@ -92,7 +101,13 @@ function chainToString(chain, key) {
  */
 var makeEntryId = (type, name) => (name ? type + ID_SEP + name : type);
 
-var getEntryId = (entry) => entry.$id
+var getEntryId = (entry) => entry.$id;
+
+var DEFAULT_DISPOSE_ORDER = 0;
+
+function getDisposeOrderOfEntry(entry) {
+    return entry.disposeOrder || DEFAULT_DISPOSE_ORDER
+}
 
 /**
  * Split identifier on key and name
@@ -128,8 +143,7 @@ var ErrorMiddlewareEntryTypeMismatch = (
     originEntryId,
 ) =>
     `Middleware "${middlewareName || "unnamed"}" changed entry type: expected '${originEntryId}', got '${newEntryId}'`;
-var ErrorTypeBindingNotFound = (type, name) =>
-    `Binding not found: ${type}${name ? `("${name}")` : ""}`;
+var ErrorTypeBindingNotFound = (id) => `Binding not found: ${id}`;
 var ErrorDependenciesCycle = (entryType, chain) =>
     `Dependency cycle: '${entryType}' (${chainToString(chain, entryType)})`;
 var ErrorMixedLifecycleBindings = (type, lifecycleA, lifecycleB) =>
@@ -146,6 +160,8 @@ var ErrorChildScopeCreationAfterDispose = (
     scopeHierarchy,
 ) =>
     `Scope disposed: "${childScopeId}" @ "${chainToString(scopeHierarchy, scopeId)}"`;
+var ErrorAsteriskMultibinding = (type) =>
+    `Asterisk binding "${type}${ID_SEP}*" does not support multi-binding`;
 
 // #endregion
 
@@ -218,6 +234,10 @@ function createContainerBlueprint() {
         );
     }
 
+    function hasMwHook(hook) {
+        return middlewareVirtualTable[hook].length > 0;
+    }
+
     function addMw(middleware) {
         mws.add(middleware);
         for (var hookName of listOfMiddlewareHooks) {
@@ -269,6 +289,23 @@ function createContainerBlueprint() {
         return isTypeEntry(typeEntry)
             ? Array.of(typeEntry)
             : Array.from(typeEntry);
+    }
+
+    /**
+     * Find all entries for a given type, regardless of name.
+     * Returns entries for both unnamed (`type`) and all named (`type$name`) bindings.
+     */
+    function findAllOfType(type) {
+        var prefix = type + ID_SEP;
+        var results = [];
+        forEach(function (entry, key) {
+            if (
+                (key === type || key.startsWith(prefix)) &&
+                entry.name !== ASTERISK
+            )
+                results.push(entry);
+        });
+        return results;
     }
 
     var forEach = findInMapSet.bind(null, entries);
@@ -343,6 +380,9 @@ function createContainerBlueprint() {
                     ),
                 );
         });
+
+        if (entryToBind.name === ASTERISK && multibinding)
+            throw new Error(ErrorAsteriskMultibinding(entryToBind.type));
 
         readOnly(entryToBind);
 
@@ -419,11 +459,13 @@ function createContainerBlueprint() {
         hasMw,
         addMw,
         callMw,
+        hasMwHook,
         hasMod,
         addMod,
         findE,
         findAlias,
         findEs,
+        findAllOfType,
         forEach,
         forEachAlias,
         find,
@@ -436,10 +478,9 @@ function createContainerBlueprint() {
 }
 
 function mergeScopeData(data, parent) {
-    var parentData = (parent && parent.data);
-    if (data)
-        return parentData ? { ...parentData, ...data } : data
-    return parentData
+    var parentData = parent && parent.data;
+    if (data) return parentData ? { ...parentData, ...data } : data;
+    return parentData;
 }
 
 function createRootContainerScope(blueprint, rootData) {
@@ -471,12 +512,13 @@ function createRootContainerScope(blueprint, rootData) {
     }
 
     function createScopeObject(id, parent, options = {}) {
-        var { sealed = false, isolated = false, data } = options;
+        var { sealed = false, isolated = false, data, allowedList } = options;
         return {
             id,
             data: isolated ? data : mergeScopeData(data, parent),
             sealed,
             isolated,
+            allowedList,
             path: makeScopePath(id, parent),
             [$root]: parent && (parent[$root] || parent),
             [$parent]: parent,
@@ -537,15 +579,19 @@ function createRootContainerScope(blueprint, rootData) {
             ? entry.factory(entry.injector(scope, ctx), ctx)
             : entry.factory(scope, ctx);
 
+        if (isFunc(entry.onActivated)) entry.onActivated(instance);
+
         // Call 'OnActivated' middleware
-        instance = blueprint.callMw(
-            "onActivated",
-            1,
-            entry,
-            instance,
-            scope,
-            activationStack.slice(),
-        );
+        if (blueprint.hasMwHook("onActivated")) {
+            instance = blueprint.callMw(
+                "onActivated",
+                1,
+                entry,
+                instance,
+                scope,
+                activationStack.slice(),
+            );
+        }
 
         // Remove the entry from the activation stack after successful creation
         activationStack.pop();
@@ -633,17 +679,23 @@ function createRootContainerScope(blueprint, rootData) {
             }
         }
 
-        return blueprint.callMw(
-            "onResolve",
-            1,
-            resolutionStack.pop(),
-            instance,
-            scope,
-            resolutionStack,
-        );
+        if (blueprint.hasMwHook("onResolve")) {
+            return blueprint.callMw(
+                "onResolve",
+                1,
+                resolutionStack.pop(),
+                instance,
+                scope,
+                resolutionStack,
+            );
+        }
+        resolutionStack.pop();
+        return instance;
     }
 
     function onRequestMiddleware(scope, entry, type, name) {
+        if (!blueprint.hasMwHook("onRequest")) return entry;
+
         return (
             blueprint.callMw(
                 "onRequest",
@@ -669,19 +721,43 @@ function createRootContainerScope(blueprint, rootData) {
     }
 
     function makeProviderFunc(scope, entry) {
-        var providerFuncName = "get" + entry.$id;
-        return {
-            // Deanonymize the function by giving it a specific name
-            [providerFuncName]: function () {
-                entry = onRequestMiddleware(
-                    scope,
-                    entry,
-                    entry.type,
-                    entry.name,
-                );
-                return getInstance.call(scope, scope, entry);
-            },
-        }[providerFuncName];
+        return fnName(entry.$id, () => {
+            entry = onRequestMiddleware(scope, entry, entry.type, entry.name);
+            return getInstance.call(scope, scope, entry);
+        });
+    }
+
+    /**
+     * Resolves an entry by type and name, falling back to asterisk binding.
+     * When the fallback is used, creates a fork of the asterisk entry with
+     * the requested name, so each unique name gets its own cached instance.
+     */
+    function resolveOrForkEntry(type, name) {
+        var $id = makeEntryId(type, name);
+        var entry = blueprint.findE($id);
+        if (entry) return entry;
+
+        if (name === ASTERISK) return undefined;
+
+        entry = blueprint.findE(makeEntryId(type, ASTERISK));
+        if (entry) {
+            var forkedEntry = readOnly({ ...entry, $id, name });
+            blueprint.entries.set($id, forkedEntry);
+            return forkedEntry;
+        }
+    }
+
+    /**
+     * Resolves all entries by type and name, falling back to asterisk binding.
+     */
+    function resolveEntries(type, name) {
+        // getAll(type, ASTERISK) - return ALL entries for the type
+        if (name === ASTERISK) return blueprint.findAllOfType(type);
+
+        var entries = blueprint.findEs(makeEntryId(type, name));
+        if (!entries.length)
+            entries = blueprint.findEs(makeEntryId(type, ASTERISK));
+        return entries;
     }
 
     var scopePrototype = {
@@ -694,17 +770,23 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         get(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
-            if (!entry) throw new Error(ErrorTypeBindingNotFound(type, name));
+            var $id = makeEntryId(type, name);
+            assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                throw new Error(ErrorScopeViolation(this.id, type));
+            var entry = resolveOrForkEntry(type, name);
+            if (!entry) throw new Error(ErrorTypeBindingNotFound($id));
 
             entry = onRequestMiddleware(this, entry, type, name);
             return getInstance(this, entry);
         },
 
         maybe(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
+            var $id = makeEntryId(type, name);
+            assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                return undefined;
+            var entry = resolveOrForkEntry(type, name);
             if (!entry) return undefined;
 
             entry = onRequestMiddleware(this, entry, type, name);
@@ -712,30 +794,38 @@ function createRootContainerScope(blueprint, rootData) {
         },
 
         getAll(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            return blueprint
-                .findEs(type, name)
+            var $id = makeEntryId(type, name);
+            assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                return [];
+            return resolveEntries(type, name)
                 .map((entry) => onRequestMiddleware(this, entry, type, name))
                 .map((entry) => getInstance(this, entry, true));
         },
 
         providerOf(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
+            var $id = makeEntryId(type, name);
+            assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                throw new Error(ErrorScopeViolation(this.id, type));
+            var entry = resolveOrForkEntry(type, name);
             if (entry) return makeProviderFunc(this, entry);
-            throw new Error(ErrorTypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound($id));
         },
 
         phantomOf(type, name) {
-            assertScopeNotDisposedToResolve.call(this, type, name);
-            var entry = blueprint.findE(type, name);
+            var $id = makeEntryId(type, name);
+            assertScopeNotDisposedToResolve.call(this, $id);
+            if (this.allowedList && !listContains(this.allowedList, type) && !activationStack.length)
+                throw new Error(ErrorScopeViolation(this.id, type));
+            var entry = resolveOrForkEntry(type, name);
             if (entry)
                 return (
                     getInstance(this, entry, true, true) ||
                     phantomProxy(makeProviderFunc(this, entry))
                 );
 
-            throw new Error(ErrorTypeBindingNotFound(type, name));
+            throw new Error(ErrorTypeBindingNotFound($id));
         },
 
         hasChildScope(id) {
@@ -787,19 +877,32 @@ function createRootContainerScope(blueprint, rootData) {
                 parent[$scopes].delete(this.id);
             }
 
-            // Dispose local instances
-            this[$locals].forEach((inst) => {
-                if (hasSymbolDispose && isFunc(inst[Symbol.dispose]))
-                    inst[Symbol.dispose]();
-                else if (isFunc(inst.dispose)) inst.dispose();
+            // Dispose local instances in order by disposeOrder (lower first, default 0)
+            // Priority per instance: onDispose (binding-level) > Symbol.dispose > .dispose()
+            // onDispose takes full responsibility — standard protocol is skipped
+            var locals = new Array(this[$locals].size);
+            var pairIndex = 0;
+            this[$locals].forEach(function (inst, entry) {
+                locals[pairIndex++] = [entry, inst];
             });
+            locals.sort(function (lhv, rhv) {
+                return getDisposeOrderOfEntry(lhv[0]) - getDisposeOrderOfEntry(rhv[0]);
+            });
+            for (var pair of locals) {
+                var inst = pair[1];
+                var entry = pair[0];
+                if (isFunc(entry.onDispose)) entry.onDispose(inst);
+                else if (isSymbolDisposeSupported && isFunc(inst[symDispose]))
+                    inst[symDispose]();
+                else if (isFunc(inst.dispose)) inst.dispose();
+            }
             this[$locals].clear();
         },
     };
 
     // istanbul ignore next
-    if (hasSymbolDispose)
-        scopePrototype[Symbol.dispose] = scopePrototype.dispose;
+    if (isSymbolDisposeSupported)
+        scopePrototype[symDispose] = scopePrototype.dispose;
 
     var rootScope = readOnly(
         Object.setPrototypeOf(
@@ -819,7 +922,10 @@ function createRootContainerScope(blueprint, rootData) {
             // It is singleton binding
             typeEntry.lifecycle === LC_SINGLETON &&
             // Not activated yet
-            !rootScope[$locals].has(typeEntry)
+            !rootScope[$locals].has(typeEntry) &&
+            // Skip asterisk bindings
+            // they are templates, activated via fork on first use
+            typeEntry.name !== ASTERISK
         ) {
             rootScope[$locals].set(
                 typeEntry,
